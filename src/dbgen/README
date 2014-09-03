@@ -1,4 +1,4 @@
-# @(#)README	2.1.8.1
+# @(#)README	2.4.0
 
 Table of Contents
 ===================
@@ -18,21 +18,22 @@ Table of Contents
 13. Sample QGEN executions and Query Templates
 14. Environment variable
 15. Version Numbering in DBGEN and QGEN
+16. Validated Platforms
 
 0. What is this document?
 
 This is the general README file for DBGEN and QGEN, the data-
 base population and executable query text generation programs 
-used in the TPC-H and TPC-R benchmarks. It covers the proper use 
+used in the TPC-H benchmark. It covers the proper use 
 of DBGEN and QGEN. For information on porting the utility to your 
 particular platform see Porting.Notes.
 
 1. What is DBGEN?
 
-DBGEN is a database population program for use with the TPC-H and 
-TPC-R benchmarks.  It is written in ANSI 'C' for portability, and has 
+DBGEN is a database population program for use with the TPC-H benchmark.  
+It is written in ANSI 'C' for portability, and has 
 been successfully ported to over a dozen different systems. While the 
-TPC-H and TPC-R specifications allow an implementor to use any utility 
+TPC-H specification allow an implementor to use any utility 
 to populate the benchmark database, the resultant population must exactly 
 match the output of DBGEN. The source code has been provided to make the 
 process of building a compliant database population as simple as possible.
@@ -41,7 +42,7 @@ process of building a compliant database population as simple as possible.
 
 Without any command line options, DBGEN will generate 8 separate ascii
 files. Each file will contain pipe-delimited load data for one of the
-tables defined in the TPC-H and TPC-R database schemas. The default tables 
+tables defined in the TPC-H database schema. The default tables 
 will contain the load data required for a scale factor 1 database. By 
 default the file will be created in the current directory and be 
 named <table>.tbl. As an example, customer.tbl will contain the 
@@ -138,7 +139,7 @@ option  argument    default     action
 5. DBGEN limitations and compliant usage
 
 DBGEN is meant to be a robust population generator for use with the 
-TPC-H and TPC-R benchmarks. It is hoped that DBGEN will make it easier 
+TPC-H benchmark. It is hoped that DBGEN will make it easier 
 to experiment with and become proficient in the execution of TPC decision 
 support benchmarks.  As a result, it includes a number of command line 
 options which are not, strictly speaking, necessary to generate a compliant 
@@ -146,17 +147,17 @@ data set for a TPC-D run. In addition, some command line options will accept
 arguments which result in the generation of NON-COMPLIANT data sets. Options 
 which should be used with care include:
 
--s -- scale factor. TPC-H/TPC-R runs are only compliant when run against SF's 
-      of 1, 10, 30, 100, 300, 1000 ....
--r -- refresh percentage. TPC-H/TPC-R runs are only compliant when run with 
+-s -- scale factor. TPC-H runs are only compliant when run against SF's 
+      of 1, 10, 100, 300, 1000, 3000, 10000, 30000, 100000
+-r -- refresh percentage. TPC-H runs are only compliant when run with 
       -r 10, the default.
 
 6. Sample DBGEN executions
 
 DBGEN has been built to allow as much flexibility as possible, but is
 fundementally intended to generate two things: a database population 
-against which the queries in TPC-H and TPC-R can be run, and the updates 
-that are used during the update functions in TPC-H and TPC-R. Here are 
+against which the queries in TPC-H can be run, and the updates 
+that are used during the update functions in TPC-H. Here are 
 some sample uses of DBGEN.
 
   1. To generate the database population for the qualification database
@@ -177,7 +178,7 @@ some sample uses of DBGEN.
 
 7. What is QGEN?
 
-QGEN is a query generation program for use with the TPC-H and TPC-R benchmarks.
+QGEN is a query generation program for use with the TPC-H benchmark.
 It is written in ANSI 'C' for portability, and has been successfully
 ported to over a dozen different systems. While the benchmark specifications
 allow an implementor to use any utility to create the benchmark query
@@ -414,12 +415,22 @@ available with the '-h' option. A version number is of the form:
    |-------- version:      numeric, incremented for each major revision of the 
                            specification
 
-An implementation of TPC-H or TPC-R is valid only if it conforms to the 
+An implementation of TPC-H is valid only if it conforms to the 
 following version usage rules:
 
   -- The Version of DBGEN and QGEN must match the integer portion of the 
      current specification revision
 
-The current revisions are:
-  DBGEN: 1.0.1
-  QGEN:  1.0.1
+15. The current revisions are:
+    DBGEN: 2.4.0
+    QGEN:  2.4.0
+
+16. Validated Platforms
+    The following platforms have been validated to produce the reference 
+    data set for TPC-H 2.4.0
+    Processor	Operating System (version)  Compiler (version)		Compiler Flags
+    ----------------------------------------------------------------------------
+    POWER5 		AIX 64-bit (5.3)			  C for AIX Compiler, v7  -q64 (no -g)
+    IA-64		HPUX 64-bit ()		icc 		
+    Linux 32-bit ()	gcc			
+

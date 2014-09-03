@@ -1,6 +1,66 @@
 /*
- * Sccsid:     @(#)dss.h	2.1.8.5
- *
+* $Id: dss.h,v 1.10 2008/03/21 18:07:13 jms Exp $
+*
+* Revision History
+* ===================
+* $Log: dss.h,v $
+* Revision 1.10  2008/03/21 18:07:13  jms
+* update copyright date
+*
+* Revision 1.9  2006/07/31 17:23:09  jms
+* fix to parallelism problem
+*
+* Revision 1.8  2006/03/09 18:55:29  jms
+* remove vestigial cvs merge marker
+*
+* Revision 1.7  2005/10/28 03:05:05  jms
+* up maximum scale to 100TB
+*
+* Revision 1.6  2005/10/28 02:55:26  jms
+* add release.h changes
+*
+* Revision 1.5  2005/10/27 18:13:03  jms
+* a_rnd() prototype correction
+*
+* Revision 1.4  2005/10/25 17:58:59  jms
+* update version stamp
+*
+* Revision 1.3  2005/03/04 19:48:39  jms
+* Changes from Doug Johnson to address very large scale factors
+*
+* Revision 1.2  2005/01/03 20:08:58  jms
+* change line terminations
+*
+* Revision 1.1.1.1  2004/11/24 23:31:46  jms
+* re-establish external server
+*
+* Revision 1.5  2004/04/08 17:34:15  jms
+* cleanup SOLARIS/SUN ifdefs; now all use SUN
+*
+* Revision 1.4  2004/04/07 20:17:29  jms
+* bug #58 (join fails between order/lineitem)
+*
+* Revision 1.3  2004/03/16 14:37:53  jms
+* update version and copyright date; correct comment typo
+*
+* Revision 1.2  2004/02/18 14:07:20  jms
+* change to version 2.1.0
+*
+* Revision 1.1.1.1  2003/08/08 21:50:33  jms
+* recreation after CVS crash
+*
+* Revision 1.3  2003/08/08 21:35:26  jms
+* first integration of rng64 for o_custkey and l_partkey
+*
+* Revision 1.2  2003/08/07 17:58:34  jms
+* Convery RNG to 64bit space as preparation for new large scale RNG
+*
+* Revision 1.1.1.1  2003/04/03 18:54:21  jms
+* initial checkin
+*
+*
+*/
+ /*
  * general definitions and control information for the DSS code 
  * generator; if it controls the data set, it's here
  */
@@ -8,23 +68,15 @@
 #define  DSS_H
 #ifdef TPCH
 #define NAME			"TPC-H"
-#define MAJOR           1
-#define RELEASE           3
-#define MODIFICATION      0
-#define PATCH             ""
 #endif
 #ifdef TPCR
 #define NAME			"TPC-R"
-#define MAJOR           1
-#define RELEASE           3
-#define MODIFICATION      0
-#define PATCH             ""
 #endif
 #ifndef NAME
 #error Benchmark version must be defined in config.h
 #endif
 #define TPC             "Transaction Processing Performance Council"
-#define C_DATES         "1994 - 2000"
+#define C_DATES         "1994 - 2010"
 
 #include "config.h"
 #include "shared.h"
@@ -59,12 +111,9 @@
 
 #define INTERNAL_ERROR(p)  {fprintf(stderr,"%s", p);abort();}
 #define LN_CNT  4
-
-#ifdef NEED_LNOISE
 static char lnoise[4] = {'|', '/', '-', '\\' };
 #define LIFENOISE(n, var)	\
 	if (verbose > 0) fprintf(stderr, "%c\b", lnoise[(var%LN_CNT)])
-#endif
 
 #define MALLOC_CHECK(var) \
     if ((var) == NULL) \
@@ -99,6 +148,7 @@ static char lnoise[4] = {'|', '/', '-', '\\' };
          (((((key>>3)<<2)|(seq & 0x0003))<<3)|(key & 0x0007))
 
 #define RANDOM(tgt, lower, upper, stream)	dss_random(&tgt, lower, upper, stream)
+#define RANDOM64(tgt, lower, upper, stream)	dss_random64(&tgt, lower, upper, stream)
 	
      
 
@@ -120,25 +170,27 @@ typedef struct
  */
 #define DIST_SIZE(d)		d->count
 #define DIST_MEMBER(d, i)	((set_member *)((d)->list + i))->text
+#define DIST_PERMUTE(d, i)	(d->permute[i])
 
 typedef struct
 {
    char     *name;
    char     *comment;
-   long      base;
-   int       (*header) ();
-   int       (*loader[2]) ();
+   DSS_HUGE      base;
+   int       (*loader) ();
    long      (*gen_seed)();
-   int       (*verify) ();
    int       child;
-   unsigned long vtotal;
+   DSS_HUGE vtotal;
 }         tdef;
 
 typedef struct SEED_T {
 	long table;
-	long value;
-	long usage;
-	long boundary;
+	DSS_HUGE value;
+	DSS_HUGE usage;
+	DSS_HUGE boundary;
+#ifdef RNG_TEST
+	DSS_HUGE nCalls;
+#endif
 	} seed_t;
 
 
@@ -151,7 +203,7 @@ typedef struct SEED_T {
 /* bm_utils.c */
 char	*env_config PROTO((char *var, char *dflt));
 long	yes_no PROTO((char *prompt));
-int     a_rnd PROTO((int min, int max, int column, char *dest));
+void     a_rnd PROTO((int min, int max, int column, char *dest));
 int     tx_rnd PROTO((long min, long max, long column, char *tgt));
 long	julian PROTO((long date));
 long	unjulian PROTO((long date));
@@ -165,14 +217,12 @@ void	embed_str PROTO((distribution *d, int min, int max, int stream, char *dest)
 #ifndef STDLIB_HAS_GETOPT
 int		getopt PROTO((int arg_cnt, char **arg_vect, char *oprions));
 #endif /* STDLIB_HAS_GETOPT */
-long	set_state PROTO((int t, long scale, long procs, long step, long *e));
+DSS_HUGE	set_state PROTO((int t, long scale, long procs, long step, DSS_HUGE *e));
 
 /* rnd.c */
-long	NextRand PROTO((long nSeed));
-long	UnifInt PROTO((long nLow, long nHigh, long nStream));
-double	UnifReal PROTO((double dLow, double dHigh, long nStream));
-double	Exponential PROTO((double dMean, long nStream));
-void	dss_random(long *tgt, long min, long max, long seed);
+DSS_HUGE	NextRand PROTO((DSS_HUGE nSeed));
+DSS_HUGE	UnifInt PROTO((DSS_HUGE nLow, DSS_HUGE nHigh, long nStream));
+void	dss_random(DSS_HUGE *tgt, DSS_HUGE min, DSS_HUGE max, long seed);
 void	row_start(int t);
 void	row_stop(int t);
 void	dump_seeds(int t);
@@ -182,7 +232,7 @@ void	dump_seeds(int t);
 #define MAX_SENT_LEN	256 /* max length of populated sentence */
 #define RNG_PER_SENT	27	/* max number of RNG calls per sentence */
 
-int		dbg_text PROTO((char * t, int min, int max, int s));
+void		dbg_text PROTO((char * t, int min, int max, int s));
 
 #ifdef DECLARER
 #define EXTERN
@@ -223,19 +273,11 @@ EXTERN int refresh;
 EXTERN int resume;
 EXTERN long verbose;
 EXTERN long force;
-EXTERN long header;
-EXTERN long columnar;
-EXTERN long direct;
 EXTERN long updates;
 EXTERN long table;
 EXTERN long children;
-EXTERN long fnames;
-EXTERN int  gen_sql;
-EXTERN int  gen_rng;
-EXTERN char *db_name;
 EXTERN int  step;
 EXTERN int	set_seeds;
-EXTERN int  validate;
 EXTERN char *d_path;
 
 /* added for segmented updates */
@@ -266,11 +308,11 @@ extern tdef tdefs[];
 #define  P_SIZE       126
 #define  P_NAME_SCL   5
 #define  P_MFG_TAG    "Manufacturer#"
-#define  P_MFG_FMT     "%s%01ld"
+#define  P_MFG_FMT     "%%s%%0%d%s"
 #define  P_MFG_MIN     1
 #define  P_MFG_MAX     5
 #define  P_BRND_TAG   "Brand#"
-#define  P_BRND_FMT   "%s%02ld"
+#define  P_BRND_FMT   "%%s%%0%d%s"
 #define  P_BRND_MIN     1
 #define  P_BRND_MAX     5
 #define  P_SIZE_MIN    1
@@ -286,7 +328,7 @@ extern tdef tdefs[];
  */
 #define  S_SIZE     145
 #define  S_NAME_TAG "Supplier#"
-#define  S_NAME_FMT "%s%09ld"
+#define  S_NAME_FMT "%%s%%0%d%s"
 #define  S_ABAL_MIN   -99999
 #define  S_ABAL_MAX    999999
 #define  S_CMNT_MAX    101      
@@ -314,7 +356,7 @@ extern tdef tdefs[];
  */
 #define  C_SIZE       165
 #define  C_NAME_TAG   "Customer#"
-#define  C_NAME_FMT   "%s%09ld"
+#define  C_NAME_FMT   "%%s%%0%d%s"
 #define  C_MSEG_MAX    5
 #define  C_ABAL_MIN   -99999
 #define  C_ABAL_MAX    999999
@@ -323,12 +365,12 @@ extern tdef tdefs[];
  */
 #define  O_SIZE          109
 #define  O_CKEY_MIN      1
-#define  O_CKEY_MAX      (long)(tdefs[CUST].base * scale)
+#define  O_CKEY_MAX      (tdefs[CUST].base * scale)
 #define  O_ODATE_MIN     STARTDATE
 #define  O_ODATE_MAX     (STARTDATE + TOTDATE - \
                          (L_SDTE_MAX + L_RDTE_MAX) - 1)
 #define  O_CLRK_TAG      "Clerk#"
-#define  O_CLRK_FMT      "%s%09ld"
+#define  O_CLRK_FMT   "%%s%%0%d%s"
 #define  O_CLRK_SCL      1000
 #define  O_LCNT_MIN      1
 #define  O_LCNT_MAX      7
@@ -383,17 +425,11 @@ extern tdef tdefs[];
  * max and min SF in GB; Larger SF will require changes to the build routines
  */
 #define  MIN_SCALE      1.0
-#define  MAX_SCALE   1000.0
+#define  MAX_SCALE   100000.0
 /*
  * beyond this point we need to allow for BCD calculations
  */
 #define  MAX_32B_SCALE   1000.0
-#define INIT_HUGE(v)	{ \
-			v = (DSS_HUGE *)malloc(sizeof(DSS_HUGE) * HUGE_COUNT); \
-			MALLOC_CHECK(v); \
-			}
-#define FREE_HUGE(v)	free(v)
-#ifdef SUPPORT_64BITS
 #define LONG2HUGE(src, dst)		*dst = (DSS_HUGE)src	
 #define HUGE2LONG(src, dst)		*dst = (long)src
 #define HUGE_SET(src, dst)		*dst = *src	
@@ -403,26 +439,7 @@ extern tdef tdefs[];
 #define HUGE_SUB(op1, op2, dst)	*dst = *op1 - op2	
 #define HUGE_MOD(op1, op2)		*op1 % op2	
 #define HUGE_CMP(op1, op2)		(*op1 == *op2)?0:(*op1 < *op2)-1:1
-#else
-#define LONG2HUGE(src, dst)		{*dst = src; *(dst + 1) = 0;}
-#define HUGE2LONG(src, dst)		{ dst=0 ; \
-					bcd2_bin(dst, (src + 1)); \
-					bcd2_bin(dst, src); }
-#define HUGE_SET(src, dst)		{ *dst = *src ; *(dst + 1) = *(src + 1); }
-#define HUGE_MUL(op1,op2)		bcd2_mul(op1, (op1 + 1), op2)
-#define HUGE_DIV(op1,op2)		bcd2_div(op1, (op1 + 1), op2)
-#define HUGE_ADD(op1,op2,d)		{ \
-					HUGE_SET(op1, d); \
-					bcd2_add(d, (d + 1), op2); \
-					}
-#define HUGE_SUB(op1,op2,d)		{ \
-					HUGE_SET(op1, d); \
-					bcd2_sub(d, (d + 1), op2); \
-					}
-#define HUGE_MOD(op1, op2)		bcd2_mod(op1, (op1 + 1), op2)
-#define HUGE_CMP(op1, op2)		(bcd2_cmp(op1, (op1 + 1), op2) == 0)?0:\
-					    ((bcd2_cmp(op1, (op1 + 1), op2) < 0)?-1:1)
-#endif /* SUPPORT_64BITS */
+
 
 /******** environmental variables and defaults ***************/
 #define  DIST_TAG  "DSS_DIST"		/* environment var to override ... */
@@ -436,11 +453,7 @@ extern tdef tdefs[];
 
 /******* output macros ********/
 #ifndef SEPARATOR
-#ifdef SAPDB
-#define SEPARATOR ',' /* field spearator for generated flat files */
-#else
 #define SEPARATOR '|' /* field spearator for generated flat files */
-#endif
 #endif
 /* Data type flags for a single print routine */
 #define DT_STR		0
@@ -461,6 +474,7 @@ int dbg_print(int dt, FILE *tgt, void *data, int len, int eol);
 #define PR_VSTR_LAST(f, str, len) 	dbg_print(DT_VSTR, f, (void *)str, len, 0)
 #define PR_INT(f, str) 			dbg_print(DT_INT, f, (void *)str, 0, 1)
 #define PR_HUGE(f, str) 		dbg_print(DT_HUGE, f, (void *)str, 0, 1)
+#define PR_HUGE_LAST(f, str)        dbg_print(DT_HUGE, f, (void *)str, 0, 0)
 #define PR_KEY(f, str) 			dbg_print(DT_KEY, f, (void *)str, 0, -1)
 #define PR_MONEY(f, str) 		dbg_print(DT_MONEY, f, (void *)str, 0, 1)
 #define PR_CHR(f, str)	 		dbg_print(DT_CHR, f, (void *)str, 0, 1)
@@ -468,10 +482,10 @@ int dbg_print(int dt, FILE *tgt, void *data, int len, int eol);
 #define  PR_END(fp)    fprintf(fp, "\n")   /* finish the record here */
 #ifdef MDY_DATE
 #define  PR_DATE(tgt, yr, mn, dy)	\
-   sprintf(tgt, "%02ld-%02ld-19%02ld", mn, dy, yr)
+   sprintf(tgt, "%02d-%02d-19%02d", mn, dy, yr)
 #else
 #define  PR_DATE(tgt, yr, mn, dy)	\
-sprintf(tgt, "19%02ld-%02ld-%02ld", yr, mn, dy)
+sprintf(tgt, "19%02d-%02d-%02d", yr, mn, dy)
 #endif /* DATE_FORMAT */
 
 /*
@@ -479,11 +493,7 @@ sprintf(tgt, "19%02ld-%02ld-%02ld", yr, mn, dy)
  */
 #define  VRF_STR(t, d) {char *xx = d; while (*xx) tdefs[t].vtotal += *xx++;}
 #define  VRF_INT(t,d)  tdefs[t].vtotal += d
-#ifdef SUPPORT_64BITS
 #define  VRF_HUGE(t,d)	tdefs[t].vtotal = *((long *)&d) + *((long *)(&d + 1))
-#else
-#define VRF_HUGE(t,d)	tdefs[t].vtotal += d[0] + d[1]
-#endif /* SUPPORT_64BITS */
 /* assume float is a 64 bit quantity */
 #define  VRF_MONEY(t,d)	tdefs[t].vtotal = *((long *)&d) + *((long *)(&d + 1))
 #define  VRF_CHR(t,d)	tdefs[t].vtotal += d

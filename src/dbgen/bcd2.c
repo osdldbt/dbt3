@@ -1,4 +1,23 @@
-/* @(#)bcd2.c	2.1.8.1 */
+/*
+* $Id: bcd2.c,v 1.2 2005/01/03 20:08:58 jms Exp $
+*
+* Revision History
+* ===================
+* $Log: bcd2.c,v $
+* Revision 1.2  2005/01/03 20:08:58  jms
+* change line terminations
+*
+* Revision 1.1.1.1  2004/11/24 23:31:45  jms
+* re-establish external server
+*
+* Revision 1.1.1.1  2003/04/03 18:54:21  jms
+* recreation after CVS crash
+*
+* Revision 1.1.1.1  2003/04/03 18:54:21  jms
+* initial checkin
+*
+*
+*/
 /*
  * bcd.c: conversion routines for multi-byte arithmetic
  *
@@ -143,10 +162,8 @@ bcd2_mul(long *bcd_low, long *bcd_high, long multiplier)
                 }
             carry = res / 10;
             res %= 10;
-            if (udigit + ldigit < 14) 
-                { 
+            if (udigit + ldigit < 14)
                 SET_DIGIT(res, udigit + ldigit, bcd_low, bcd_high);
-                }
             }
         }
     return(carry);

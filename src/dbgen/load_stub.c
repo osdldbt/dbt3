@@ -1,6 +1,25 @@
+/*
+* $Id: load_stub.c,v 1.2 2005/01/03 20:08:58 jms Exp $
+*
+* Revision History
+* ===================
+* $Log: load_stub.c,v $
+* Revision 1.2  2005/01/03 20:08:58  jms
+* change line terminations
+*
+* Revision 1.1.1.1  2004/11/24 23:31:46  jms
+* re-establish external server
+*
+* Revision 1.1.1.1  2003/04/03 18:54:21  jms
+* recreation after CVS crash
+*
+* Revision 1.1.1.1  2003/04/03 18:54:21  jms
+* initial checkin
+*
+*
+*/
 /*****************************************************************
  *  Title:      load_stub.c
- *  Sccsid:     @(#)load_stub.c	2.1.8.1
  *  Description:
  *              stub routines for:
  *          inline load of dss benchmark

@@ -57,23 +57,24 @@ if test -z "$VMSTAT"; then
   VMSTAT=
 fi
 
-dnl> Configuration options for different databases, MySQL is default.
 AC_ARG_WITH(postgresql,
-	[ AC_HELP_STRING([ --with-postgresql=DIR], [])],
-	[ PGSQL_PATH=$withval DATABASE_TO_USE="pgsql" DATABASE_DEF="PGSQL=1"],
+	[AC_HELP_STRING([--with-postgresql=DIR], [])],
+	[PGSQL_PATH=$withval DATABASE_TO_USE="pgsql" DATABASE_DEF="PGSQL=1"],
 	[])
 AC_SUBST(PGSQL_PATH)
 
 AC_ARG_WITH(mysql,
-	[ AC_HELP_STRING([ --with-mysql=DIR], [Default.])],
-	[ MYSQL_PATH=$withval DATABASE_TO_USE="mysql" DATABASE_DEF="MYSQL=1"],
+	[AC_HELP_STRING([--with-mysql=DIR], [])],
+	[MYSQL_PATH=$withval DATABASE_TO_USE="mysql" DATABASE_DEF="MYSQL=1"],
 	[])
+
 AC_ARG_WITH(sapdb,
 	[  --with-sapdb],
 	[DATABASE_TO_USE="sapdb" DATABASE_DEF="SABDB=1"], [])
 
-AC_DEFINE(WORKLOAD,"TPCH")
+AC_DEFINE(DBNAME, "dss")
 AC_DEFINE(TPCH)
+AC_DEFINE(LINUX)
 TOPDIR=`pwd`
 AC_SUBST(TOPDIR)
 AC_SUBST(DATABASE_TO_USE)

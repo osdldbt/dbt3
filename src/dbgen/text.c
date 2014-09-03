@@ -1,4 +1,38 @@
-/* @(#)text.c	2.1.8.1 */
+/*
+* $Id: text.c,v 1.6 2006/07/31 17:23:09 jms Exp $
+*
+* Revision History
+* ===================
+* $Log: text.c,v $
+* Revision 1.6  2006/07/31 17:23:09  jms
+* fix to parallelism problem
+*
+* Revision 1.5  2006/05/18 23:50:00  jms
+* commit text generation change with larger buffer
+*
+* Revision 1.4  2006/05/16 16:26:51  jms
+* remove calls to FAKE_V_STR
+*
+* Revision 1.3  2006/05/16 15:55:58  jms
+* first cut to Meikel
+*
+* Revision 1.2  2005/01/03 20:08:59  jms
+* change line terminations
+*
+* Revision 1.1.1.1  2004/11/24 23:31:47  jms
+* re-establish external server
+*
+* Revision 1.1.1.1  2003/08/07 17:58:34  jms
+* recreation after CVS crash
+*
+* Revision 1.2  2003/08/07 17:58:34  jms
+* Convery RNG to 64bit space as preparation for new large scale RNG
+*
+* Revision 1.1.1.1  2003/04/03 18:54:21  jms
+* initial checkin
+*
+*
+*/
 /*
  * text.c --- pseaudo text generator for use in DBGEN 2.0
  *
@@ -6,7 +40,7 @@
  *		dbg_text() -- select and translate a sentance form
  */
 
-#ifdef TEST
+#ifdef TEXT_TEST
 #define DECLARER
 #endif /* TEST */
 
@@ -52,6 +86,8 @@
 #pragma warning(default:4214)
 #endif
 
+#define TEXT_POOL_SIZE (300 * 1024 * 1024)  /* 300MiB */
+
 #include "dss.h"
 #include "dsstypes.h"
 
@@ -96,7 +132,7 @@ txt_vp(char *dest, int sd)
 			break;
 		}	/* end of POS switch statement */
 		i = pick_str(src, sd, dest);
-		i = strlen(DIST_MEMBER(src, i));
+		i = (int)strlen(DIST_MEMBER(src, i));
 		dest += i;
 		res += i;
 		if (*(++cptr))	/* miscelaneous fillagree, like punctuation */
@@ -158,7 +194,7 @@ txt_np(char *dest, int sd)
 			break;
 		}	/* end of POS switch statement */
 		i = pick_str(src, sd, dest);
-		i = strlen(DIST_MEMBER(src, i));
+		i = (int)strlen(DIST_MEMBER(src, i));
 		dest += i;
 		res += i;
 		if (*(++cptr))	/* miscelaneous fillagree, like punctuation */
@@ -216,14 +252,14 @@ next_token:	/* I hate goto's, but can't seem to have parent and child use strtok
 			break;
 		case 'P':
 			i = pick_str(&prepositions, sd, dest);
-			len = strlen(DIST_MEMBER(&prepositions, i));
+			len = (int)strlen(DIST_MEMBER(&prepositions, i));
 			strcpy((dest + len), " the ");
 			len += 5;
 			len += txt_np(dest + len, sd);
 			break;
 		case 'T':
 			i = pick_str(&terminators, sd, --dest); /*terminators should abut previous word */
-			len = strlen(DIST_MEMBER(&terminators, i));
+			len = (int)strlen(DIST_MEMBER(&terminators, i));
 			break;
 		}	/* end of POS switch statement */
 		dest += len;
@@ -246,51 +282,88 @@ done:
  *		produce ELIZA-like text of random, bounded length, truncating the last 
  *		generated sentence as required
  */
-int
+void
 dbg_text(char *tgt, int min, int max, int sd)
 {
-	long length = 0; 
-	int wordlen = 0,
-		needed,
-		s_len;
-	char sentence[MAX_SENT_LEN + 1];
-	
-	RANDOM(length, min, max, sd);
+   DSS_HUGE hgLength = 0,
+      hgOffset,
+      wordlen = 0,
+      s_len,
+      needed;
+   char sentence[MAX_SENT_LEN + 1],
+      *cp;
+   static char szTextPool[TEXT_POOL_SIZE + 1];
+   static int bInit = 0;
+   int nLifeNoise = 0;
+   
+   if (!bInit)
+   {
+      cp = &szTextPool[0];
+      if (verbose > 0)
+         fprintf(stderr, "\nPreloading text ... ");
+      
+      while (wordlen < TEXT_POOL_SIZE)
+      {
+         if ((verbose > 0) && (wordlen > nLifeNoise))
+         {
+            nLifeNoise += 200000;
+            fprintf(stderr, "%3.0f%%\b\b\b\b", (100.0 * wordlen)/TEXT_POOL_SIZE);
+         }
+         
+         s_len = txt_sentence(sentence, 5);
+         if ( s_len < 0)
+            INTERNAL_ERROR("Bad sentence formation");
+         needed = TEXT_POOL_SIZE - wordlen;
+         if (needed >= (s_len + 1))	/* need the entire sentence */
+         {
+            strcpy(cp, sentence);
+            cp += s_len;
+            wordlen += s_len + 1;
+            *(cp++) = ' ';
+         }
+         else /* chop the new sentence off to match the length target */
+         {
+            sentence[needed] = '\0';
+            strcpy(cp, sentence);
+            wordlen += needed;
+            cp += needed;
+         }
+      }
+      *cp = '\0';
+      bInit = 1;
+      if (verbose > 0)
+         fprintf(stderr, "\n");
+   }
 
-	while (wordlen < length)
-	{
-		s_len = txt_sentence(sentence, sd);
-		if ( s_len < 0)
-			INTERNAL_ERROR("Bad sentence formation");
-		needed = length - wordlen;
-		if (needed >= s_len + 1)	/* need the entire sentence */
-		{
-			strcpy(tgt, sentence);
-			tgt += s_len;
-			wordlen += s_len + 1;
-			*(tgt++) = ' ';
-		}
-		else /* chop the new sentence off to match the length target */
-		{
-			sentence[needed] = '\0';
-			strcpy(tgt, sentence);
-			wordlen += needed;
-			tgt += needed;
-		}
-	}
-	*tgt = '\0';
+   RANDOM(hgOffset, 0, TEXT_POOL_SIZE - max, sd);
+   RANDOM(hgLength, min, max, sd);
+   strncpy(&tgt[0], &szTextPool[hgOffset], (int)hgLength);
+   tgt[hgLength] = '\0';
 
-	return(wordlen);
+	return;
 }
 
-#ifdef TEST
-tdef tdefs = { NULL };
+#ifdef TEXT_TEST
+tdef tdefs[1] = { NULL };
+distribution nouns,
+      verbs,
+      adjectives,
+      adverbs,
+      auxillaries,
+      terminators,
+      articles,
+      prepositions,
+      grammar,
+      np,
+      vp;
 
 main()
 {
 	char prattle[401];
 	
-	read_dist (env_config (DIST_TAG, DIST_DFLT), "nouns", &nouns);
+	verbose = 1;
+   
+   read_dist (env_config (DIST_TAG, DIST_DFLT), "nouns", &nouns);
 	read_dist (env_config (DIST_TAG, DIST_DFLT), "verbs", &verbs);
 	read_dist (env_config (DIST_TAG, DIST_DFLT), "adjectives", &adjectives);
 	read_dist (env_config (DIST_TAG, DIST_DFLT), "adverbs", &adverbs);
