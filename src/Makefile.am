@@ -11,7 +11,7 @@ AUTOMAKE_OPTIONS = no-dependencies
 # automake.
 SUBDIRS = dbgen
 
-INCLUDES = -Iinclude
+AM_CPPFLAGS = -Iinclude
 
 bin_PROGRAMS = parse_query gtime power
 
