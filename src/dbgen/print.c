@@ -135,7 +135,7 @@ dbg_print(int format, FILE *target, void *data, int len, int sep)
 			}
 		dollars = cents / 100;
 		cents %= 100;
-		fprintf(target, "%ld.%02ld", dollars, cents);
+		fprintf(target, "%d.%02d", dollars, cents);
 		break;
 	case DT_CHR:
 		fprintf(target, "%c", *(char *)data);
@@ -145,7 +145,7 @@ dbg_print(int format, FILE *target, void *data, int len, int sep)
 #ifdef EOL_HANDLING
 	if (sep)
 #endif /* EOL_HANDLING */
-	fprintf(target, "%c", SEPARATOR);
+	fprintf(target, "%c", (char) SEPARATOR);
 	
 	return(0);
 }
