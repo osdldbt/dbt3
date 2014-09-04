@@ -3,9 +3,10 @@
 # This file is released under the terms of the Artistic License.
 # Please see the file LICENSE, included in this package, for details.
 #
-# Copyright (C) 2004-2006 Mark Wong & Jenny Zhang
-#                    Open Source Development Labs, Inc.
-#
+# Copyright (C) 2004-2006 Open Source Development Labs, Inc.
+#               2004-2006 Jenny Zhang
+#               2004-2014 Mark Wong
+#               2014      2ndQuadrant, Ltd.
 
 DIR=`dirname $0`
 source ${DIR}/dbt3_profile || exit 1
@@ -112,14 +113,17 @@ while getopts "123d:c:ef:ghl:n:op:q:r:s:tuz" opt; do
 	p)
 		# PostgreSQL only.
 		LOAD_PARAMETERS="${DEFAULT_LOAD_PARAMETERS} $OPTARG"
+		LOAD_PARAMETERS_ARG="-p \"${DEFAULT_LOAD_PARAMETERS} $OPTARG\""
 		;;
 	q)
 		# PostgreSQL only.
 		POWER_PARAMETERS="${DEFAULT_POWER_PARAMETERS} $OPTARG"
+		POWER_PARAMETERS_ARG="-p \"${DEFAULT_POWER_PARAMETERS} $OPTARG\""
 		;;
 	r)
 		# PostgreSQL only.
 		THROUGHPUT_PARAMETERS="${DEFAULT_THROUGHPUT_PARAMETERS} $OPTARG"
+		THROUGHPUT_PARAMETERS_ARG="-p \"${DEFAULT_THROUGHPUT_PARAMETERS} $OPTARG\""
 		;;
 	s)
 		SEED=$OPTARG
@@ -180,7 +184,7 @@ if [ ${RUN_LOAD_TEST} -eq 1 ]; then
 	echo "Starting a load test..."
 	$DBSCRIPTDIR/dbt3-${DATABASE}-load-test \
 			-o $OUTPUT_DIR/load \
-			-p "${LOAD_PARAMETERS}" \
+			${LOAD_PARAMETERS_ARG} \
 			${OPROFILE_FLAG} \
 			-f $SCALE_FACTOR \
 			-g $GENERATE \
@@ -214,7 +218,8 @@ do
 		${DBSCRIPTDIR}/dbt3-${DATABASE}-power-test \
 				-f ${SCALE_FACTOR} \
 				-o ${OUTPUT_DIR}/power${i} \
-				-p "${POWER_PARAMETERS}" ${TEST_ARGS} \
+				${POWER_PARAMETERS_ARG}\
+				${TEST_ARGS} \
 				-s ${SEED_FILE} \
 				-t ${i} ${OPROFILE_FLAG} ${NO_REFRESH_FLAG}
 		if [ $? -eq 1 ] ; then 
@@ -232,7 +237,8 @@ do
 				-n ${STREAMS} \
 				-f ${SCALE_FACTOR} \
 				-o ${OUTPUT_DIR}/throughput${i} \
-				-p "${THROUGHPUT_PARAMETERS}" ${TEST_ARGS} \
+				${THROUGHPUT_PARAMETERS_ARG} \
+				${TEST_ARGS} \
 				-s ${SEED_FILE} \
 				-t $i ${OPROFILE_FLAG} ${NO_REFRESH_FLAG} 
 		if [ $? -eq 1 ] ; then 

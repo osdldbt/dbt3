@@ -3,9 +3,10 @@
 # This file is released under the terms of the Artistic License.
 # Please see the file LICENSE, included in this package, for details.
 #
-# Copyright (C) 2003-2006 Jenny Zhang & Open Source Development Labs, Inc.
-#
-# 15 July 2004: Reworked by Mark Wong
+# Copyright (C) 2003-2006 Open Source Development Labs, Inc.
+#               2003-2006 Jenny Zhang
+#               2004-2014 Mark Wong
+#               2014      2ndQuadrant, Ltd.
 
 DIR=`dirname $0`
 . ${DIR}/pgsql_profile || exit 1
@@ -60,7 +61,9 @@ while getopts "ef:l:p:o:s:t:yz" opt; do
 		o) OUTPUT_DIR=$OPTARG
 		   mkdir -p $OUTPUT_DIR/results
 			;;
-		p) PARAMETERS="${POWER_PARAMETERS} $OPTARG"
+		p)
+			PARAMETERS="${POWER_PARAMETERS} $OPTARG"
+			PARAMETERS_ARG="-p \"${POWER_PARAMETERS} $OPTARG\""
 			;;
 		s) SEED_FILE=$OPTARG
 			;;
@@ -108,7 +111,7 @@ done
 ${PARSE_QUERY} $query_file $tmp_query_file E
 
 $DBSCRIPTDIR/dbt3-pgsql-stop-db || exit 1
-$DBSCRIPTDIR/dbt3-pgsql-start-db -o ${OUTPUT_DIR} -p "${PARAMETERS}" || exit 1
+$DBSCRIPTDIR/dbt3-pgsql-start-db -o ${OUTPUT_DIR} ${PARAMETERS_ARG} || exit 1
 
 # Start collecting system statistics.
 $SRCDIR/scripts/dbt3-sysstats --outdir $OUTPUT_DIR --iter 1440 --sample 60 || exit 1

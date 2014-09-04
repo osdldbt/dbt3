@@ -3,7 +3,10 @@
 # This file is released under the terms of the Artistic License.
 # Please see the file LICENSE, included in this package, for details.
 #
-# Copyright (C) 2002-2006 Jenny Zhang & Open Source Development Labs, Inc.
+# Copyright (C) 2002-2006 Open Source Development Labs, Inc.
+#               2002-2006 Jenny Zhang
+#               2005-2014 Mark Wong
+#               2014      2ndQuadrant, Ltd.
 #
 
 # 15 July 2004 - Revamped by Mark Wong
@@ -77,6 +80,7 @@ while getopts "d:f:g:lo:p:tyz:" opt; do
 		;;
 	p)
 		PARAMETERS="${LOAD_PARAMETERS} $OPTARG"
+		PARAMETERS_ARG="-p \"${LOAD_PARAMETERS} $OPTARG\""
 		;;
 	t)
 		TABLESPACE_FLAG="-t -b"
@@ -129,7 +133,8 @@ fi
 # Start collecting system statistics.
 $SRCDIR/scripts/dbt3-sysstats --outdir $OUTPUT_DIR --iter 1440 --sample 60 || exit 1
 
-$DBSCRIPTDIR/dbt3-pgsql-create-db -o ${OUTPUT_DIR} -l ${DBPORT} -p "${PARAMETERS}"
+$DBSCRIPTDIR/dbt3-pgsql-create-db -o ${OUTPUT_DIR} -l ${DBPORT} \
+		${PARAMETERS_ARG}
 	
 date
 ${DBSCRIPTDIR}/dbt3-pgsql-drop-tables -l ${DBPORT}

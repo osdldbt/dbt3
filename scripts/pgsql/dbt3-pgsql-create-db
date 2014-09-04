@@ -1,11 +1,11 @@
 #!/bin/sh
-
 #
 # This file is released under the terms of the Artistic License.
 # Please see the file LICENSE, included in this package, for details.
 #
-# Copyright (C) 2002-2008 Mark Wong & Open Source Development Labs, Inc.
-#
+# Copyright (C) 2002-2008 Open Source Development Labs, Inc.
+#               2002-2014 Mark Wong
+#               2014      2ndQuadrant, Ltd.
 
 DIR=`dirname $0`
 . ${DIR}/pgsql_profile || exit 1
@@ -34,12 +34,14 @@ while getopts "l:o:p:x:" OPT; do
 	case ${OPT} in
 	l)
 		PORT=${OPTARG}
+		PORTOPT="-p ${PORT}"
 		;;
 	o)
 		OUTPUT_DIR=${OPTARG}
 		;;
 	p)
 		PARAMETERS=${OPTARG}
+		PARAMOPT="-p ${PARAMETERS}"
 		;;
 	x)
 		XLOGPATH=${OPTARG}
@@ -67,18 +69,10 @@ else
 	fi
 fi
 
-if [ ! "x${PARAMETERS}" = "x" ]; then
-    PARAMOPT="-p ${PARAMETERS}"
-fi
-
 dbt3-pgsql-start-db ${PARAMOPT} || exit 1
 
 # Give the database a few seconds to get started.
 sleep 4
-
-if [ ! "x${PORT}" = "x" ]; then
-    PORTOPT="-p ${PORT}"
-fi
 
 createdb ${PORTOPT} ${DBNAME} || exit 1
 #createlang ${PORTOPT} plpgsql ${DBNAME}

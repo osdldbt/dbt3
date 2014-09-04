@@ -1,10 +1,11 @@
 #!/bin/sh
-
 #
 # This file is released under the terms of the Artistic License.
 # Please see the file LICENSE, included in this package, for details.
 #
-# Copyright (C) 2002-2008 Mark Wong & Open Source Development Labs, Inc.
+# Copyright (C) 2002-2008 Open Source Development Labs, Inc.
+#               2002-2014 Mark Wong
+#               2014      2ndQuadrant, Ltd.
 #
 
 DIR=`dirname $0`
@@ -31,12 +32,12 @@ fi
 PSQL="psql ${PORTARG} -e -d ${DBNAME}"
 
 # need to consider table dependencies.
-${PSQL} -e -c "DROP TABLE supplier;"
-${PSQL} -e -c "DROP TABLE part;"
-${PSQL} -e -c "DROP TABLE partsupp;"
-${PSQL} -e -c "DROP TABLE customer;"
-${PSQL} -e -c "DROP TABLE orders;"
-${PSQL} -e -c "DROP TABLE lineitem;"
-${PSQL} -e -c "DROP TABLE nation;"
-${PSQL} -e -c "DROP TABLE region;"
-${PSQL} -e -c "DROP TABLE time_statistics;"
+${PSQL} -e -c "DROP TABLE IF EXISTS supplier;"
+${PSQL} -e -c "DROP TABLE IF EXISTS part;"
+${PSQL} -e -c "DROP TABLE IF EXISTS partsupp;"
+${PSQL} -e -c "DROP TABLE IF EXISTS customer;"
+${PSQL} -e -c "DROP TABLE IF EXISTS orders;"
+${PSQL} -e -c "DROP TABLE IF EXISTS lineitem;"
+${PSQL} -e -c "DROP TABLE IF EXISTS nation;"
+${PSQL} -e -c "DROP TABLE IF EXISTS region;"
+${PSQL} -e -c "DROP TABLE IF EXISTS time_statistics;"

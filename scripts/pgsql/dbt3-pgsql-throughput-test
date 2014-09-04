@@ -3,7 +3,10 @@
 # This file is released under the terms of the Artistic License.
 # Please see the file LICENSE, included in this package, for details.
 #
-# Copyright (C) 2003-2006 Jenny Zhang & Open Source Development Labs, Inc.
+# Copyright (C) 2003-2006 Open Source Development Labs, Inc.
+#               2003-2006 Jenny Zhang
+#               2004-2014 Mark Wong
+#               2014      2ndQuadrant, Ltd.
 #
 #
 # 2004 July 16 : Reworked by Mark Wong
@@ -13,7 +16,6 @@
 #                     run in the background and we wait for processs to
 #                     complete, we only want to wait for the processes that
 #                     are executing the queries.
-
 
 DIR=`dirname $0`
 . ${DIR}/pgsql_profile || exit 1
@@ -70,7 +72,9 @@ while getopts "ef:l:n:o:p:s:t:yz" opt; do
 	o) OUTPUT_DIR=$OPTARG
 	   mkdir -p $OUTPUT_DIR/results
 		;;
-	p) PARAMETERS="${THROUGHPUT_PARAMETERS} $OPTARG"
+	p)
+		PARAMETERS="${THROUGHPUT_PARAMETERS} $OPTARG"
+		PARAMETERS_ARG="-p \"${THROUGHPUT_PARAMETERS} $OPTARG\""
 		;;
 	s) SEED_FILE=$OPTARG
 		;;
@@ -105,7 +109,7 @@ if [ $USE_OPROFILE -eq 1 ]; then
 fi
 
 $DBSCRIPTDIR/dbt3-pgsql-stop-db || exit 1
-$DBSCRIPTDIR/dbt3-pgsql-start-db -o ${OUTPUT_DIR} -p "${PARAMETERS}" || exit 1
+$DBSCRIPTDIR/dbt3-pgsql-start-db -o ${OUTPUT_DIR} ${PARAMETERS_ARG} || exit 1
 
 s_time=`$GTIME`
 $DBSCRIPTDIR/record_start.sh -l ${DBPORT} -n "PERF${TAG}.THRUPUT" || exit 1
