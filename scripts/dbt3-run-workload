@@ -270,6 +270,9 @@ done
 # -------------------------------------------
 # Post-processing
 # -------------------------------------------
+
+QTIMECSV="${OUTPUT_DIR}/q_time.csv"
+
 # Get system details.
 echo -n "Getting system configuration..."
 $SCRIPTDIR/dbt3-get-config $SCALE_FACTOR $STREAMS "$LOAD_PARAMETERS" "$POWER_PARAMETERS" "$THROUGHPUT_PARAMETERS" $OUTPUT_DIR || exit 1
@@ -277,7 +280,7 @@ echo "done."
 
 # Get query times.
 echo -n "Getting query times..."
-${DBSCRIPTDIR}/dbt3-${DATABASE}-get-query-time > ${OUTPUT_DIR}/q_time.out || exit 1
+${DBSCRIPTDIR}/dbt3-${DATABASE}-get-query-time > ${QTIMECSV} || exit 1
 echo "done."
 
 echo -n "Generating a report..."
@@ -286,7 +289,7 @@ echo -n "Generating a report..."
 #
 if [ ${RUN_POWER_TEST} -eq 1 ] || [ ${RUN_THROUGHPUT_TEST} -eq 1 ]; then
     $SRCDIR/scripts/dbt3-post-process \
-	-i ${OUTPUT_DIR}/q_time.out \
+	-i ${QTIMECSV} \
 	-p 1 \
 	-s ${SCALE_FACTOR} \
 	-n ${STREAMS} \

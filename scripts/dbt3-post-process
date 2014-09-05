@@ -3,12 +3,10 @@
 # This file is released under the terms of the Artistic License.
 # Please see the file LICENSE, included in this package, for details.
 #
-# Copyright (C) 2003-2006 Jenny Zhang & Open Source Development Labs, Inc.
-#
-# May 26, 2005
-# Mark Wong
-# Rewritten from perl to bash.
-#
+# Copyright (C) 2003-2006 Open Source Development Labs, Inc.
+#               2003-2006 Jenny Zhang
+#               2005-2014 Mark Wong
+#               2014      2ndQuadrant, Ltd.
 
 DIR=`dirname $0`
 source ${DIR}/dbt3_profile || exit 1
@@ -53,7 +51,7 @@ SCRIPT_DIR="${DBT3_HOME}/scripts";
 #
 # Make sure the outfile is created.
 #
-cat /dev/null >  ${OUTFILE}
+touch ${OUTFILE}
 
 if [ ${FLAG_POWER_TEST} -eq 1 ]; then
 	POWER=`perl ${SCRIPT_DIR}/get_power.pl -i ${INFILE} -p ${PERFNUM} -s ${SCALE_FACTOR} ${NO_REFRESH_FLAG}`
@@ -73,8 +71,5 @@ fi
 # -------------------------------------
 # Plot a result chart with using gnuplot
 # -------------------------------------
-$SCRIPT_DIR/dbt3-plot-results \
-    --if ${INFILE} ${NO_REFRESH_FLAG} \
-    ${PLOT_OPTS} || exit 1
-
-exit 0
+$SCRIPT_DIR/dbt3-plot-results -i ${INFILE} ${NO_REFRESH_FLAG} \
+		-o `dirname ${OUTFILE}` ${PLOT_OPTS} || exit 1

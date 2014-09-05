@@ -28,7 +28,7 @@ while getopts "hl:o:" opt; do
 			DBPORT=${OPTARG}
 			;;
 		o)
-			ARGS="-o $OPTARG/q_time.out"
+			ARGS="-o $OPTARG/q_time.csv"
 			;;
 	esac
 done
