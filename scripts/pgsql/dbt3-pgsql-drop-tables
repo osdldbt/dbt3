@@ -29,15 +29,15 @@ done
 if [ ! "x${PORT}" = "x" ]; then
 	PORTARG="-p ${PORT}"
 fi
-PSQL="psql ${PORTARG} -e -d ${DBNAME}"
+PSQL="psql -X ${PORTARG} -d ${DBNAME}"
 
 # need to consider table dependencies.
-${PSQL} -e -c "DROP TABLE IF EXISTS supplier;"
-${PSQL} -e -c "DROP TABLE IF EXISTS part;"
-${PSQL} -e -c "DROP TABLE IF EXISTS partsupp;"
-${PSQL} -e -c "DROP TABLE IF EXISTS customer;"
-${PSQL} -e -c "DROP TABLE IF EXISTS orders;"
-${PSQL} -e -c "DROP TABLE IF EXISTS lineitem;"
-${PSQL} -e -c "DROP TABLE IF EXISTS nation;"
-${PSQL} -e -c "DROP TABLE IF EXISTS region;"
-${PSQL} -e -c "DROP TABLE IF EXISTS time_statistics;"
+${PSQL} -c "DROP TABLE IF EXISTS supplier;"
+${PSQL} -c "DROP TABLE IF EXISTS part;"
+${PSQL} -c "DROP TABLE IF EXISTS partsupp;"
+${PSQL} -c "DROP TABLE IF EXISTS customer;"
+${PSQL} -c "DROP TABLE IF EXISTS orders;"
+${PSQL} -c "DROP TABLE IF EXISTS lineitem;"
+${PSQL} -c "DROP TABLE IF EXISTS nation;"
+${PSQL} -c "DROP TABLE IF EXISTS region;"
+${PSQL} -c "DROP TABLE IF EXISTS time_statistics;"

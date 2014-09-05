@@ -1,11 +1,11 @@
 #!/bin/sh
-
 #
 # This file is released under the terms of the Artistic License.
 # Please see the file LICENSE, included in this package, for details.
 #
-# Copyright (C) 2002-2008 Mark Wong & Open Source Development Labs, Inc.
-#
+# Copyright (C) 2002-2008 Open Source Development Labs, Inc.
+#               2002-2014 Mark Wong
+#               2014      2ndQuadrant, Ltd.
 
 DIR=`dirname $0`
 . ${DIR}/pgsql_profile || exit 1
@@ -31,7 +31,7 @@ if [ -z ${DBNAME} ]; then
 	exit 1
 fi
 
-PSQL="psql -p ${DBPORT} -e -d $SID -c"
+PSQL="psql -X -p ${DBPORT} -d $SID -c"
 
 if [ ${USE_TABLESPACES} -eq 1 ];then
 	TS_PK_SUPPLIER_DIR="${TSDIR}/pk_supplier/ts"

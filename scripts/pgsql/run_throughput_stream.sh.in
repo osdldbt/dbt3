@@ -3,7 +3,10 @@
 # This file is released under the terms of the Artistic License.
 # Please see the file LICENSE, included in this package, for details.
 #
-# Copyright (C) 2003-2006 Jenny Zhang & Open Source Development Labs, Inc.
+# Copyright (C) 2003-2006 Open Source Development Labs, Inc.
+#               2003-2006 Jenny Zhang
+#               2005-2014 Mark Wong
+#               2014      2ndQuadrant, Ltd.
 #
 
 SRCDIR=@TOPDIR@
@@ -74,7 +77,7 @@ ${DBSCRIPTDIR}/record_start.sh -l ${DBPORT} \
 		-n "PERF${perf_run_num}.THRUPUT.QS${stream_num}.ALL" || exit 1
 # You can't use -a and have the query redirected to a file with -o, so use -a
 # and redirect.
-@PSQL@ -p ${DBPORT} -d ${SID} -f ${tmp_query_file} \
+@PSQL@ -X -p ${DBPORT} -d ${SID} -f ${tmp_query_file} \
 		-a >> ${OUTPUT_DIR}/results/thruput_qs${stream_num}.result 2>&1 || exit 1
 ${DBSCRIPTDIR}/record_end.sh -l ${DBPORT} \
 		-n "PERF${perf_run_num}.THRUPUT.QS${stream_num}.ALL" || exit 1

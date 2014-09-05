@@ -1,11 +1,11 @@
 #!/bin/sh
-
 #
 # This file is released under the terms of the Artistic License.
 # Please see the file LICENSE, included in this package, for details.
 #
-# Copyright (C) 2003 Open Source Development Lab, Inc.
-#
+# Copyright (C) 2003      Open Source Development Lab, Inc.
+#               2005-2014 Mark Wong
+#               2014      2ndQuadrant, Ltd.
 
 SRCDIR=@TOPDIR@
 
@@ -18,7 +18,7 @@ scale_factor=$1
 RUNDIR=$2
 DBPORT=$3
 
-PSQL="@PSQL@ -p ${DBPORT} -d ${SID}"
+PSQL="@PSQL@ -X -p ${DBPORT} -d ${SID}"
 
 curr_set_file_rf1="$RUNDIR/curr_set_num_rf1"
 lock_file_rf1="$RUNDIR/rf1.lock"
@@ -63,9 +63,9 @@ echo "`date`: Stream ${set_num} : Starting Refresh Stream 1..."
 s_time=`$GTIME`
 
 # generating the load .sql
-echo "COPY tmp_lineitem$set_num FROM '/tmp/lineitem.tbl.u$set_num' USING DELIMITERS '|';" >> tmp_lineitem$set_num.sql
+echo "COPY tmp_lineitem$set_num FROM '${DSS_PATH}/lineitem.tbl.u$set_num' USING DELIMITERS '|';" >> tmp_lineitem$set_num.sql
 
-echo "COPY tmp_orders$set_num FROM '/tmp/orders.tbl.u$set_num' USING DELIMITERS '|';" >> tmp_orders$set_num.sql
+echo "COPY tmp_orders$set_num FROM '${DSS_PATH}/orders.tbl.u$set_num' USING DELIMITERS '|';" >> tmp_orders$set_num.sql
 
 ${PSQL} -c "create table tmp_lineitem$set_num (l_orderkey numeric(10), l_partkey numeric(10), l_suppkey numeric(10), l_linenumber numeric(10), l_quantity numeric(12,2), l_extendedprice numeric(12,2), l_discount numeric(12,2), l_tax numeric(12,2), l_returnflag char(1), l_linestatus char(1), l_shipdate date, l_commitdate date, l_receiptdate date, l_shipinstruct char(25), l_shipmode char(10), l_comment varchar(44));"
 

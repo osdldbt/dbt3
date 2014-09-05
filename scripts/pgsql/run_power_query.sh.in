@@ -3,7 +3,10 @@
 # This file is released under the terms of the Artistic License.
 # Please see the file LICENSE, included in this package, for details.
 #
-# Copyright (C) 2003-2006 Jenny Zhang & Open Source Development Labs, Inc.
+# Copyright (C) 2003-2006 Open Source Development Labs, Inc.
+#               2003-2006 Jenny Zhang
+#               2005-2014 Mark Wong
+#               2014      2ndQuadrant, Ltd.
 #
 
 SRCDIR=@TOPDIR@
@@ -21,7 +24,7 @@ RUNDIR=$5
 SEED_FILE=$6
 DBPORT=$7
 
-PSQL="@PSQL@ -p ${DBPORT} -d $SID"
+PSQL="@PSQL@ -X -p ${DBPORT} -d $SID"
 
 query_file="$RUNDIR/power_query"
 tmp_query_file="$RUNDIR/tmp_query.sql"

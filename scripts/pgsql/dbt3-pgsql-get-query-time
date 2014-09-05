@@ -4,21 +4,25 @@
 # This file is released under the terms of the Artistic License.  Please see
 # the file LICENSE, included in this package, for details.
 #
-# Copyright (C) 2003 Jenny Zhang & Open Source Development Lab, Inc.
-#
-# Author: Jenny Zhang
-# Heavily modified by: Mark Wong
+# Copyright (C) 2003      Open Source Development Labs, Inc.
+#               2003      Jenny Zhang
+#               2005-2014 Mark Wong
+#               2014      2ndQuadrant, Ltd.
 
 DIR=`dirname $0`
 . ${DIR}/pgsql_profile
 
-SQL="SELECT task_name, s_time, e_time, (e_time-s_time) AS diff_time, (extract(hour FROM (e_time-s_time)) * 3600) + (extract(minute FROM (e_time-s_time)) * 60) + (extract(second FROM (e_time-s_time))) AS seconds FROM time_statistics;"
+SQL="SELECT task_name, s_time, e_time, (e_time-s_time) AS diff_time, \
+(extract(hour FROM (e_time-s_time)) * 3600) + (extract(minute FROM \
+(e_time-s_time)) * 60) + (extract(second FROM (e_time-s_time))) AS seconds \
+FROM time_statistics"
+
 ARGS=
 while getopts "hl:o:" opt; do
 	case $opt in
 		h)
 			ARGS="-H"
-			SQL="SELECT task_name AS Task, s_time AS Start_Time, e_time AS End_Time, (e_time-s_time) AS Elapsed_Time FROM time_statistics;"
+			SQL="SELECT task_name AS Task, s_time AS Start_Time, e_time AS End_Time, (e_time-s_time) AS Elapsed_Time FROM time_statistics"
 			;;
 		l)
 			DBPORT=${OPTARG}
@@ -29,5 +33,5 @@ while getopts "hl:o:" opt; do
 	esac
 done
 
-
-psql -A -F, -t -p ${DBPORT} -d ${SID} -q -c "${SQL}" ${ARGS}
+psql -X -A -F, -t -p ${DBPORT} -d ${SID} -q \
+		-c "COPY (${SQL}) TO STDOUT (FORMAT CSV, HEADER)" ${ARGS}

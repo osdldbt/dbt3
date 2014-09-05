@@ -4,7 +4,10 @@
 # This file is released under the terms of the Artistic License.
 # Please see the file LICENSE, included in this package, for details.
 #
-# Copyright (C) 2003 Open Source Development Lab, Inc.
+# Copyright (C) 2003      Open Source Development Lab, Inc.
+#               2003      Jenny Zhang
+#               2005-2014 Mark Wong
+#               2014      2ndQuadrant, Ltd.
 #
 
 SRCDIR=@TOPDIR@
@@ -52,15 +55,23 @@ echo "`date`: Stream ${set_num} : Starting Refresh Stream 2..."
 s_time=`$GTIME`
 
 # generate load .sql
-echo "COPY tmp_orderkey$set_num FROM '/tmp/delete.$set_num' USING DELIMITERS '|';" >> tmp_orderkey$set_num.sql
+echo "COPY tmp_orderkey$set_num FROM '${DSS_PATH}/delete.$set_num' USING DELIMITERS '|';" >> tmp_orderkey$set_num.sql
 
 ${PSQL} -c "create table tmp_orderkey$set_num (orderkey numeric(10));"
 
 ${PSQL} -f tmp_orderkey$set_num.sql
 
-${PSQL} -c "delete from lineitem where l_orderkey=tmp_orderkey$set_num.orderkey;"
+${PSQL} << __EOF__
+DELETE FROM lineitem
+USING tmp_orderkey$set_num
+WHERE l_orderkey = orderkey;
+__EOF__
 
-${PSQL} -c "delete from orders where o_orderkey=tmp_orderkey$set_num.orderkey;"
+${PSQL} << __EOF__
+DELETE FROM orders
+USING tmp_orderkey$set_num
+WHERE o_orderkey = orderkey;
+__EOF__
 
 # clean up
 ${PSQL} -c "drop table tmp_orderkey$set_num;"
