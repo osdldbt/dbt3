@@ -7,7 +7,7 @@ Requirements
 
  - PostgreSQL or MySQL
  - sysstat
- - gnuplot 4.0
+ - procmail
 
 
 How to install

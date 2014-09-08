@@ -8,6 +8,19 @@
 #               2005-2014 Mark Wong
 #               2014      2ndQuadrant, Ltd.
 
+make_sar_csv() {
+	FILE=$1
+
+	DIR=`dirname ${FILE}`
+
+	${SADF} -P ALL ${FILE} > ${DIR}/sar-cpu.csv
+	${SADF} ${FILE} -- -B > ${DIR}/sar-paging.csv
+	${SADF} ${FILE} -- -d -p > ${DIR}/sar-blockdev.csv
+	${SADF} ${FILE} -- -R > ${DIR}/sar-mem1.csv
+	${SADF} ${FILE} -- -r > ${DIR}/sar-mem2.csv
+	${SADF} ${FILE} -- -W > ${DIR}/sar-swap.csv
+}
+
 DIR=`dirname $0`
 source ${DIR}/dbt3_profile || exit 1
 
@@ -53,14 +66,28 @@ SCRIPT_DIR="${DBT3_HOME}/scripts";
 #
 touch ${OUTFILE}
 
+which sadf > /dev/null 2>&1
+if [ $? -eq 0 ]; then
+	SADF="sadf -d -U"
+else
+	SADF=true
+fi
+
+OUTDIR=`dirname ${INFILE}`
+make_sar_csv ${OUTDIR}/load/sar_raw.out
+
 if [ ${FLAG_POWER_TEST} -eq 1 ]; then
 	POWER=`perl ${SCRIPT_DIR}/get_power.pl -i ${INFILE} -p ${PERFNUM} -s ${SCALE_FACTOR} ${NO_REFRESH_FLAG}`
 	echo "power = ${POWER}"  | tee -a ${OUTFILE}
+
+	make_sar_csv ${OUTDIR}/power${PERFNUM}/sar_raw.out
 fi
 
 if [ ${FLAG_THROUGHPUT_TEST} -eq 1 ]; then
 	THROUGHPUT=`${SCRIPT_DIR}/get-throughput -i ${INFILE} -p ${PERFNUM} -s ${SCALE_FACTOR} -n ${STREAMS}`
 	echo "throughput = ${THROUGHPUT}" | tee -a ${OUTFILE}
+
+	make_sar_csv ${OUTDIR}/throughput${PERFNUM}/sar_raw.out
 fi
 
 if [ ${FLAG_POWER_TEST} -eq 1 ] && [ ${FLAG_THROUGHPUT_TEST} -eq 1 ]; then

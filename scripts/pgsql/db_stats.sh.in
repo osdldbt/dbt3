@@ -3,38 +3,10 @@
 # This file is released under the terms of the Artistic License.
 # Please see the file LICENSE, included in this package, for details.
 #
-# Copyright (C) 2003-2007 Jenny Zhang & Open Source Development Labs, Inc.
-#
-
-INDEX_INFO="\
-SELECT relname, indexrelname, idx_blks_read, idx_blks_hit \
-FROM pg_statio_user_indexes \
-ORDER BY indexrelname;"
-
-INDEX_SCAN="\
-SELECT relname, indexrelname, idx_scan, idx_tup_read, idx_tup_fetch \
-FROM pg_stat_user_indexes \
-ORDER BY indexrelname;"
-
-LOCK_STATS="\
-SELECT relname, pid, mode, granted \
-FROM pg_locks, pg_class \
-WHERE relfilenode = relation \
-ORDER BY relname;"
-
-TABLE_INFO="\
-SELECT relname, heap_blks_read, heap_blks_hit, idx_blks_read, idx_blks_hit \
-FROM pg_statio_user_tables \
-WHERE relname <> 'time_statistics' \
-ORDER BY relname;"
-
-TABLE_SCAN="\
-SELECT relname, seq_scan, seq_tup_read, idx_scan, idx_tup_fetch, n_tup_ins, \
-       n_tup_upd, n_tup_del, last_vacuum, last_autovacuum, last_analyze, \
-       last_autoanalyze \
-FROM pg_stat_user_tables \
-WHERE relname <> 'time_statistics' \
-ORDER BY relname;"
+# Copyright (C) 2003-2007 Open Source Development Labs, Inc.
+#               2003-2007 Jenny Zhang
+#               2014      Mark Wong
+#               2014      2ndQuadrant, Ltd.
 
 if [ $# -ne 2 ]; then
 	echo "usage: db_stats.sh <output_dir> <db port>"
@@ -46,43 +18,95 @@ DBPORT=$2
 
 SAMPLE_LENGTH=60
 
-PSQL="@PSQL@ -p ${DBPORT} -d ${SID}"
+PSQL="@PSQL@ -X -p ${DBPORT} -d ${SID} -t --no-align"
 
 DBOUTPUT_DIR=$OUTPUT_DIR/db
 mkdir -p $DBOUTPUT_DIR
 
+PGVERSION=`${PSQL} -c "SHOW server_version_num;"`
+PIDCOL="procpid"
+QUERYCOL="current_query"
+EXTRACOL=""
+if [ ${PGVERSION} -gt 90099 ]; then
+	PIDCOL="pid"
+	QUERYCOL="query"
+	EXTRACOL=", state, state_change"
+fi
+
+LOCKSTAT="SELECT EXTRACT(EPOCH FROM TRANSACTION_TIMESTAMP()) AS ctime, \
+relname, pid, mode, granted \
+FROM pg_locks, pg_class \
+WHERE relfilenode = relation \
+ORDER BY relname"
+
+DBACTIVITY="SELECT EXTRACT(EPOCH FROM TRANSACTION_TIMESTAMP()) AS ctime, \
+datname, ${PIDCOL}, usesysid, usename, application_name, client_addr, \
+client_port, backend_start, xact_start, query_start, waiting, \
+${QUERYCOL} ${EXTRACOL} \
+FROM pg_stat_activity"
+
+STATDB="SELECT EXTRACT(EPOCH FROM TRANSACTION_TIMESTAMP()) AS ctime, \
+datname, numbackends, xact_commit, xact_rollback, blks_read, blks_hit, \
+tup_returned, tup_fetched, tup_inserted, tup_updated, tup_deleted \
+FROM pg_stat_database"
+
+STATTABLE="SELECT EXTRACT(EPOCH FROM TRANSACTION_TIMESTAMP()) AS ctime, \
+a.schemaname, a.relname, seq_scan, seq_tup_read, idx_scan, idx_tup_fetch, \
+n_tup_ins, n_tup_upd, n_tup_del, n_tup_hot_upd, n_live_tup, n_dead_tup, \
+heap_blks_read, heap_blks_hit, idx_blks_read, idx_blks_hit, toast_blks_read, \
+toast_blks_hit, tidx_blks_read, tidx_blks_hit \
+FROM pg_statio_all_tables a, pg_stat_all_tables b \
+WHERE a.relid = b.relid"
+
+STATINDEX="SELECT EXTRACT(EPOCH FROM TRANSACTION_TIMESTAMP()) AS ctime, \
+a.schemaname, a.relname, a.indexrelname, idx_scan, idx_tup_read, \
+idx_tup_fetch, idx_blks_read, idx_blks_hit \
+FROM pg_stat_all_indexes a, pg_statio_all_indexes b \
+WHERE a.indexrelid = b.indexrelid"
+
 # put db info into the readme.txt file
-${PSQL} -p ${DBPORT} --version >> $OUTPUT_DIR/readme.txt
+${PSQL} -c "SELECT version();" >> $OUTPUT_DIR/readme.txt
 echo "Database statistics taken at $SAMPLE_LENGTH second intervals, $ITERATIONS times." >> $OUTPUT_DIR/readme.txt
 
 # save the database parameters
-${PSQL} -c "SHOW ALL"  > $OUTPUT_DIR/param.out
+${PSQL} -c "SHOW ALL" > $OUTPUT_DIR/param.txt
 
 # record indexes
-${PSQL} -c "SELECT * FROM pg_stat_user_indexes;" -o $DBOUTPUT_DIR/indexes.out
+${PSQL} -c "SELECT * FROM pg_stat_user_indexes;" -o $DBOUTPUT_DIR/indexes.txt
 
-# Clear files if they already exist.
-echo "" > ${OUTPUT_DIR}/ipcs.out
-echo "" > ${DBOUTPUT_DIR}/lockstats.out
-echo "" > ${DBOUTPUT_DIR}/table_info.out
-echo "" > ${DBOUTPUT_DIR}/index_info.out
-echo "" > ${DBOUTPUT_DIR}/table_scan.out
-echo "" > ${DBOUTPUT_DIR}/index_scan.out
+echo "$$" > ${OUTPUT_DIR}/db_stats.pid
+
+# Take the initial data points with headers so that data is identifiable later.
+${PSQL} -c "COPY (${LOCKSTAT}) TO STDOUT (FORMAT CSV, HEADER);" \
+		> ${DBOUTPUT_DIR}/lockstats.csv &
+
+${PSQL} -c "COPY (${DBACTIVITY}) TO STDOUT (FORMAT CSV, HEADER);" \
+		> ${DBOUTPUT_DIR}/db_activity.csv &
+
+${PSQL} -c "COPY (${STATDB}) TO STDOUT (FORMAT CSV, HEADER);" \
+		> ${DBOUTPUT_DIR}/pg_stat_databases.csv &
+
+${PSQL} -c "COPY (${STATTABLE}) TO STDOUT (FORMAT CSV, HEADER);" \
+		> ${DBOUTPUT_DIR}/pg_stat_tables.csv &
+
+${PSQL} -c "COPY (${STATINDEX}) TO STDOUT (FORMAT CSV, HEADER);" \
+		> ${DBOUTPUT_DIR}/pg_stat_indexes.csv &
 
 while [ 1 ]; do
-	# collent ipcs stats
-	ipcs >> ${OUTPUT_DIR}/ipcs.out
-
-	# check lock statistics
-	${PSQL} -c "${LOCK_STATS}" >> ${DBOUTPUT_DIR}/lockstats.out
-
-	# table info
-	${PSQL} -t -c "${TABLE_INFO}" >> ${DBOUTPUT_DIR}/table_info.out
-	${PSQL} -t -c "${INDEX_INFO}" >> ${DBOUTPUT_DIR}/index_info.out
-
-	# scans 
-	${PSQL} -t -c "${TABLE_SCAN}" >> ${DBOUTPUT_DIR}/table_scan.out
-	${PSQL} -t -c "${INDEX_SCAN}" >> ${DBOUTPUT_DIR}/index_scan.out
-
 	sleep ${SAMPLE_LENGTH}
+
+	${PSQL} -c "COPY (${LOCKSTAT}) TO STDOUT (FORMAT CSV);" \
+			>> ${DBOUTPUT_DIR}/lockstats.csv &
+
+	${PSQL} -c "COPY (${DBACTIVITY}) TO STDOUT (FORMAT CSV);" \
+			>> ${DBOUTPUT_DIR}/db_activity.csv &
+
+	${PSQL} -c "COPY (${STATDB}) TO STDOUT (FORMAT CSV);" \
+			>> ${DBOUTPUT_DIR}/pg_stat_databases.csv &
+
+	${PSQL} -c "COPY (${STATTABLE}) TO STDOUT (FORMAT CSV);" \
+			>> ${DBOUTPUT_DIR}/pg_stat_tables.csv &
+
+	${PSQL} -c "COPY (${STATINDEX}) TO STDOUT (FORMAT CSV);" \
+			>> ${DBOUTPUT_DIR}/pg_stat_indexes.csv &
 done

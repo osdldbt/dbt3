@@ -163,7 +163,12 @@ diff_time=`expr $e_time - $s_time`
 echo "Elapsed time for Load Test : $diff_time seconds"
 
 # Stop collecting system statistics.
-$SRCDIR/scripts/dbt3-sysstats --stop
+read SARPID < ${OUTPUT_DIR}/sar.pid
+kill ${SARPID}
+read PIDSTATPID < ${OUTPUT_DIR}/pidstat.pid
+kill ${PIDSTATSARPID}
+read DBSTATSPID < ${OUTPUT_DIR}/db_stats.pid
+kill ${DBSTATSPID}
 
 # Collect profile data.
 if [ -f /proc/profile ]; then

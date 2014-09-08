@@ -126,7 +126,12 @@ ${DBSCRIPTDIR}/throughput_stream_wrapper.sh -l ${DBPORT} -f ${scale_factor} \
 		-s ${SEED_FILE} ${NO_REFRESH_FLAG} || exit 1
 
 # Stop collecting system statistics.
-$SRCDIR/scripts/dbt3-sysstats --stop
+read SARPID < ${OUTPUT_DIR}/sar.pid
+kill ${SARPID}
+read PIDSTATPID < ${OUTPUT_DIR}/pidstat.pid
+kill ${PIDSTATSARPID}
+read DBSTATSPID < ${OUTPUT_DIR}/db_stats.pid
+kill ${DBSTATSPID}
 
 ${DBSCRIPTDIR}/record_end.sh -l ${DBPORT} -n "PERF${TAG}.THRUPUT" || exit 1
 e_time=`$GTIME`

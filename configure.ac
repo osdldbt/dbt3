@@ -25,36 +25,11 @@ AC_SYS_LARGEFILE
 CFLAGS="-Wall $CFLAGS"
 AC_CHECK_LIB(m, main)
 
-dnl AC_ARG_ENABLE(tpch, [  --enable-tpch (default)],
-dnl	ENABLE_TPCH="yes" ENABLE_TPCR="no", ENABLE_TPCH="yes" ENABLE_TPCR="no")
-dnl AC_ARG_ENABLE(tpcr, [  --enable-tpcr], ENABLE_TPCR="yes" ENABLE_TPCH="no")
-dnl if test "$ENABLE_TPCH" = "yes"; then
-dnl   AC_DEFINE(TPCH, 1)
-dnl fi
-dnl if test "$ENABLE_TPCR" = "yes"; then
-dnl   AC_DEFINE(TPCR, 1)
-dnl fi
-
-
 AC_PATH_PROGS([SAR], [sar bsdsar], ,
              [$PATH:/usr/local/bin:/usr/bin])
 if test -z "$SAR"; then
   AC_MSG_WARN([*** sar or bsdsar not found some scripts may not be usable])
   SAR=
-fi
-
-AC_PATH_PROGS([IOSTAT], [iostat], ,
-             [$PATH:/usr/local/bin:/usr/bin:/usr/X11R6/bin])
-if test -z "$IOSTAT"; then
-  AC_MSG_WARN([*** iostat not found some scripts may not be usable])
-  IOSTAT=
-fi
-
-AC_PATH_PROGS([VMSTAT], [vmstat], ,
-             [$PATH:/usr/local/bin:/usr/bin:/usr/X11R6/bin])
-if test -z "$VMSTAT"; then
-  AC_MSG_WARN([*** vmstat not found some scripts may not be usable])
-  VMSTAT=
 fi
 
 AC_ARG_WITH(postgresql,

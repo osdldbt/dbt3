@@ -44,9 +44,6 @@ SCRIPTDIR=$SRCDIR/scripts
 DBSCRIPTDIR=$SRCDIR/scripts/$DATABASE
 export PATH=$PATH:$DBSCRIPTDIR
 
-killall db_stats.sh
-$SRCDIR/scripts/dbt3-sysstats --stop
-
 SEED=0
 REDIR_LOG=0
 REDIR_TMP=0
@@ -297,6 +294,9 @@ if [ ${RUN_POWER_TEST} -eq 1 ] || [ ${RUN_THROUGHPUT_TEST} -eq 1 ]; then
 	${NO_REFRESH_FLAG} \
 	${FLAG_POWER_TEST} ${FLAG_THROUGHPUT_TEST} || exit 1
 fi
+
+killall db_stats.sh
+
 $SRCDIR/scripts/dbt3-gen-report $OUTPUT_DIR > $OUTPUT_DIR/index.html || exit 1
 echo "done."
 
@@ -309,7 +309,5 @@ RUN_NUMBER=`expr $RUN_NUMBER + 1`
 echo $RUN_NUMBER > run_number
 
 echo "Results are in $OUTPUT_DIR"
-
-killall db_stats.sh
 
 exit 0

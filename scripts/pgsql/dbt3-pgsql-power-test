@@ -173,7 +173,12 @@ let "diff_time=$e_time_power-$s_time_power"
 echo "Elapsed time for Power Test : $diff_time seconds"
 
 # Stop collecting system statistics.
-$SRCDIR/scripts/dbt3-sysstats --stop
+read SARPID < ${OUTPUT_DIR}/sar.pid
+kill ${SARPID}
+read PIDSTATPID < ${OUTPUT_DIR}/pidstat.pid
+kill ${PIDSTATSARPID}
+read DBSTATSPID < ${OUTPUT_DIR}/db_stats.pid
+kill ${DBSTATSPID}
 
 $DBSCRIPTDIR/dbt3-pgsql-stop-db || exit 1
 
