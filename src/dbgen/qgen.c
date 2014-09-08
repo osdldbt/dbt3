@@ -71,6 +71,7 @@ double flt_scale;
 distribution q13a, q13b;
 int qnum;
 char *db_name = NULL;
+int pgsql_explain2 = 0;
 
 
 /*
@@ -232,7 +233,12 @@ char *cptr,
                 case 'X':
                 case 'x':
                     if (flags & EXPLAIN)
-                        fprintf(ofp, "%s\n", GEN_QUERY_PLAN);
+                        {
+                        if (pgsql_explain2)
+                            fprintf(ofp, "%s\n", "EXPLAIN ANALYZE");
+                        else
+                            fprintf(ofp, "%s\n", GEN_QUERY_PLAN);
+                        }
                     cptr++;
                     break;
 		case '1':
@@ -294,7 +300,7 @@ process_options(int cnt, char **args)
 {
     int flag;
 
-    while((flag = getopt(cnt, args, "ab:cdhi:n:Nl:o:p:r:s:t:vx")) != -1)
+    while((flag = getopt(cnt, args, "ab:cdhi:n:Nl:o:p:r:s:t:vxy")) != -1)
         switch(flag)
             {
             case 'a':   /* use ANSI semantics */
@@ -369,6 +375,10 @@ process_options(int cnt, char **args)
                 break;
             case 'x':   /* set explain in the queries */
                 flags |= EXPLAIN;
+                break;
+            case 'y':   /* set explain analyze in the queries, dirty hack */
+                flags |= EXPLAIN;
+                pgsql_explain2 = 1;
                 break;
             default:
                 printf("unknown option '%s' ignored\n", args[optind]);
