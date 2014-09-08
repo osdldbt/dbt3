@@ -61,7 +61,7 @@ if [ ${NO_REFRESH} -eq 0 ]; then
 		${DBSCRIPTDIR}/record_start.sh -l ${DBPORT} \
 				-n "PERF${TAG}.THRUPUT.RFST${stream_num}.RF1"
 		${DBSCRIPTDIR}/run_rf1.sh ${scale_factor} ${RUNDIR} \
-				${DBPORT}  > $OUTPUT_DIR/results/thruput.perf${TAG}.stream${stream_num}.rf1.result 2>&1 || exit 1
+				${DBPORT}  > $OUTPUT_DIR/results/thruput.perf${TAG}.stream${stream_num}.rf1.txt 2>&1 || exit 1
 		${DBSCRIPTDIR}/record_end.sh -l ${DBPORT} \
 				-n "PERF${TAG}.THRUPUT.RFST${stream_num}.RF1"
 		e_time_rf1=`$GTIME`
@@ -74,7 +74,7 @@ if [ ${NO_REFRESH} -eq 0 ]; then
 		${DBSCRIPTDIR}/record_start.sh -l ${DBPORT} \
 				-n "PERF${TAG}.THRUPUT.RFST${stream_num}.RF2"
 		${DBSCRIPTDIR}/run_rf2.sh ${RUNDIR} \
-				${DBPORT} > ${OUTPUT_DIR}/results/thruput.perf${TAG}.stream${stream_num}.rf2.result 2>&1 || exit 1
+				${DBPORT} > ${OUTPUT_DIR}/results/thruput.perf${TAG}.stream${stream_num}.rf2.txt 2>&1 || exit 1
 		${DBSCRIPTDIR}/record_end.sh -l ${DBPORT} \
 				-n "PERF${TAG}.THRUPUT.RFST${stream_num}.RF2"
 		e_time_rf2=`$GTIME`

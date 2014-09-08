@@ -139,7 +139,7 @@ if [ ${NO_REFRESH} -eq 0 ]; then
 	$DBSCRIPTDIR/record_start.sh -l ${DBPORT} \
 			-n "PERF${TAG}.POWER.RF1" || exit 1
 	${DBSCRIPTDIR}/run_rf1.sh ${SCALE_FACTOR} ${RUNDIR} \
-			${DBPORT} > ${OUTPUT_DIR}/results/power.perf${TAG}.rf1.result 2>&1 || exit 1
+			${DBPORT} > ${OUTPUT_DIR}/results/power.perf${TAG}.rf1.txt 2>&1 || exit 1
 	${DBSCRIPTDIR}/record_end.sh -l ${DBPORT} \
 			-n "PERF${TAG}.POWER.RF1" || exit 1
 	e_time=`$GTIME`
@@ -158,7 +158,7 @@ if [ ${NO_REFRESH} -eq 0 ]; then
 	${DBSCRIPTDIR}/record_start.sh -l ${DBPORT} \
 			-n "PERF${TAG}.POWER.RF2" || exit 1
 	${DBSCRIPTDIR}/run_rf2.sh ${RUNDIR} \
-			${DBPORT} > ${OUTPUT_DIR}/results/power.perf${TAG}.rf2.result 2>&1 || exit 1
+			${DBPORT} > ${OUTPUT_DIR}/results/power.perf${TAG}.rf2.txt 2>&1 || exit 1
 	${DBSCRIPTDIR}/record_end.sh -l ${DBPORT} \
 			-n "PERF${TAG}.POWER.RF2" || exit 1
 	e_time=`$GTIME`

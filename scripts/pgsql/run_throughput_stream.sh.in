@@ -27,9 +27,9 @@ DBPORT=$7
 RUNDIR=$OUTPUT_DIR/run
 
 DBSCRIPTDIR=$SRCDIR/scripts/pgsql
-query_file="$RUNDIR/throughput_query$stream_num"
+query_file="$RUNDIR/throughput_query$stream_num.txt"
 tmp_query_file="$RUNDIR/tmp_throughput_query$stream_num.sql"
-param_file="$RUNDIR/throughput_param$stream_num"
+param_file="$RUNDIR/throughput_param$stream_num.txt"
 
 # output PID to a tmp file
 echo "$$" > $RUNDIR/PID$stream_num
@@ -78,7 +78,7 @@ ${DBSCRIPTDIR}/record_start.sh -l ${DBPORT} \
 # You can't use -a and have the query redirected to a file with -o, so use -a
 # and redirect.
 @PSQL@ -X -p ${DBPORT} -d ${SID} -f ${tmp_query_file} \
-		-a >> ${OUTPUT_DIR}/results/thruput_qs${stream_num}.result 2>&1 || exit 1
+		-a >> ${OUTPUT_DIR}/results/thruput_qs${stream_num}.txt 2>&1 || exit 1
 ${DBSCRIPTDIR}/record_end.sh -l ${DBPORT} \
 		-n "PERF${perf_run_num}.THRUPUT.QS${stream_num}.ALL" || exit 1
 e_time=`$GTIME`

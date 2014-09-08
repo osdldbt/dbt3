@@ -145,7 +145,7 @@ cd ${RESULT_PATH}
 if [ -d "${RESULT_PATH}/load" ]; then
 	gen_results "Load Test" "load"
 	echo "<p>"
-	echo "<a href=\"load\">Load Test</a>"
+	echo "<a href=\"load/index.html\">Load Test</a>"
 	echo "</p>"
 fi
 

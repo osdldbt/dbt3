@@ -26,9 +26,9 @@ DBPORT=$7
 
 PSQL="@PSQL@ -X -p ${DBPORT} -d $SID"
 
-query_file="$RUNDIR/power_query"
+query_file="$RUNDIR/power_query.txt"
 tmp_query_file="$RUNDIR/tmp_query.sql"
-param_file="$RUNDIR/power_param"
+param_file="$RUNDIR/power_param.txt"
 
 if [ ! -f $SEED_FILE ]; then
 	echo "creating seed file $SEED_FILE, you can change the seed by"
@@ -41,7 +41,8 @@ rm -f $query_file
 if [ $EXPLAIN_ANALYZE -eq 0 ]; then
 	${QGEN} -c -r `cat $SEED_FILE` -p 0 -s $scale_factor -l $param_file> $query_file || exit 1
 else
-	${QGEN} -c -r `cat $SEED_FILE` -p 0 -s $scale_factor -l $param_file -y > $query_file || exit 1
+	${QGEN} -c -r `cat $SEED_FILE` -p 0 -s $scale_factor -l $param_file \
+			-y > $query_file || exit 1
 fi
 # modify $query_file so that the commands are in one line
 ${PARSE_QUERY} $query_file $tmp_query_file P $perf_run_number
@@ -53,7 +54,7 @@ ${PSQL} -c "insert into time_statistics (task_name, s_time, int_time) values ('P
 # You can't use -a and have the query redirected to a file with -o, so use -a
 # and redirect.
 ${PSQL} -f $tmp_query_file \
-		-a >> $OUTPUT_DIR/results/power_query.result 2>&1 || exit 1
+		-a >> $OUTPUT_DIR/results/power_query.txt 2>&1 || exit 1
 ${PSQL} -c "update time_statistics set e_time=current_timestamp where task_name='PERF${perf_run_number}.POWER.QS' and int_time=$s_time;" || exit 1
 e_time=`$GTIME`
 echo "`date`: Power Test queries completed."
