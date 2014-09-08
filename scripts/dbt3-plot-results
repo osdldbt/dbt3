@@ -74,26 +74,26 @@ if (${POWER_TEST} == 1) {
 }
 
 if (${THROUGHPUT_TEST} == 1) {
-  count <- count + 1
-
   df_thruput <- df[grep("*.THRUPUT.QS.*.ALL", df\$task_name), ]
   runs <- nrow(df_thruput)
 
-  for (i in 1:runs) {
-    count <- count + 1
-    labels <- c(labels, paste("Throughput", i))
+  if (runs > 0) {
+    for (i in 1:runs) {
+      count <- count + 1
+      labels <- c(labels, paste("Throughput", i))
 
-    for (j in 1:22) {
-      str <- paste("PERF1.THRUPUT.QS", i, ".Q", j, sep="")
-      df[df\$task_name == str, ]\$q = j
+      for (j in 1:22) {
+        str <- paste("PERF1.THRUPUT.QS", i, ".Q", j, sep="")
+        df[df\$task_name == str, ]\$q = j
+      }
+
+      str <- paste("PERF1.THRUPUT.QS", i, ".Q", sep="")
+      df_thruput <- df[grep(str, df\$task_name), ]
+      df_thruput <- df_thruput[with(df_thruput, order(q)), ]
+      df_thruput\$task = paste("Throughput Test", i)
+
+      df_plot <- rbind(df_plot, df_thruput)
     }
-
-    str <- paste("PERF1.THRUPUT.QS", i, ".Q", sep="")
-    df_thruput <- df[grep(str, df\$task_name), ]
-    df_thruput <- df_thruput[with(df_thruput, order(q)), ]
-    df_thruput\$task = paste("Throughput Test", i)
-
-    df_plot <- rbind(df_plot, df_thruput)
   }
 }
 
