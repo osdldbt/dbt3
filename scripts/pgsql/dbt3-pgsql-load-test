@@ -12,7 +12,7 @@
 # 15 July 2004 - Revamped by Mark Wong
 
 DIR=`dirname $0`
-. ${DIR}/pgsql_profile || exit 1
+. ${DIR}/../dbt3_profile || exit 1
 
 SRCDIR=${DBT3_HOME}
 
@@ -55,10 +55,11 @@ getoprof () {
 PARAMETERS=""
 SF=0
 USE_OPROFILE=0
+USE_LINUXPERF=0
 GENERATE=0
 ONLY_LOAD=0
 DBDATA=${DSS_PATH}
-while getopts "d:f:g:lo:p:tyz:" opt; do
+while getopts "d:f:g:lo:p:tyYz:" opt; do
 	case $opt in
 	d)
 		DBDATA=${OPTARG}
@@ -87,6 +88,9 @@ while getopts "d:f:g:lo:p:tyz:" opt; do
 		;;
 	y)
 		USE_OPROFILE=1
+		;;
+	Y)
+		USE_LINUXPERF=1
 		;;
 	z)
 		DBPORT=$OPTARG
@@ -121,15 +125,6 @@ else
 	echo "Create the database using existing datafiles."
 fi
 
-# Initialize profile counters.
-if [ -f /proc/profile ]; then
-	clearprof
-fi
-
-if [ $USE_OPROFILE -eq 1 ]; then
-	clearoprof
-fi
-
 # Start collecting system statistics.
 $SRCDIR/scripts/dbt3-sysstats --outdir $OUTPUT_DIR --iter 1440 --sample 60 || exit 1
 
@@ -147,6 +142,19 @@ $DBSCRIPTDIR/dbt3-pgsql-time-statistics -s -l ${DBPORT} -n "LOAD" || exit 1
 
 # Collect database statistics
 ${DBSTATS} ${OUTPUT_DIR} ${DBPORT} &
+
+# Initialize profile counters.
+if [ -f /proc/profile ]; then
+	clearprof
+fi
+
+if [ ${USE_OPROFILE} -eq 1 ]; then
+	clearoprof
+fi
+
+if [ ${USE_LINUXPERF} -eq 1 ]; then
+	perf_start ${OUTPUT_DIR}/perf &
+fi
 
 ${DBSCRIPTDIR}/dbt3-pgsql-load-data -d ${DBDATA} || exit 1
 
@@ -179,6 +187,10 @@ fi
 if [ $USE_OPROFILE -eq 1 ]; then
 	profname='Load_Test'
 	getoprof
+fi
+
+if [ ${USE_LINUXPERF} -eq 1 ]; then
+	perf_collect ${OUTPUT_DIR}/perf
 fi
 
 exit 0

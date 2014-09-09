@@ -24,3 +24,25 @@ export PARSE_QUERY="@TOPDIR@/src/parse_query"
 export POWER="@TOPDIR@/src/power"
 
 source @TOPDIR@/scripts/${DATABASE}/${DATABASE}_profile
+
+perf_start()
+{
+	DIR=${1}
+
+	mkdir -p ${DIR}
+	sudo perf record -o ${DIR}/perf.data -a -g -s sleep 60
+}
+
+perf_collect()
+{
+	DIR=${1}
+
+	echo "Generating perf report..."
+	sudo perf report -i ${DIR}/perf.data -n > ${DIR}/perf-report.txt &
+
+	echo "Generating perf annotated source..."
+	sudo perf annotate -l -P -i ${DIR}/perf.data > ${DIR}/perf-annotate.txt &
+
+	echo "Generating perf trace on..."
+	sudo perf script -L -i ${DIR}/perf.data > ${DIR}/perf-trace.txt &
+}

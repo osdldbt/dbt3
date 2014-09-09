@@ -61,7 +61,7 @@ RUN_POWER_TEST=0
 RUN_THROUGHPUT_TEST=0
 FLAG_POWER_TEST=""
 FLAG_THROUGHPUT_TEST=""
-while getopts "123d:c:ef:ghl:n:op:q:r:s:tuz" opt; do
+while getopts "123d:c:ef:ghl:n:op:Pq:r:s:tuz" opt; do
 	case $opt in
 	1)
 		RUN_LOAD_TEST=1
@@ -106,6 +106,9 @@ while getopts "123d:c:ef:ghl:n:op:q:r:s:tuz" opt; do
 		;;
 	o)
 		OPROFILE_FLAG="-y"
+		;;
+	P)
+		LINUXPERF_FLAG="-Y"
 		;;
 	p)
 		# PostgreSQL only.
@@ -183,6 +186,7 @@ if [ ${RUN_LOAD_TEST} -eq 1 ]; then
 			-o $OUTPUT_DIR/load \
 			${LOAD_PARAMETERS_ARG} \
 			${OPROFILE_FLAG} \
+			${LINUXPERF_FLAG} \
 			-f $SCALE_FACTOR \
 			-g $GENERATE \
 			-d ${DBDATA} \
@@ -218,7 +222,10 @@ do
 				${POWER_PARAMETERS_ARG}\
 				${TEST_ARGS} \
 				-s ${SEED_FILE} \
-				-t ${i} ${OPROFILE_FLAG} ${NO_REFRESH_FLAG}
+				-t ${i} \
+				${OPROFILE_FLAG} \
+				${LINUXPERF_FLAG} \
+				${NO_REFRESH_FLAG}
 		if [ $? -eq 1 ] ; then 
 			echo "power_test problem!"
 			exit 1  
@@ -237,7 +244,10 @@ do
 				${THROUGHPUT_PARAMETERS_ARG} \
 				${TEST_ARGS} \
 				-s ${SEED_FILE} \
-				-t $i ${OPROFILE_FLAG} ${NO_REFRESH_FLAG} 
+				-t $i \
+				${OPROFILE_FLAG} \
+				${LINUXPERF_FLAG} \
+				${NO_REFRESH_FLAG}
 		if [ $? -eq 1 ] ; then 
 			echo "throughput_test problem!"
 			exit 1  
