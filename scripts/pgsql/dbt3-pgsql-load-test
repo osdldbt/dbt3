@@ -20,38 +20,6 @@ DBSCRIPTDIR=$SRCDIR/scripts/pgsql
 
 DBSTATS="$DBSCRIPTDIR/db_stats.sh"
 
-clearprof () {
-	sudo /usr/sbin/readprofile -m /boot/System.map-`uname -r` -r
-}
-
-getprof () {
-	sudo /usr/sbin/readprofile -n -m /boot/System.map-`uname -r` -v | sort -grk3,4 > $OUTPUT_DIR/readprofile.txt
-}
-
-clearoprof () {
-	sudo opcontrol --vmlinux=/boot/vmlinux
-	sleep 2
-	sudo opcontrol --start-daemon
-	sleep 2
-	sudo opcontrol --start
-	sleep 2
-	# If opcontrol ever gets stuck here, sometimes it helps to remove
-	# everything in this dir:
-	# /var/lib/oprofile
-	sudo opcontrol --reset
-}
-
-getoprof () {
-	mkdir -p $OUTPUT_DIR/oprofile/annotate
-	sudo opcontrol --dump
-	sudo opreport -l -o $OUTPUT_DIR/oprofile/oprofile.txt
-	sudo opcontrol --stop
-	sudo opcontrol --shutdown
-	sudo opannotate --source --assembly > $OUTPUT_DIR/oprofile/assembly.txt 2>&1
-	sudo opannotate --source --output-dir=$OUTPUT_DIR/oprofile/annotate
-	sudo opreport -l -c -p /lib/modules/`uname -r` -o ${OUTPUT_DIR}/oprofile/call-graph.txt > /dev/null 2>&1
-}
-
 PARAMETERS=""
 SF=0
 USE_OPROFILE=0
