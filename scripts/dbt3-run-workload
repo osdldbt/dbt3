@@ -295,8 +295,6 @@ if [ ${RUN_POWER_TEST} -eq 1 ] || [ ${RUN_THROUGHPUT_TEST} -eq 1 ]; then
 	${FLAG_POWER_TEST} ${FLAG_THROUGHPUT_TEST} || exit 1
 fi
 
-killall db_stats.sh
-
 $SRCDIR/scripts/dbt3-gen-report $OUTPUT_DIR > $OUTPUT_DIR/index.html || exit 1
 echo "done."
 
