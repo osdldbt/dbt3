@@ -86,6 +86,20 @@ gen_results()
 
 	dbt-plot-sar-blockdev ${SUBDIR}/sar-blockdev.csv ${SUBDIR}
 	dbt-plot-sar-cpu ${SUBDIR}/sar-cpu.csv ${SUBDIR}
+
+	dbt-pgsql-plot-database-stats ${SUBDIR}/db/pg_stat_databases.csv ${DBNAME} \
+			${SUBDIR}/db
+	mkdir -p ${SUBDIR}/db/tables
+	for TABLENAME in `cat ${SUBDIR}/db/table-list.txt`; do
+		dbt-pgsql-plot-table-stats ${SUBDIR}/db/pg_stat_tables.csv \
+				${TABLENAME} ${SUBDIR}/db/tables
+	done
+
+	mkdir -p ${SUBDIR}/db/indexes
+	for INDEXNAME in `cat ${SUBDIR}/db/index-list.txt`; do
+		dbt-pgsql-plot-index-stats ${SUBDIR}/db/pg_stat_indexes.csv \
+				${INDEXNAME} ${SUBDIR}/db/indexes
+	done
 }
 
 echo "<html>"

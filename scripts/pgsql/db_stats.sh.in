@@ -71,8 +71,17 @@ echo "Database statistics taken at $SAMPLE_LENGTH second intervals, $ITERATIONS 
 # save the database parameters
 ${PSQL} -c "SHOW ALL" > $OUTPUT_DIR/param.txt
 
+# record tables
+${PSQL} -c "SELECT tablename "`
+		`"FROM pg_tables "`
+		`"WHERE schemaname = 'public'"`
+		`"ORDER BY tablename;" -o ${DBOUTPUT_DIR}/table-list.txt
+
 # record indexes
-${PSQL} -c "SELECT * FROM pg_stat_user_indexes;" -o $DBOUTPUT_DIR/indexes.txt
+${PSQL} -c "SELECT indexname "`
+		`"FROM pg_indexes "`
+		`"WHERE schemaname = 'public' "`
+		`"ORDER BY indexname;" -o ${DBOUTPUT_DIR}/index-list.txt
 
 echo "$$" > ${OUTPUT_DIR}/db_stats.pid
 
