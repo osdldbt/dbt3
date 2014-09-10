@@ -72,10 +72,8 @@ mkdir -p $PLANDIR
 i=1
 while [ $i -le 22 ]
 do
-	if [ $i -ne 15 ]; then
-		${DBSCRIPTDIR}/get_query_plan.sh ${SCALE_FACTOR} ${i} \
-				${PLANDIR}/power_query${i}.txt ${RUNDIR} ${SEED_FILE} ${DBPORT}
-	fi
+	${DBSCRIPTDIR}/get_query_plan.sh ${SCALE_FACTOR} ${i} \
+			${PLANDIR}/power_query${i}.txt ${RUNDIR} ${SEED_FILE} ${DBPORT}
 	let "i=$i+1"
 done
 # Modify query file so that the commands are in one line.
