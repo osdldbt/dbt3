@@ -1,10 +1,12 @@
 #!/bin/sh
-
 #
 # This file is released under the terms of the Artistic License.
 # Please see the file LICENSE, included in this package, for details.
 #
-# Copyright (C) 2002 Jenny Zhang & Open Source Development Lab, Inc.
+# Copyright (C) 2002     Open Source Development Lab, Inc.
+#               2002     Jenny Zhang
+#               2014     Mark Wong
+#               2014     2ndQuadrant, Ltd.
 #
 
 export DBT3_DIR=${HOME}/local/dbt3
@@ -13,6 +15,10 @@ export PGHOME=@PGSQL_PATH@
 export SID=dbt3
 export DBNAME=${SID}
 export PGDATA=${DBT3_DIR}/pgdata
+
+# To set the pg_xlog directory, uncomment and modify appropriately.
+#export PGXLOG_ARG="-X /mnt/pg_xlog"
+
 export DBPORT=5432
 
 export DEFAULT_LOAD_PARAMETERS=""
