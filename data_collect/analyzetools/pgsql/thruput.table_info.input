@@ -1,7 +1,0 @@
-plot "throughput1.supplier.table_info.data" title "supplier" with lines, "throughput1.part.table_info.data" title "part" with lines, "throughput1.partsupp.table_info.data" title "partsupp" with lines, "throughput1.customer.table_info.data" title "customer" with lines, "throughput1.orders.table_info.data" title "orders" with lines, "throughput1.lineitem.table_info.data" title "lineitem" with lines, "throughput1.nation.table_info.data" title "nation" with lines, "throughput1.region.table_info.data" title "region" with lines, "throughput1.time_statistics.table_info.data" title "time_statistics" with lines
-set xlabel "Elapsed Time (Minutes)"
-set ylabel "Blocks Read"
-set term png small color
-set output "thruput.table_info.png"
-set yrange [0:]
-replot

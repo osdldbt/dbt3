@@ -241,16 +241,6 @@ elif test "$DATABASE_TO_USE" = "pgsql"; then
 elif test "$DATABASE_TO_USE" = "sapdb"; then
   AC_DEFINE(SAPDB, 1)
 
-  AC_CONFIG_FILES([data_collect/sapdb/dbt3_stats.sh],
-      [chmod +x data_collect/sapdb/dbt3_stats.sh])
-  AC_CONFIG_FILES([data_collect/sapdb/power_test_stats.sh],
-      [chmod +x data_collect/sapdb/power_test_stats.sh])
-  AC_CONFIG_FILES([data_collect/sapdb/single_query_stats.sh],
-      [chmod +x data_collect/sapdb/single_query_stats.sh])
-  AC_CONFIG_FILES([data_collect/sapdb/throughput_query_stats.sh],
-      [chmod +x data_collect/sapdb/throughput_query_stats.sh])
-  AC_CONFIG_FILES([data_collect/sapdb/throughput_test_stats.sh],
-      [chmod +x data_collect/sapdb/throughput_test_stats.sh])
   AC_CONFIG_FILES([dbdriver/scripts/sapdb/explain_single_query.sh],
       [chmod +x dbdriver/scripts/sapdb/explain_single_query.sh])
   AC_CONFIG_FILES([dbdriver/scripts/sapdb/explain_power_query.sh],
