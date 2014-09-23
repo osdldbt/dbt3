@@ -71,9 +71,6 @@ fi
 
 dbt3-pgsql-start-db ${PARAMOPT} || exit 1
 
-# Give the database a few seconds to get started.
-sleep 4
-
 createdb ${PORTOPT} ${DBNAME} || exit 1
 #createlang ${PORTOPT} plpgsql ${DBNAME}
 
