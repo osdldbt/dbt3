@@ -13,7 +13,7 @@ source ${DIR}/dbt3_profile || exit 1
 
 usage()
 {
-	echo "usage: run_workload.sh [-123eghouz] [-c comment] [-d data dir]"
+	echo "usage: run_workload.sh [-123eghoPRuz] [-c comment] [-d data dir]"
 	echo "  [-f scale factor] [-l database port] [-n streams]"
 	echo "  [-p load test database parameters]"
 	echo "  [-q power test database parameters]"
@@ -31,8 +31,10 @@ usage()
 	echo " l - database port"
 	echo " n - number of throughput streams"
 	echo " o - enable oprofile"
+	echo " P - enable linux perf"
 	echo " p - database parameters for the load test"
 	echo " q - database parameters for the power test"
+	echo " R - materialized view mode"
 	echo " r - database parameters for the throughput test"
 	echo " s - seed"
 	echo " u - use tablespaces"
@@ -61,7 +63,8 @@ RUN_POWER_TEST=0
 RUN_THROUGHPUT_TEST=0
 FLAG_POWER_TEST=""
 FLAG_THROUGHPUT_TEST=""
-while getopts "123d:c:ef:ghl:n:op:Pq:r:s:tuz" opt; do
+WORKLOAD="H"
+while getopts "123d:c:ef:ghl:n:op:Pq:Rr:s:tuz" opt; do
 	case $opt in
 	1)
 		RUN_LOAD_TEST=1
@@ -119,6 +122,10 @@ while getopts "123d:c:ef:ghl:n:op:Pq:r:s:tuz" opt; do
 		# PostgreSQL only.
 		POWER_PARAMETERS="${DEFAULT_POWER_PARAMETERS} $OPTARG"
 		POWER_PARAMETERS_ARG="-p \"${DEFAULT_POWER_PARAMETERS} $OPTARG\""
+		;;
+	R)
+		WORKLOAD="R"
+		WORKLOAD_ARG="-R"
 		;;
 	r)
 		# PostgreSQL only.
@@ -190,7 +197,8 @@ if [ ${RUN_LOAD_TEST} -eq 1 ]; then
 			-f $SCALE_FACTOR \
 			-g $GENERATE \
 			-d ${DBDATA} \
-			${TABLESPACES_FLAG} || exit 1
+			${WORKLOAD_ARG} \
+			${TABLESPACES_FLAG} 2> ${OUTPUT_DIR}/load.log || exit 1
 else
 	#
 	# If the load test wasn't performed the time statistics needs to
@@ -281,16 +289,16 @@ done
 QTIMECSV="${OUTPUT_DIR}/q_time.csv"
 
 # Get system details.
-echo -n "Getting system configuration..."
+echo -n "Getting system configuration... "
 $SCRIPTDIR/dbt3-get-config $SCALE_FACTOR $STREAMS "$LOAD_PARAMETERS" "$POWER_PARAMETERS" "$THROUGHPUT_PARAMETERS" $OUTPUT_DIR || exit 1
 echo "done."
 
 # Get query times.
-echo -n "Getting query times..."
+echo -n "Getting query times... "
 ${DBSCRIPTDIR}/dbt3-${DATABASE}-get-query-time > ${QTIMECSV} || exit 1
 echo "done."
 
-echo -n "Generating a report..."
+echo -n "Generating a report... "
 #
 # Calculate composite score.      
 #
@@ -305,7 +313,8 @@ if [ ${RUN_POWER_TEST} -eq 1 ] || [ ${RUN_THROUGHPUT_TEST} -eq 1 ]; then
 	${FLAG_POWER_TEST} ${FLAG_THROUGHPUT_TEST} || exit 1
 fi
 
-$SRCDIR/scripts/dbt3-gen-report $OUTPUT_DIR > $OUTPUT_DIR/index.html || exit 1
+$SRCDIR/scripts/dbt3-gen-report $OUTPUT_DIR > $OUTPUT_DIR/index.html \
+		2> /dev/null || exit 1
 echo "done."
 
 #
