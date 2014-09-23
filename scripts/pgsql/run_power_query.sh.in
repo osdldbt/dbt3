@@ -58,7 +58,7 @@ ${PSQL} -f $tmp_query_file \
 ${PSQL} -c "update time_statistics set e_time=current_timestamp where task_name='PERF${perf_run_number}.POWER.QS' and int_time=$s_time;" || exit 1
 e_time=`$GTIME`
 echo "`date`: Power Test queries completed."
-let "diff_time=$e_time-$s_time"
+diff_time=$(( $e_time - $s_time ))
 echo "Elapsed time for Power Test queries : $diff_time seconds"
 
 exit 0

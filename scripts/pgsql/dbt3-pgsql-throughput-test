@@ -104,13 +104,13 @@ ${DBSCRIPTDIR}/throughput_stream_wrapper.sh -l ${DBPORT} -f ${scale_factor} \
 read SARPID < ${OUTPUT_DIR}/sar.pid
 kill ${SARPID}
 read PIDSTATPID < ${OUTPUT_DIR}/pidstat.pid
-kill ${PIDSTATSARPID}
+kill ${PIDSTATPID}
 read DBSTATSPID < ${OUTPUT_DIR}/db_stats.pid
 kill ${DBSTATSPID}
 
 ${DBSCRIPTDIR}/record_end.sh -l ${DBPORT} -n "PERF${TAG}.THRUPUT" || exit 1
 e_time=`$GTIME`
-let "diff_time=$e_time-$s_time"
+diff_time=$(( $e_time - $s_time ))
 echo "Stream ${TAG} : Elapsed time for Throughput Test : $diff_time seconds"
 
 # Stop the database after the test.

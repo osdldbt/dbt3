@@ -40,7 +40,7 @@ fi
 
 set_num=`cat $curr_set_file_rf2`
 
-let "set_num=$set_num+1"
+set_num=$(( $set_num + 1 ))
 if [ $set_num -gt $set_num_rf1 ]
 then
 	echo "Stream ${set_num} : rf2 set number is greater than rf1 set number"
@@ -79,7 +79,7 @@ rm -f tmp_orderkey$set_num.sql
 
 e_time=`$GTIME`
 echo "`date`: Stream ${set_num} : Refresh Stream 2 completed."
-let "diff_time=$e_time-$s_time"
+diff_time=$(( $e_time - $s_time ))
 echo "Stream ${set_num} : Elapsed time for Refresh Stream 2 : $diff_time seconds"
 
 exit 0

@@ -42,7 +42,7 @@ fi
 
 seed=`cat $SEED_FILE`
 
-let "seed = $seed + $stream_num"
+seed=$(( $seed + $stream_num ))
 # generate the queries for thoughput test
 rm -f $query_file
 rm -f $tmp_query_file
@@ -67,7 +67,7 @@ do
 				${PLANDIR}/throughput_stream${stream_num}_query${i}.txt \
 				${RUNDIR} ${SEED_FILE} ${DBPORT}
 	fi
-	let "i=$i+1"
+	i=$(( $i + 1 ))
 done
 
 # run the queries
@@ -83,7 +83,7 @@ ${DBSCRIPTDIR}/record_end.sh -l ${DBPORT} \
 		-n "PERF${perf_run_num}.THRUPUT.QS${stream_num}.ALL" || exit 1
 e_time=`$GTIME`
 echo "`date`: end queries "
-let "diff_time=$e_time-$s_time"
+diff_time=$(( $e_time - $s_time ))
 echo "elapsed time for queries $diff_time"
 
 exit 0

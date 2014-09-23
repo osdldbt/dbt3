@@ -27,7 +27,8 @@ USE_LINUXPERF=0
 GENERATE=0
 ONLY_LOAD=0
 DBDATA=${DSS_PATH}
-while getopts "d:f:g:lo:p:tyYz:" opt; do
+WORKLOAD="H"
+while getopts "d:f:g:lo:p:RtyYz:" opt; do
 	case $opt in
 	d)
 		DBDATA=${OPTARG}
@@ -50,6 +51,10 @@ while getopts "d:f:g:lo:p:tyYz:" opt; do
 	p)
 		PARAMETERS="${LOAD_PARAMETERS} $OPTARG"
 		PARAMETERS_ARG="-p \"${LOAD_PARAMETERS} $OPTARG\""
+		;;
+	R)
+		WORKLOAD="R"
+		WORKLOAD_ARG="-R"
 		;;
 	t)
 		TABLESPACE_FLAG="-t -b"
@@ -100,7 +105,7 @@ $DBSCRIPTDIR/dbt3-pgsql-create-db -o ${OUTPUT_DIR} -l ${DBPORT} \
 		${PARAMETERS_ARG}
 	
 date
-${DBSCRIPTDIR}/dbt3-pgsql-drop-tables -l ${DBPORT}
+${DBSCRIPTDIR}/dbt3-pgsql-drop-tables -l ${DBPORT} || exit 1
 ${DBSCRIPTDIR}/dbt3-pgsql-create-tables -d ${DBDATA} -l ${DBPORT} ${TABLESPACE_FLAG} || exit 1
 date
 
@@ -109,7 +114,7 @@ s_time=`$GTIME`
 $DBSCRIPTDIR/dbt3-pgsql-time-statistics -s -l ${DBPORT} -n "LOAD" || exit 1
 
 # Collect database statistics
-${DBSTATS} ${OUTPUT_DIR} ${DBPORT} &
+${DBSTATS} ${OUTPUT_DIR} ${DBPORT} 2> /dev/null &
 
 # Initialize profile counters.
 if [ -f /proc/profile ]; then
@@ -127,8 +132,11 @@ fi
 ${DBSCRIPTDIR}/dbt3-pgsql-load-data -d ${DBDATA} || exit 1
 
 if [ ${ONLY_LOAD} -eq 0 ]; then
+	echo -n "Building indexes... "
 	date
-	$DBSCRIPTDIR/dbt3-pgsql-create-indexes -l ${DBPORT} ${TABLESPACE_FLAG} || exit 1
+	${DBSCRIPTDIR}/dbt3-pgsql-create-indexes -l ${DBPORT} ${TABLESPACE_FLAG} \
+			${WORKLOAD_ARG} || exit 1
+	echo -n "Done building indexes... "
 	date
 fi
 
@@ -142,7 +150,7 @@ echo "Elapsed time for Load Test : $diff_time seconds"
 read SARPID < ${OUTPUT_DIR}/sar.pid
 kill ${SARPID}
 read PIDSTATPID < ${OUTPUT_DIR}/pidstat.pid
-kill ${PIDSTATSARPID}
+kill ${PIDSTATPID}
 read DBSTATSPID < ${OUTPUT_DIR}/db_stats.pid
 kill ${DBSTATSPID}
 

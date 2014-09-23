@@ -174,7 +174,7 @@ for ARG in `ls -d power*`
 do
 	gen_results "Power Test" $ARG
 	echo "<a href=\"$ARG/index.html\">Power Test ${i}</a>"
-	let "i=$i+1"
+	i=$(( $i + 1 ))
 done
 echo "</p>"
 
@@ -184,7 +184,7 @@ for ARG in `ls -d throughput*`
 do
 	gen_results "Throughput Test" $ARG
 	echo "<a href=\"$ARG/index.html\">Throughput Test ${i}</a>"
-	let "i=$i+1"
+	i=$(( $i + 1))
 done
 echo "</p>"
 
