@@ -86,14 +86,14 @@ fi
 $DBSCRIPTDIR/dbt3-pgsql-stop-db || exit 1
 $DBSCRIPTDIR/dbt3-pgsql-start-db -o ${OUTPUT_DIR} ${PARAMETERS_ARG} || exit 1
 
-s_time=`$GTIME`
+s_time=`date +%s`
 $DBSCRIPTDIR/record_start.sh -l ${DBPORT} -n "PERF${TAG}.THRUPUT" || exit 1
 
 # Start collecting system statistics. 
-$SRCDIR/scripts/dbt3-sysstats --outdir $OUTPUT_DIR --iter 1440 --sample 60 || exit 1
+$SRCDIR/scripts/dbt3-sysstats --outdir $OUTPUT_DIR --sample 60 || exit 1
 
 # Start collecting database statistics.
-${DBSTATS} ${OUTPUT_DIR} ${DBPORT}&
+${DBSTATS} ${OUTPUT_DIR} ${DBPORT} &
 
 # Start the streams.
 ${DBSCRIPTDIR}/throughput_stream_wrapper.sh -l ${DBPORT} -f ${scale_factor} \
@@ -109,7 +109,7 @@ read DBSTATSPID < ${OUTPUT_DIR}/db_stats.pid
 kill ${DBSTATSPID}
 
 ${DBSCRIPTDIR}/record_end.sh -l ${DBPORT} -n "PERF${TAG}.THRUPUT" || exit 1
-e_time=`$GTIME`
+e_time=`date +%s`
 diff_time=$(( $e_time - $s_time ))
 echo "Stream ${TAG} : Elapsed time for Throughput Test : $diff_time seconds"
 

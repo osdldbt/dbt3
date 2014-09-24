@@ -16,20 +16,20 @@ if [ $# -ne 7 ]; then
         exit 1
 fi
 
-scale_factor=$1
-perf_run_num=$2
+SCALE_FACTOR=$1
+TAG=$2
 stream_num=$3
 EXPLAIN_ANALYZE=$4
 OUTPUT_DIR=$5
 SEED_FILE=$6
 DBPORT=$7
 
+PSQL="@PSQL@ -X -p ${DBPORT} -d ${SID} -e"
 RUNDIR=$OUTPUT_DIR/run
+RESULTSDIR="${OUTPUT_DIR}/results/${stream_num}"
+mkdir -p ${RESULTSDIR} || exit 1
 
 DBSCRIPTDIR=$SRCDIR/scripts/pgsql
-query_file="$RUNDIR/throughput_query$stream_num.txt"
-tmp_query_file="$RUNDIR/tmp_throughput_query$stream_num.sql"
-param_file="$RUNDIR/throughput_param$stream_num.txt"
 
 # output PID to a tmp file
 echo "$$" > $RUNDIR/PID$stream_num
@@ -39,51 +39,51 @@ if [ ! -f $SEED_FILE ]; then
 	echo "modifying this file"
 	$SRCDIR/scripts/init_seed.sh > $SEED_FILE
 fi
+SEED=`cat ${SEED_FILE}`
+SEED=$(( ${SEED} + ${stream_num} ))
 
-seed=`cat $SEED_FILE`
-
-seed=$(( $seed + $stream_num ))
-# generate the queries for thoughput test
-rm -f $query_file
-rm -f $tmp_query_file
-if [ $EXPLAIN_ANALYZE -eq 0 ]; then
-	$QGEN -c -r $seed -p $stream_num -s $scale_factor \
-			-l $param_file > $query_file || exit 1
-else
-	$QGEN -c -r $seed -p $stream_num -s $scale_factor -l $param_file \
-			-y > $query_file || exit 1
+if [ $EXPLAIN_ANALYZE -eq 1 ]; then
+	EXPLAIN_ARG="-y"
 fi
-# modify $query_file so that the commands are in one line
-${PARSE_QUERY} $query_file $tmp_query_file T $perf_run_num $stream_num
 
-# get the execution plan for each query
-PLANDIR=$OUTPUT_DIR/db/plans
-mkdir -p $PLANDIR
+# get the execution plan for each query of each query stream
+PLANDIR=${OUTPUT_DIR}/plans/${stream_num}
+mkdir -p ${PLANDIR} || exit 1
+
 i=1
 while [ $i -le 22 ]
 do
-	if [ $i -ne 15 ]; then
-		${DBSCRIPTDIR}/get_query_plan.sh ${scale_factor} ${i} \
-				${PLANDIR}/throughput_stream${stream_num}_query${i}.txt \
-				${RUNDIR} ${SEED_FILE} ${DBPORT}
-	fi
+	# Remember the query planned is in the order determined by the seed.
+	Q=`${QGEN} -c -r ${SEED} -p ${stream_num} -s ${SCALE_FACTOR} -x ${i}`
+	N=`echo ${Q} | sed -n -r 's/.*\(#\)([[:digit:]]+)\..*/\1/p'`
+	${PSQL} << __EOF__ > ${PLANDIR}/${N}.txt
+${Q}
+__EOF__
 	i=$(( $i + 1 ))
 done
 
 # run the queries
-echo "`date`: start throughput queries for stream $stream_num "
-s_time=`$GTIME`
-${DBSCRIPTDIR}/record_start.sh -l ${DBPORT} \
-		-n "PERF${perf_run_num}.THRUPUT.QS${stream_num}.ALL" || exit 1
-# You can't use -a and have the query redirected to a file with -o, so use -a
-# and redirect.
-@PSQL@ -X -p ${DBPORT} -d ${SID} -f ${tmp_query_file} \
-		-a >> ${OUTPUT_DIR}/results/thruput_qs${stream_num}.txt 2>&1 || exit 1
-${DBSCRIPTDIR}/record_end.sh -l ${DBPORT} \
-		-n "PERF${perf_run_num}.THRUPUT.QS${stream_num}.ALL" || exit 1
-e_time=`$GTIME`
-echo "`date`: end queries "
+echo "`date`: start throughput queriy stream $stream_num "
+s_time=`date +%s`
+STREAMTASK="PERF${TAG}.THRUPUT.QS${stream_num}.ALL"
+${DBSCRIPTDIR}/record_start.sh -l ${DBPORT} -n "${STREAMTASK}" || exit 1
+i=1
+while [ ${i} -le 22 ]; do
+	Q=`${QGEN} -c -r ${SEED} -p ${stream_num} -s ${SCALE_FACTOR} ${EXPLAIN_ARG} ${i}`
+	N=`echo ${Q} | sed -n -r 's/.*\(#\)([[:digit:]]+)\..*/\1/p'`
+	TASK="PERF${TAG}.THRUPUT.QS${stream_num}.Q${N}"
+	${PSQL} << __EOF__ > ${RESULTSDIR}/${N}.txt
+INSERT INTO time_statistics (task_name, s_time)
+VALUES ('${TASK}', CURRENT_TIMESTAMP);
+${Q}
+UPDATE time_statistics
+SET e_time = CURRENT_TIMESTAMP
+WHERE task_name='${TASK}';
+__EOF__
+	i=$(( ${i} + 1 ))
+done
+${DBSCRIPTDIR}/record_end.sh -l ${DBPORT} -n "${STREAMTASK}" || exit 1
+e_time=`date +%s`
+echo "`date`: end throughput query stream ${stream_num}"
 diff_time=$(( $e_time - $s_time ))
-echo "elapsed time for queries $diff_time"
-
-exit 0
+echo "elapsed time for throughput query stream ${stream_num}: $diff_time sec"
