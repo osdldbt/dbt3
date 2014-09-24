@@ -10,14 +10,14 @@
 DIR=`dirname $0`
 . ${DIR}/pgsql_profile || exit 1
 
-function analyze_table {
+analyze_table() {
 	TABLENAME=$1
 ${PSQL} << __EOF__
 	ANALYZE ${TABLENAME};
 __EOF__
 }
 
-function create_q2_1_matview {
+create_q2_1_matview() {
 	${PSQL} << __EOF__
 CREATE MATERIALIZED VIEW q2_1 (
 	s_acctbal,
@@ -70,7 +70,7 @@ ANALYZE q2_1;
 __EOF__
 }
 
-function create_q2_2_matview {
+create_q2_2_matview() {
 	${PSQL} << __EOF__
 CREATE MATERIALIZED VIEW q2_2 (
 	ps_supplycost,
@@ -104,13 +104,13 @@ ANALYZE q2_2;
 __EOF__
 }
 
-function create_q2_matview {
+create_q2_matview() {
 	create_q2_1_matview &
 	create_q2_2_matview &
 	wait
 }
 
-function create_q3_matview {
+create_q3_matview() {
 	${PSQL} << __EOF__
 CREATE MATERIALIZED VIEW q3 (
 	l_orderkey,
@@ -151,7 +151,7 @@ ANALYZE q3;
 __EOF__
 }
 
-function create_q4_matview {
+create_q4_matview() {
 	${PSQL} << __EOF__
 CREATE MATERIALIZED VIEW q4 (
 	l_orderkey
@@ -169,7 +169,7 @@ ANALYZE q4;
 __EOF__
 }
 
-function create_q5_matview {
+create_q5_matview() {
 	${PSQL} << __EOF__
 CREATE MATERIALIZED VIEW q5 (
 	n_name,
@@ -205,7 +205,7 @@ ANALYZE q5;
 __EOF__
 }
 
-function create_q7_matview {
+create_q7_matview() {
 	${PSQL} << __EOF__
 CREATE MATERIALIZED VIEW q7 (
 	supp_nation,
@@ -241,7 +241,7 @@ CREATE INDEX ON q7 (cust_nation);
 __EOF__
 }
 
-function create_q8_matview {
+create_q8_matview() {
 	${PSQL} << __EOF__
 CREATE MATERIALIZED VIEW q8 (
 	o_year,
@@ -283,7 +283,7 @@ ANALYZE q8;
 __EOF__
 }
 
-function create_q9_matview {
+create_q9_matview() {
 	${PSQL} << __EOF__
 CREATE MATERIALIZED VIEW q9 (
 	nation,
@@ -320,7 +320,7 @@ where
 __EOF__
 }
 
-function create_q10_matview {
+create_q10_matview() {
 	${PSQL} << __EOF__
 CREATE MATERIALIZED VIEW q10 (
 	c_custkey,
@@ -373,7 +373,7 @@ ANALYZE q10;
 __EOF__
 }
 
-function create_q11_1_matview {
+create_q11_1_matview() {
 	${PSQL} << __EOF__
 CREATE MATERIALIZED VIEW q11_1 (
 	ps_partkey,
@@ -401,7 +401,7 @@ ANALYZE q11_1;
 __EOF__
 }
 
-function create_q11_2_matview {
+create_q11_2_matview() {
 	${PSQL} << __EOF__
 CREATE MATERIALIZED VIEW q11_2 (
 	ps_supplycost,
@@ -426,13 +426,13 @@ ANALYZE q11_2;
 __EOF__
 }
 
-function create_q11_matview {
+create_q11_matview() {
 	create_q11_1_matview &
 	create_q11_2_matview &
 	wait
 }
 
-function create_q12_matview {
+create_q12_matview() {
 	${PSQL} << __EOF__
 CREATE MATERIALIZED VIEW q12 (
 	l_shipmode,
@@ -457,7 +457,7 @@ ANALYZE q12;
 __EOF__
 }
 
-function create_q13_matview {
+create_q13_matview() {
 	${PSQL} << __EOF__
 CREATE MATERIALIZED VIEW q13 (
 	c_custkey,
@@ -478,7 +478,7 @@ group by
 __EOF__
 }
 
-function create_q14_matview {
+create_q14_matview() {
 	${PSQL} << __EOF__
 CREATE MATERIALIZED VIEW q14 (
 	p_type,
@@ -503,7 +503,7 @@ ANALYZE q14;
 __EOF__
 }
 
-function create_q16_matview {
+create_q16_matview() {
 	${PSQL} << __EOF__
 CREATE MATERIALIZED VIEW q16 (
 	p_brand,
@@ -540,7 +540,7 @@ ANALYZE q16;
 __EOF__
 }
 
-function create_q17_matview {
+create_q17_matview() {
 	${PSQL} << __EOF__
 CREATE MATERIALIZED VIEW q17 (
 	l_extendedprice,
@@ -568,7 +568,7 @@ where
 __EOF__
 }
 
-function create_q18_matview {
+create_q18_matview() {
 	${PSQL} << __EOF__
 CREATE MATERIALIZED VIEW q18 (
 	c_name,
@@ -596,7 +596,7 @@ where
 __EOF__
 }
 
-function create_q19_matview {
+create_q19_matview() {
 	${PSQL} << __EOF__
 CREATE MATERIALIZED VIEW q19 (
 	l_extendedprice,
@@ -622,7 +622,7 @@ where
 __EOF__
 }
 
-function create_q20_1_matview {
+create_q20_1_matview() {
 	${PSQL} << __EOF__
 CREATE MATERIALIZED VIEW q20_1 (
 	s_name,
@@ -642,7 +642,7 @@ where
 __EOF__
 }
 
-function create_q20_2_matview {
+create_q20_2_matview() {
 	${PSQL} << __EOF__
 CREATE MATERIALIZED VIEW q20_2 (
 	ps_suppkey,
@@ -660,13 +660,13 @@ where
 __EOF__
 }
 
-function create_q20_matview {
+create_q20_matview() {
 	create_q20_1_matview &
 	create_q20_2_matview &
 	wait
 }
 
-function create_q21_matview {
+create_q21_matview() {
 	${PSQL} << __EOF__
 CREATE MATERIALIZED VIEW q21 (
 	s_name,
