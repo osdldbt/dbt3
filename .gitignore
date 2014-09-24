@@ -31,4 +31,3 @@ src/dbgen/.deps/
 src/dbgen/Makefile
 src/dbgen/dbgen
 src/dbgen/qgen
-src/power

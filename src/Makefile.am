@@ -7,15 +7,7 @@
 
 AUTOMAKE_OPTIONS = no-dependencies
 
-# Can't include dbgen until we can figure out how to conver the Makefile for
-# automake.
 SUBDIRS = dbgen
-
-AM_CPPFLAGS = -Iinclude
-
-bin_PROGRAMS = power
-
-power_SOURCES = power.c
 
 EXTRA_DIST = \
              include/common.h \
