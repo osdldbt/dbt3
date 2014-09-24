@@ -205,10 +205,8 @@ else
 	# be cleared out.  Otherwise the data collection will be
 	# incomprehensible with duplicate data.
 	#
-#	${DBSCRIPTDIR}/dbt3-${DATABASE}-start-db -p "-c port=${DBPORT}"
 	${DBSCRIPTDIR}/dbt3-${DATABASE}-start-db
-	#${DBSCRIPTDIR}/dbt3-${DATABASE}-time-statistics -c -l ${DBPORT} || exit 1
-	${DBSCRIPTDIR}/dbt3-${DATABASE}-time-statistics -c || exit 1
+	clear_time_statistics || exit 1
 fi
 
 i=1
@@ -217,8 +215,8 @@ do
 	#
 	# Start time of a Power and Throughput test.
 	#
-	s_time=`$GTIME`
-	${DBSCRIPTDIR}/dbt3-${DATABASE}-time-statistics -s -l ${DBPORT} -n "PERF${i}" || exit 1
+	s_time=`date +%s`
+	record_start "PERF${i}" || exit 1
 
 	if [ ${RUN_POWER_TEST} -eq 1 ]; then
 		#
@@ -271,8 +269,8 @@ do
 	#
 	# End time of a Power and Throughput test.
 	#
-	$DBSCRIPTDIR/dbt3-${DATABASE}-time-statistics -e -l ${DBPORT} -n "PERF${i}" || exit 1
-	e_time=`$GTIME`
+	record_end "PERF${i}" || exit 1
+	e_time=`date +%s`
 	diff_time=`expr $e_time - $s_time`
 	echo "Elapsed time for performance test ${i} : $diff_time seconds"
 
@@ -298,10 +296,10 @@ echo -n "Getting query times... "
 ${DBSCRIPTDIR}/dbt3-${DATABASE}-get-query-time > ${QTIMECSV} || exit 1
 echo "done."
 
-echo -n "Generating a report... "
 #
 # Calculate composite score.      
 #
+echo -n "Post processing query results... "
 if [ ${RUN_POWER_TEST} -eq 1 ] || [ ${RUN_THROUGHPUT_TEST} -eq 1 ]; then
     $SRCDIR/scripts/dbt3-post-process \
 	-i ${QTIMECSV} \
@@ -313,8 +311,9 @@ if [ ${RUN_POWER_TEST} -eq 1 ] || [ ${RUN_THROUGHPUT_TEST} -eq 1 ]; then
 	${FLAG_POWER_TEST} ${FLAG_THROUGHPUT_TEST} || exit 1
 fi
 
+echo -n "Generating a report... "
 $SRCDIR/scripts/dbt3-gen-report $OUTPUT_DIR > $OUTPUT_DIR/index.html \
-		2> /dev/null || exit 1
+		|| exit 1
 echo "done."
 
 #

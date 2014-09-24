@@ -43,7 +43,7 @@ done
 if [ ! "x${PORT}" = "x" ]; then
 	PORTARG="-p ${PORT}"
 fi
-PSQL="psql -X -p ${DBPORT} -d ${SID}"
+PSQL="psql -v ON_ERROR_STOP=1 -X -p ${DBPORT} -d ${SID}"
 
 if [ ${USE_TABLESPACES} -eq 1 ]; then
 	TS_SUPPLIER_DIR="${TSDIR}/supplier/ts"
@@ -180,8 +180,7 @@ create_table time_statistics "
 CREATE TABLE time_statistics (
 	task_name VARCHAR(40),
 	s_time TIMESTAMP,
-	e_time TIMESTAMP,
-	int_time INTEGER);" || exit 1
+	e_time TIMESTAMP);" || exit 1
 
 ${PSQL} << __EOF__
 GRANT SELECT ON nation TO PUBLIC;

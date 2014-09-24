@@ -66,7 +66,6 @@ if (${POWER_TEST} == 1) {
   }
 
   df_power <- df[grep("PERF1.POWER.Q", df\$task_name), ]
-  df_power <- df_power[-nrow(df_power), ]
   df_power <- df_power[with(df_power, order(q)), ]
   df_power\$task = "Performance Test"
 

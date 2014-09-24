@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 # This file is released under the terms of the Artistic License.
 # Please see the file LICENSE, included in this package, for details.
@@ -22,7 +22,7 @@ make_sar_csv() {
 }
 
 DIR=`dirname $0`
-source ${DIR}/dbt3_profile || exit 1
+. ${DIR}/dbt3_profile || exit 1
 
 PLOT_OPTS=""
 FLAG_POWER_TEST=0
@@ -99,4 +99,5 @@ fi
 # Plot a result chart with using gnuplot
 # -------------------------------------
 $SCRIPT_DIR/dbt3-plot-results -i ${INFILE} ${NO_REFRESH_FLAG} \
-		-o `dirname ${OUTFILE}` ${PLOT_OPTS} || exit 1
+		-o `dirname ${OUTFILE}` ${PLOT_OPTS} \
+		|| >&2 echo "Failed to plot query times..."

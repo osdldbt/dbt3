@@ -10,6 +10,7 @@
 #
 
 SRCDIR=@TOPDIR@
+. ${SRCDIR}/scripts/dbt3_profile || exit 1
 
 EXPLAIN_ANALYZE=0
 NO_REFRESH=0
@@ -61,14 +62,14 @@ if [ ${NO_REFRESH} -eq 0 ]; then
 		RF1OUT="${OUTPUT_DIR}/results/thruput.perf${TAG}.stream${stream_num}.rf1.txt"
 		RF2OUT="${OUTPUT_DIR}/results/thruput.perf${TAG}.stream${stream_num}.rf2.txt"
 
-		${DBSCRIPTDIR}/record_start.sh -l ${DBPORT} -n "${STREAM}"
+		record_start "${STREAM}" || exit 1
 
 		echo "`date`: Throughput Stream $stream_num : Starting Refresh Stream 1..."
 		s_time_rf1=`date +%s`
-		${DBSCRIPTDIR}/record_start.sh -l ${DBPORT} -n "${RF1TASK}"
+		record_start "${RF1TASK}" || exit 1
 		${DBSCRIPTDIR}/run_rf1.sh ${scale_factor} ${RUNDIR} ${DBPORT} \
 				> ${RF1OUT} 2>&1 || exit 1
-		${DBSCRIPTDIR}/record_end.sh -l ${DBPORT} -n "${RF1TASK}"
+		record_end "${RF1TASK}" || exit 1
 		e_time_rf1=`date +%s`
 		echo "`date`: Throughput Stream $stream_num : Refresh Stream 1 completed."
 		diff_time_rf1=$(( $e_time_rf1 - $s_time_rf1 ))
@@ -76,20 +77,18 @@ if [ ${NO_REFRESH} -eq 0 ]; then
 
 		echo "`date`: Throughput Stream $stream_num : Starting Refresh Stream 2..."
 		s_time_rf2=`date +%s`
-		${DBSCRIPTDIR}/record_start.sh -l ${DBPORT} -n "${RF2TASK}"
+		record_start "${RF2TASK}" || exit 1
 		${DBSCRIPTDIR}/run_rf2.sh ${RUNDIR} ${DBPORT} > ${RF2OUT} 2>&1 || exit 1
-		${DBSCRIPTDIR}/record_end.sh -l ${DBPORT} -n "${RF2TASK}"
+		record_end "${RF2TASK}" || exit 1
 		e_time_rf2=`date +%s`
 		echo "`date`: Throughput Stream $stream_num : Refresh Stream 2 completed."
 		diff_time_rf2=$(( $e_time_rf2 - $s_time_rf2 ))
 		echo "Throughput Stream $stream_num : Elapsed time for Refresh Stream 2 : $diff_time_rf2 seconds"
 
-		${DBSCRIPTDIR}/record_end.sh -l ${DBPORT} -n "${STREAM}"
+		record_end "${STREAM}" || exit 1
 
 		stream_num=$(( $stream_num + 1 ))
 	done
 fi
 
 wait
-
-exit 0
