@@ -96,7 +96,7 @@
 
 #ifdef PGSQL
 #define GEN_QUERY_PLAN  "EXPLAIN"
-#define START_TRAN      "START"
+#define START_TRAN      "BEGIN;"
 #define END_TRAN        "COMMIT;"
 #define SET_OUTPUT      ""
 #define SET_ROWCOUNT    "LIMIT %d;\n"

@@ -13,7 +13,7 @@ DIR=`dirname $0`
 
 SRCDIR=${DBT3_HOME}
 
-EXPLAIN_ANALYZE=0
+EXPLAIN_ARG=
 USE_OPROFILE=0
 USE_LINUXPERF=0
 NO_REFRESH=0
@@ -21,14 +21,15 @@ NO_REFRESH=0
 # process the command line parameters
 while getopts "ef:l:p:o:s:t:yYz" opt; do
 	case $opt in
-		e) EXPLAIN_ANALYZE=1
+		e) EXPLAIN_ARG="-y"
 			;;
 		f) SCALE_FACTOR=$OPTARG
 			;;
 		l) DBPORT=$OPTARG
 			;;
 		o) OUTPUT_DIR=$OPTARG
-		   mkdir -p $OUTPUT_DIR/results
+			RESULTSDIR="${OUTPUT_DIR}/results"
+			mkdir -p ${RESULTSDIR}
 			;;
 		p)
 			PARAMETERS="${POWER_PARAMETERS} $OPTARG"
@@ -55,37 +56,33 @@ mkdir -p $RUNDIR
 SCRIPTDIR=$SRCDIR/scripts
 DBSCRIPTDIR=$SRCDIR/scripts/pgsql
 
-param_file="$RUNDIR/power_plan.para"
-query_file="$RUNDIR/power_plan.sql"
-tmp_query_file="$RUNDIR/tmp_power_plan.sql"
-
 DBSTATS="${DBSCRIPTDIR}/db_stats.sh"
+
+PSQL="psql -v ON_ERROR_STOP=1 -X -p ${DBPORT} -d ${SID} -e"
 
 # Generate queries for the Power test.
 SEED=`cat $SEED_FILE`
 echo "Seed : $SEED" > $OUTPUT_DIR/readme.txt
-${QGEN} -c -r $SEED -p 0 -s $SCALE_FACTOR -l $param_file -x > $query_file
 
 # Get the EXPLAIN plans for only the SELECT statements.
-PLANDIR=$OUTPUT_DIR/db/plans
-mkdir -p $PLANDIR
+PLANDIR=${OUTPUT_DIR}/plans
+mkdir -p ${PLANDIR} || exit 1
 i=1
-while [ $i -le 22 ]
-do
-	if [ $i -ne 15 ]; then
-		${DBSCRIPTDIR}/get_query_plan.sh ${SCALE_FACTOR} ${i} \
-				${PLANDIR}/power_query${i}.txt ${RUNDIR} ${SEED_FILE} ${DBPORT}
-	fi
+while [ ${i} -le 22 ]; do
+	# Remember the query planned is in the order determined by the seed.
+	Q=`${QGEN} -c -r ${SEED} -p 0 -s ${SCALE_FACTOR} -x ${i}`
+	N=`echo ${Q} | sed -n -r 's/.*\(#\)([[:digit:]]+)\..*/\1/p'`
+	${PSQL} << __EOF__ > ${PLANDIR}/${N}.txt
+${Q}
+__EOF__
 	i=$(( ${i} + 1 ))
 done
-# Modify query file so that the commands are in one line.
-${PARSE_QUERY} $query_file $tmp_query_file E
 
 $DBSCRIPTDIR/dbt3-pgsql-stop-db || exit 1
 $DBSCRIPTDIR/dbt3-pgsql-start-db -o ${OUTPUT_DIR} ${PARAMETERS_ARG} || exit 1
 
 # Start collecting system statistics.
-$SRCDIR/scripts/dbt3-sysstats --outdir $OUTPUT_DIR --iter 1440 --sample 60 || exit 1
+$SRCDIR/scripts/dbt3-sysstats --outdir $OUTPUT_DIR --sample 60 || exit 1
 
 # Collect database statistics
 ${DBSTATS} ${OUTPUT_DIR} ${DBPORT} &
@@ -104,45 +101,56 @@ if [ ${USE_LINUXPERF} -eq 1 ]; then
 	perf_start ${OUTPUT_DIR}/perf &
 fi
 
-s_time_power=`$GTIME`
+s_time_power=`date +%s`
 $DBSCRIPTDIR/record_start.sh -l ${DBPORT} -n "PERF${TAG}.POWER" || exit 1
 
 if [ ${NO_REFRESH} -eq 0 ]; then
 	# Refresh Stream 1
 	echo "`date`: Power Test : Starting Refresh Stream 1" 
-	s_time=`$GTIME`
-	$DBSCRIPTDIR/record_start.sh -l ${DBPORT} \
-			-n "PERF${TAG}.POWER.RF1" || exit 1
+	s_time=`date +%s`
+	TASK="PERF${TAG}.POWER.RF1"
+	$DBSCRIPTDIR/record_start.sh -l ${DBPORT} -n "${TASK}" || exit 1
 	${DBSCRIPTDIR}/run_rf1.sh ${SCALE_FACTOR} ${RUNDIR} \
-			${DBPORT} > ${OUTPUT_DIR}/results/power.perf${TAG}.rf1.txt 2>&1 || exit 1
-	${DBSCRIPTDIR}/record_end.sh -l ${DBPORT} \
-			-n "PERF${TAG}.POWER.RF1" || exit 1
-	e_time=`$GTIME`
+			${DBPORT} > ${RESULTSDIR}/power.perf${TAG}.rf1.txt 2>&1 || exit 1
+	${DBSCRIPTDIR}/record_end.sh -l ${DBPORT} -n "${TASK}" || exit 1
+	e_time=`date +%s`
 	echo "`date`: Power Test : Refresh Stream 1 completed." 
 	diff_time=$(( $e_time - $s_time ))
 fi
 
 # Execute the queries.
-${DBSCRIPTDIR}/run_power_query.sh ${SCALE_FACTOR} ${TAG} ${EXPLAIN_ANALYZE} \
-		${OUTPUT_DIR} ${RUNDIR} ${SEED_FILE} ${DBPORT} || exit 1
+i=1
+while [ ${i} -le 22 ]; do
+	Q=`${QGEN} -c -r ${SEED} -p 0 -s ${SCALE_FACTOR} ${EXPLAIN_ARG} ${i}`
+	N=`echo ${Q} | sed -n -r 's/.*\(#\)([[:digit:]]+)\..*/\1/p'`
+	TASK="PERF${TAG}.POWER.Q${N}"
+	${PSQL} << __EOF__ > ${RESULTSDIR}/${N}.txt
+INSERT INTO time_statistics (task_name, s_time)
+VALUES ('${TASK}', CURRENT_TIMESTAMP);
+${Q}
+UPDATE time_statistics
+SET e_time = CURRENT_TIMESTAMP
+WHERE task_name='${TASK}';
+__EOF__
+	i=$(( ${i} + 1 ))
+done
 
 if [ ${NO_REFRESH} -eq 0 ]; then
 	# Refresh Stream 2
 	echo "`date`: Power Test : Starting Refresh Stream 2" 
-	s_time=`$GTIME`
-	${DBSCRIPTDIR}/record_start.sh -l ${DBPORT} \
-			-n "PERF${TAG}.POWER.RF2" || exit 1
+	s_time=`date +%s`
+	TASK="PERF${TAG}.POWER.RF2"
+	${DBSCRIPTDIR}/record_start.sh -l ${DBPORT} -n "${TASK}" || exit 1
 	${DBSCRIPTDIR}/run_rf2.sh ${RUNDIR} \
-			${DBPORT} > ${OUTPUT_DIR}/results/power.perf${TAG}.rf2.txt 2>&1 || exit 1
-	${DBSCRIPTDIR}/record_end.sh -l ${DBPORT} \
-			-n "PERF${TAG}.POWER.RF2" || exit 1
-	e_time=`$GTIME`
+			${DBPORT} > ${RESULTSDIR}/power.perf${TAG}.rf2.txt 2>&1 || exit 1
+	${DBSCRIPTDIR}/record_end.sh -l ${DBPORT} -n "${TASK}" || exit 1
+	e_time=`date +%s`
 	echo "`date`: Power Test : Refresh Stream 2 completed." 
 	diff_time=$(( $e_time - $s_time ))
 fi
 
 ${DBSCRIPTDIR}/record_end.sh -l ${DBPORT} -n "PERF${TAG}.POWER" || exit 1
-e_time_power=`$GTIME`
+e_time_power=`date +%s`
 echo "`date`: Power Test completed."
 diff_time=$(( $e_time_power - $s_time_power ))
 echo "Elapsed time for Power Test : $diff_time seconds"
