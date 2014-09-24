@@ -31,6 +31,5 @@ src/dbgen/.deps/
 src/dbgen/Makefile
 src/dbgen/dbgen
 src/dbgen/qgen
-src/gtime
 src/parse_query
 src/power
