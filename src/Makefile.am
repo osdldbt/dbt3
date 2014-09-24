@@ -13,9 +13,7 @@ SUBDIRS = dbgen
 
 AM_CPPFLAGS = -Iinclude
 
-bin_PROGRAMS = parse_query power
-
-parse_query_SOURCES = main.c get_statement.c
+bin_PROGRAMS = power
 
 power_SOURCES = power.c
 
