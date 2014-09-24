@@ -52,7 +52,7 @@ echo $set_num > $curr_set_file_rf2
 rm -f $lock_file_rf2
 
 echo "`date`: Stream ${set_num} : Starting Refresh Stream 2..."
-s_time=`$GTIME`
+s_time=`date +%s`
 
 # generate load .sql
 echo "COPY tmp_orderkey$set_num FROM '${DSS_PATH}/delete.$set_num' USING DELIMITERS '|';" >> tmp_orderkey$set_num.sql
@@ -77,7 +77,7 @@ __EOF__
 ${PSQL} -c "drop table tmp_orderkey$set_num;"
 rm -f tmp_orderkey$set_num.sql
 
-e_time=`$GTIME`
+e_time=`date +%s`
 echo "`date`: Stream ${set_num} : Refresh Stream 2 completed."
 diff_time=$(( $e_time - $s_time ))
 echo "Stream ${set_num} : Elapsed time for Refresh Stream 2 : $diff_time seconds"

@@ -110,7 +110,7 @@ ${DBSCRIPTDIR}/dbt3-pgsql-create-tables -d ${DBDATA} -l ${DBPORT} ${TABLESPACE_F
 date
 
 echo "`date +'%Y-%m-%d %H:%M:%S'` Starting Load Test..."
-s_time=`$GTIME`
+s_time=`date +%s`
 $DBSCRIPTDIR/dbt3-pgsql-time-statistics -s -l ${DBPORT} -n "LOAD" || exit 1
 
 # Collect database statistics
@@ -141,7 +141,7 @@ if [ ${ONLY_LOAD} -eq 0 ]; then
 fi
 
 $DBSCRIPTDIR/dbt3-pgsql-time-statistics -e -l ${DBPORT} -n "LOAD" || exit 1
-e_time=`$GTIME`
+e_time=`date +%s`
 echo "`date +'%Y-%m-%d %H:%M:%S'` Load Test Completed"
 diff_time=`expr $e_time - $s_time`
 echo "Elapsed time for Load Test : $diff_time seconds"

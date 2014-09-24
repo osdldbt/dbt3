@@ -60,7 +60,7 @@ fi
 rm -f $lock_file_rf1
 
 echo "`date`: Stream ${set_num} : Starting Refresh Stream 1..."
-s_time=`$GTIME`
+s_time=`date +%s`
 
 # generating the load .sql
 echo "COPY tmp_lineitem$set_num FROM '${DSS_PATH}/lineitem.tbl.u$set_num' USING DELIMITERS '|';" >> tmp_lineitem$set_num.sql
@@ -86,7 +86,7 @@ ${PSQL} -c "drop table tmp_orders$set_num;"
 rm -f tmp_lineitem$set_num.sql
 rm -f tmp_orders$set_num.sql
 
-e_time=`$GTIME`
+e_time=`date +%s`
 echo "`date`: Stream ${set_num} : Refresh Stream 1 completed."
 diff_time=$(( $e_time - $s_time ))
 echo "Stream ${set_num} : Elapsed time for Refresh Stream 1 : $diff_time seconds"

@@ -18,7 +18,6 @@ export DSS_CONFIG="@TOPDIR@/src/dbgen"
 export DBT3_PERL_MODULE="@TOPDIR@/perlmodules"
 
 export DBGEN="${DSS_CONFIG}/dbgen"
-export GTIME="@TOPDIR@/src/gtime"
 export QGEN="${DSS_CONFIG}/qgen"
 export PARSE_QUERY="@TOPDIR@/src/parse_query"
 export POWER="@TOPDIR@/src/power"

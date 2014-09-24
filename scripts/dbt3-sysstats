@@ -8,7 +8,7 @@
 #               2014      2ndQuadrant, Ltd.
 
 if [ $# -lt 1 ]; then
-    echo "usage: $0 --outdir <output_dir> --iter <iterations> -sample <sample_length>"
+    echo "usage: $0 --outdir <output_dir> -sample <sample_length>"
     echo "	<output_dir> will be created if it doesn't exist"
     exit 1
 fi
@@ -57,7 +57,7 @@ do
 		optarg=`echo $option | sed -e 's/^[^=]*=//'`
 		arguments="$arguments $option"
 		;;
-	--db | --dbname | --outdir | --iter | --sample)
+	--db | --dbname | --outdir | --sample)
 		optarg=$1
 		shift
 		arguments="$arguments $option=$optarg"
@@ -74,9 +74,6 @@ do
 	--outdir)
 		OUTPUT_DIR=$optarg
 		;;
-	--iter)
-		ITERATIONS=$optarg
-		;;
 	--sample)
 		SAMPLE_LENGTH=$optarg
 		;;
@@ -85,11 +82,6 @@ done
 
 if [ -z $OUTPUT_DIR ]; then
 	echo "use --outdir"
-	exit 1
-fi
-
-if [ -z $ITERATIONS ]; then
-	echo "use --iter"
 	exit 1
 fi
 
@@ -104,8 +96,7 @@ mkdir -p $OUTPUT_DIR
 echo "starting system statistics data collection"
 
 # collect all sar data in binary form
-${SAR} -o ${OUTPUT_DIR}/sar_raw.out ${SAMPLE_LENGTH} \
-		${ITERATIONS} > ${OUTPUT_DIR}/sar.txt &
+${SAR} -o ${OUTPUT_DIR}/sar_raw.out ${SAMPLE_LENGTH} > ${OUTPUT_DIR}/sar.txt &
 echo "$!" > ${OUTPUT_DIR}/sar.pid
 
 ${PIDSTAT} -h -l -d -r -s -u -w ${SAMPLE_LENGTH} > ${OUTPUT_DIR}/pidstat.txt &
