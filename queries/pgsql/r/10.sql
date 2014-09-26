@@ -17,7 +17,7 @@ select
 from
 	q10
 where
-	and o_orderdate >= date ':1'
+	o_orderdate >= date ':1'
 	and o_orderdate < date ':1' + interval '3 month'
 group by
 	c_custkey,

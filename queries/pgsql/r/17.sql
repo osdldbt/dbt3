@@ -10,6 +10,6 @@ select
 from
 	q17
 where
-	and p_brand = ':1'
+	p_brand = ':1'
 	and p_container = ':2';
 :e

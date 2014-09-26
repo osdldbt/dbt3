@@ -602,14 +602,18 @@ CREATE MATERIALIZED VIEW q19 (
 	l_extendedprice,
 	l_discount,
 	p_container,
-	p_size
+	p_size,
+	p_brand,
+	l_quantity
 )
 AS
 select
 	l_extendedprice,
 	l_discount,
 	p_container,
-	p_size
+	p_size,
+	p_brand,
+	l_quantity
 from
 	lineitem,
 	part
@@ -627,18 +631,24 @@ create_q20_1_matview() {
 CREATE MATERIALIZED VIEW q20_1 (
 	s_name,
 	s_address,
-	s_suppkey
+	s_suppkey,
+	n_name
 )
 AS
 select
 	s_name,
 	s_address,
-	s_suppkey
+	s_suppkey,
+	n_name
 from
 	supplier,
 	nation
 where
 	s_nationkey = n_nationkey;
+
+CREATE INDEX ON q20_1(s_suppkey);
+CREATE INDEX ON q20_1(n_name);
+ANALYZE q20_1;
 __EOF__
 }
 
@@ -646,17 +656,25 @@ create_q20_2_matview() {
 	${PSQL} << __EOF__
 CREATE MATERIALIZED VIEW q20_2 (
 	ps_suppkey,
-	p_name
+	p_name,
+	ps_availqty,
+	ps_partkey
 )
 AS
 select
 	distinct (ps_suppkey),
-	p_name
+	p_name,
+	ps_availqty,
+	ps_partkey
 from
 	partsupp,
 	part
 where
 	ps_partkey=p_partkey;
+
+CREATE INDEX ON q20_2(ps_availqty, p_name);
+CREATE INDEX ON q20_2(ps_partkey);
+ANALYZE q20_2;
 __EOF__
 }
 
@@ -743,6 +761,7 @@ if [ ${USE_TABLESPACES} -eq 1 ];then
 	TS_I_L_ORDERKEY_DIR="${TSDIR}/i_l_orderkey/ts"
 	TS_I_L_ORDERKEY_QUANTITY_DIR="${TSDIR}/i_l_orderkey_quantity/ts"
 	TS_I_C_NATIONKEY_DIR="${TSDIR}/i_c_nationkey/ts"
+	TS_I_C_MKTSEGMENT_DIR="${TSDIR}/i_c_mktsegment/ts"
 	TS_I_O_ORDERDATE_DIR="${TSDIR}/i_o_orderdate/ts"
 	TS_I_O_CUSTKEY_DIR="${TSDIR}/i_o_custkey/ts"
 	TS_I_S_NATIONKEY_DIR="${TSDIR}/i_s_nationkey/ts"
@@ -768,6 +787,7 @@ if [ ${USE_TABLESPACES} -eq 1 ];then
 	mkdir -p ${TS_I_L_ORDERKEY_DIR}
 	mkdir -p ${TS_I_L_ORDERKEY_QUANTITY_DIR}
 	mkdir -p ${TS_I_C_NATIONKEY_DIR}
+	mkdir -p ${TS_I_C_MKTSEGMENT_DIR}
 	mkdir -p ${TS_I_O_ORDERDATE_DIR}
 	mkdir -p ${TS_I_O_CUSTKEY_DIR}
 	mkdir -p ${TS_I_S_NATIONKEY_DIR}
@@ -793,6 +813,7 @@ if [ ${USE_TABLESPACES} -eq 1 ];then
 	TS_I_L_ORDERKEY="TABLESPACE dbt3_i_l_orderkey"
 	TS_I_L_ORDERKEY_QUANTITY="TABLESPACE dbt3_i_l_orderkey_quantity"
 	TS_I_C_NATIONKEY="TABLESPACE dbt3_i_c_nationkey"
+	TS_I_C_MKTSEGMENT="TABLESPACE dbt3_i_c_mktsegment"
 	TS_I_O_ORDERDATE="TABLESPACE dbt3_i_o_orderdate"
 	TS_I_O_CUSTKEY="TABLESPACE dbt3_i_o_custkey"
 	TS_I_S_NATIONKEY="TABLESPACE dbt3_i_s_nationkey"
@@ -818,6 +839,7 @@ if [ ${USE_TABLESPACES} -eq 1 ];then
 	${PSQL} -c "CREATE ${TS_I_L_ORDERKEY} LOCATION '${TS_I_L_ORDERKEY_DIR}'";
 	${PSQL} -c "CREATE ${TS_I_L_ORDERKEY_QUANTITY} LOCATION '${TS_I_L_ORDERKEY_QUANTITY_DIR}'";
 	${PSQL} -c "CREATE ${TS_I_C_NATIONKEY} LOCATION '${TS_I_C_NATIONKEY_DIR}'";
+	${PSQL} -c "CREATE ${TS_I_C_MKTSEGMENT} LOCATION '${TS_I_C_MKTSEGMENT_DIR}'";
 	${PSQL} -c "CREATE ${TS_I_O_ORDERDATE} LOCATION '${TS_I_O_ORDERDATE_DIR}'";
 	${PSQL} -c "CREATE ${TS_I_O_CUSTKEY} LOCATION '${TS_I_O_CUSTKEY_DIR}'";
 	${PSQL} -c "CREATE ${TS_I_S_NATIONKEY} LOCATION '${TS_I_S_NATIONKEY_DIR}'";
@@ -877,6 +899,10 @@ ADD CONSTRAINT pk_region PRIMARY KEY (r_regionkey) ${TS_PK_REGION};
 " || exit 1 &
 
 ${PSQL} -c "
+CREATE INDEX ON Part(p_brand, p_type, p_size);
+" || exit 1 &
+
+${PSQL} -c "
 CREATE INDEX i_l_shipdate
 ON lineitem (l_shipdate) ${TS_I_L_SHIPDATE};
 " || exit 1  &
@@ -917,6 +943,15 @@ ON customer (c_nationkey) ${TS_I_C_NATIONKEY};
 " || exit 1 &
 
 ${PSQL} -c "
+CREATE INDEX i_c_mktsegment
+ON customer (c_mktsegment) ${TS_I_C_MKTSEGMENT};
+" || exit 1 &
+
+${PSQL} -c "
+CREATE INDEX ON customer (c_acctbal, c_phone);
+" || exit 1 &
+
+${PSQL} -c "
 CREATE INDEX i_o_orderdate
 ON orders (o_orderdate) ${TS_I_O_ORDERDATE};
 " || exit 1 &
@@ -951,6 +986,10 @@ CREATE INDEX i_l_commitdate
 ON lineitem (l_commitdate) ${TS_I_L_COMMITDATE};
 " || exit 1 &
 
+${PSQL} -c "
+CREATE INDEX ON lineitem(l_returnflag);
+" || exit 1 &
+
 wait
 
 echo "Updating optimizer statistics..."
@@ -965,7 +1004,7 @@ analyze_table region &
 wait
 
 if [ ${WORKLOAD} = "R" ]; then
-	echo "Building materialized views..."
+	echo "`date` Building materialized views..."
 	create_q2_matview &
 	create_q3_matview &
 	create_q4_matview &

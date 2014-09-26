@@ -12,7 +12,7 @@ from
 	(
 		select
 			c_custkey,
-			count(o_orderkey)
+			sum(count)
 		from
 			q13
 		where

@@ -11,8 +11,7 @@ select
 from
 	q21 AS l1
 where
-	and o_orderstatus = 'F'
-	and exists (
+	exists (
 		select
 			*
 		from
@@ -35,7 +34,7 @@ where
 group by
 	s_name
 order by
-	numwait desc,
+	sum(numwait) desc,
 	s_name
 :n 100
 :e

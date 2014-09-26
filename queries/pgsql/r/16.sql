@@ -13,7 +13,7 @@ select
 from
 	q16
 where
-	and p_brand <> ':1'
+	p_brand <> ':1'
 	and p_type not like ':2%'
 	and p_size in (:3, :4, :5, :6, :7, :8, :9, :10)
 group by
@@ -21,7 +21,7 @@ group by
 	p_type,
 	p_size
 order by
-	supplier_cnt desc,
+	sum(supplier_cnt) desc,
 	p_brand,
 	p_type,
 	p_size;

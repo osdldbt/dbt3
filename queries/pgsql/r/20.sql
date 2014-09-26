@@ -9,16 +9,15 @@ select
 	s_name,
 	s_address
 from
-	supplier,
-	nation
+	q20_1
 where
 	s_suppkey in (
 		select
 			distinct (ps_suppkey)
 		from
-			q20
+			q20_2
 		where
-			and p_name like ':1%'
+			p_name like ':1%'
 			and ps_availqty > (
 				select
 					0.5 * sum(l_quantity)

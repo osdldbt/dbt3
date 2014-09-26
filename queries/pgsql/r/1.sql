@@ -5,18 +5,6 @@
 :b
 :x
 :o
-CREATE MATERIALIZED VIEW q1 (
-	l_returnflag,
-	l_linestatus,
-	sum_qty,
-	sum_base_price,
-	sum_disc_price,
-	sum_charge,
-	avg_qty,
-	avg_price,
-	avg_disc,
-	count_order)
-AS
 select
 	l_returnflag,
 	l_linestatus,

@@ -20,7 +20,7 @@ from
 		from
 			q8
 		where
-			and r_name = ':2'
+			r_name = ':2'
 			and p_type = ':3'
 	) as all_nations
 group by
