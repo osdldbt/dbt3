@@ -84,21 +84,21 @@ gen_results()
 	echo "</body>" >> ${SUBDIR}/index.html
 	echo "</html>" >> ${SUBDIR}/index.html
 
-	dbt-plot-sar-blockdev ${SUBDIR}/sar-blockdev.csv ${SUBDIR}
-	dbt-plot-sar-cpu ${SUBDIR}/sar-cpu.csv ${SUBDIR}
+	dbt-plot-sar-blockdev ${SUBDIR}/sar-blockdev.csv ${SUBDIR} 2> /dev/null
+	dbt-plot-sar-cpu ${SUBDIR}/sar-cpu.csv ${SUBDIR} 2> /dev/null
 
 	dbt-pgsql-plot-database-stats ${SUBDIR}/db/pg_stat_databases.csv ${DBNAME} \
-			${SUBDIR}/db
+			${SUBDIR}/db 2> /dev/null
 	mkdir -p ${SUBDIR}/db/tables
 	for TABLENAME in `cat ${SUBDIR}/db/table-list.txt`; do
 		dbt-pgsql-plot-table-stats ${SUBDIR}/db/pg_stat_tables.csv \
-				${TABLENAME} ${SUBDIR}/db/tables
+				${TABLENAME} ${SUBDIR}/db/tables 2> /dev/null
 	done
 
 	mkdir -p ${SUBDIR}/db/indexes
 	for INDEXNAME in `cat ${SUBDIR}/db/index-list.txt`; do
 		dbt-pgsql-plot-index-stats ${SUBDIR}/db/pg_stat_indexes.csv \
-				${INDEXNAME} ${SUBDIR}/db/indexes
+				${INDEXNAME} ${SUBDIR}/db/indexes 2> /dev/null
 	done
 }
 

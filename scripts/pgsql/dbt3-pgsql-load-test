@@ -88,12 +88,10 @@ for f in customer lineitem  nation  orders  partsupp  part  region  supplier ; d
 done
 
 if [ $GENERATE -ne 0 -o $have_all_files -eq 1 ]; then
-	echo "Generating data for scale factor $SF..."
-	date
+	echo "`date` Generating data for scale factor $SF..."
 	# DBGEN reads DSS_PATH env var to determine where to put the files
 	${DBGEN} -s $SF || exit 1
 	chmod a+r ${DSS_PATH}/*.tbl
-	date
 else
 	echo "Create the database using existing datafiles."
 fi
@@ -104,10 +102,8 @@ $SRCDIR/scripts/dbt3-sysstats --outdir $OUTPUT_DIR --iter 1440 --sample 60 || ex
 $DBSCRIPTDIR/dbt3-pgsql-create-db -o ${OUTPUT_DIR} -l ${DBPORT} \
 		${PARAMETERS_ARG}
 	
-date
 ${DBSCRIPTDIR}/dbt3-pgsql-drop-tables -l ${DBPORT} || exit 1
 ${DBSCRIPTDIR}/dbt3-pgsql-create-tables -d ${DBDATA} -l ${DBPORT} ${TABLESPACE_FLAG} || exit 1
-date
 
 echo "`date` Load Test Starting..."
 s_time=`date +%s`
@@ -132,17 +128,14 @@ fi
 ${DBSCRIPTDIR}/dbt3-pgsql-load-data -d ${DBDATA} || exit 1
 
 if [ ${ONLY_LOAD} -eq 0 ]; then
-	echo -n "Building indexes... "
-	date
+	echo "`date` Building indexes... "
 	${DBSCRIPTDIR}/dbt3-pgsql-create-indexes -l ${DBPORT} ${TABLESPACE_FLAG} \
 			${WORKLOAD_ARG} || exit 1
-	echo -n "Done building indexes... "
-	date
+	echo "Done building indexes... "
 fi
 
 record_end "LOAD" || exit 1
 e_time=`date +%s`
-echo "`date +'%Y-%m-%d %H:%M:%S'` Load Test Completed"
 diff_time=`expr $e_time - $s_time`
 echo "Elapsed time for Load Test : $diff_time seconds"
 
@@ -168,5 +161,3 @@ fi
 if [ ${USE_LINUXPERF} -eq 1 ]; then
 	perf_collect ${OUTPUT_DIR}/perf
 fi
-
-exit 0

@@ -242,7 +242,6 @@ do
 	#
 	# Throughput Test
 	#
-#				-l ${DBPORT} \
 		${DBSCRIPTDIR}/dbt3-${DATABASE}-throughput-test \
 				-n ${STREAMS} \
 				-f ${SCALE_FACTOR} \
@@ -292,14 +291,13 @@ $SCRIPTDIR/dbt3-get-config $SCALE_FACTOR $STREAMS "$LOAD_PARAMETERS" "$POWER_PAR
 echo "done."
 
 # Get query times.
-echo -n "Getting query times... "
+echo "Getting query times... "
 ${DBSCRIPTDIR}/dbt3-${DATABASE}-get-query-time > ${QTIMECSV} || exit 1
-echo "done."
 
 #
 # Calculate composite score.      
 #
-echo -n "Post processing query results... "
+echo "Post processing query results... "
 if [ ${RUN_POWER_TEST} -eq 1 ] || [ ${RUN_THROUGHPUT_TEST} -eq 1 ]; then
     $SRCDIR/scripts/dbt3-post-process \
 	-i ${QTIMECSV} \
@@ -311,10 +309,9 @@ if [ ${RUN_POWER_TEST} -eq 1 ] || [ ${RUN_THROUGHPUT_TEST} -eq 1 ]; then
 	${FLAG_POWER_TEST} ${FLAG_THROUGHPUT_TEST} || exit 1
 fi
 
-echo -n "Generating a report... "
+echo "Generating a report... "
 $SRCDIR/scripts/dbt3-gen-report $OUTPUT_DIR > $OUTPUT_DIR/index.html \
 		|| exit 1
-echo "done."
 
 #
 # Stop the database at the end of the test.

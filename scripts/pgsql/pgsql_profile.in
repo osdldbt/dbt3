@@ -30,10 +30,9 @@ export TSDIR=${DBT3_DIR}
 
 export PATH=${PATH}:${PGHOME}/bin
 
-PSQL="@PSQL@ -v ON_ERROR_STOP=1 -X -q -p ${DBPORT} -d ${SID}"
-
 clear_time_statistics() {
-	${PSQL} << __EOF__
+	@PSQL@ -v ON_ERROR_STOP=1 -X -q -p ${DBPORT} -d ${SID} \
+			<< __EOF__ > /dev/null 2>&1
 TRUNCATE TABLE time_statistics;
 __EOF__
 	return $?
@@ -41,7 +40,8 @@ __EOF__
 
 record_start() {
 	NAME=$1
-	${PSQL} << __EOF__
+	@PSQL@ -v ON_ERROR_STOP=1 -X -q -p ${DBPORT} -d ${SID} \
+			<< __EOF__ > /dev/null 2>&1
 INSERT INTO time_statistics (task_name, s_time)
 VALUES ('$NAME', CURRENT_TIMESTAMP);
 __EOF__
@@ -50,7 +50,8 @@ __EOF__
 
 record_end() {
 	NAME=$1
-	${PSQL} << __EOF__
+	@PSQL@ -v ON_ERROR_STOP=1 -X -q -p ${DBPORT} -d ${SID} \
+			<< __EOF__ > /dev/null 2>&1
 UPDATE time_statistics
 SET e_time = current_timestamp
 WHERE task_name = '$NAME';
