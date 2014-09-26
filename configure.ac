@@ -222,10 +222,6 @@ elif test "$DATABASE_TO_USE" = "pgsql"; then
     AC_MSG_ERROR([*** initdb is required])
   fi
 
-  AC_CONFIG_FILES([scripts/pgsql/get_query_plan.sh],
-      [chmod +x scripts/pgsql/get_query_plan.sh])
-  AC_CONFIG_FILES([scripts/pgsql/run_power_query.sh],
-      [chmod +x scripts/pgsql/run_power_query.sh])
   AC_CONFIG_FILES([scripts/pgsql/run_rf1.sh],
       [chmod +x scripts/pgsql/run_rf1.sh])
   AC_CONFIG_FILES([scripts/pgsql/run_rf2.sh],
