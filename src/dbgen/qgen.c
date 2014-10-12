@@ -235,7 +235,7 @@ char *cptr,
                     if (flags & EXPLAIN)
                         {
                         if (pgsql_explain2)
-                            fprintf(ofp, "%s\n", "EXPLAIN ANALYZE");
+                            fprintf(ofp, "%s\n", "EXPLAIN (ANALYZE, BUFFERS)");
                         else
                             fprintf(ofp, "%s\n", GEN_QUERY_PLAN);
                         }
