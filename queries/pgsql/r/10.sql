@@ -18,7 +18,7 @@ from
 	q10
 where
 	o_orderdate >= date ':1'
-	and o_orderdate < date ':1' + interval '3 month'
+	and cast(o_orderdate < date ':1' + interval '3 month' as date)
 group by
 	c_custkey,
 	c_name,

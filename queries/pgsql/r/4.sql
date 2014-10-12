@@ -8,7 +8,7 @@
 select o_orderpriority, count(*) as order_count
 from orders
 where o_orderdate >= date ':1'
-    and o_orderdate < date ':1' + interval '3 month'
+    and o_orderdate < cast (date ':1' + interval '3 month' as date)
     and exists (
         select
             *
