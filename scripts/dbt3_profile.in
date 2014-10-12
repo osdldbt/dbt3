@@ -22,7 +22,7 @@ export QGEN="${DSS_CONFIG}/qgen"
 export PARSE_QUERY="@TOPDIR@/src/parse_query"
 export POWER="@TOPDIR@/src/power"
 
-source @TOPDIR@/scripts/${DATABASE}/${DATABASE}_profile
+. @TOPDIR@/scripts/${DATABASE}/${DATABASE}_profile
 
 clearprof () {
 	sudo /usr/sbin/readprofile -m /boot/System.map-`uname -r` -r
