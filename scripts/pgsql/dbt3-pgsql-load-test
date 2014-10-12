@@ -127,13 +127,6 @@ fi
 
 ${DBSCRIPTDIR}/dbt3-pgsql-load-data -d ${DBDATA} || exit 1
 
-if [ ${ONLY_LOAD} -eq 0 ]; then
-	echo "`date` Building indexes... "
-	${DBSCRIPTDIR}/dbt3-pgsql-create-indexes -l ${DBPORT} ${TABLESPACE_FLAG} \
-			${WORKLOAD_ARG} || exit 1
-	echo "Done building indexes... "
-fi
-
 record_end "LOAD" || exit 1
 e_time=`date +%s`
 diff_time=`expr $e_time - $s_time`
