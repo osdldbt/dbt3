@@ -30,7 +30,8 @@ usage()
 	echo " h - this help message"
 	echo " l - database port"
 	echo " n - number of throughput streams"
-	echo " o - enable oprofile"
+	echo " o - output directory"
+	echo " O - enable oprofile"
 	echo " P - enable linux perf"
 	echo " p - database parameters for the load test"
 	echo " q - database parameters for the power test"
@@ -56,6 +57,7 @@ GENERATE=0
 TEST_ARGS=
 DBDATA=${DSS_PATH}
 
+OUTPUT_DIR=""
 COMMENT=""
 RUN_ALL_TESTS=1
 RUN_LOAD_TEST=0
@@ -64,7 +66,7 @@ RUN_THROUGHPUT_TEST=0
 FLAG_POWER_TEST=""
 FLAG_THROUGHPUT_TEST=""
 WORKLOAD="H"
-while getopts "123d:c:ef:ghl:n:op:Pq:Rr:s:tuz" opt; do
+while getopts "123d:c:ef:ghl:n:Oo:p:Pq:Rr:s:tuz" opt; do
 	case $opt in
 	1)
 		RUN_LOAD_TEST=1
@@ -92,7 +94,6 @@ while getopts "123d:c:ef:ghl:n:op:Pq:Rr:s:tuz" opt; do
 		;;
 	f)
 		SCALE_FACTOR=$OPTARG
-		echo "SCALE: $SCALE_FACTOR"
 		;;
 	g)
 		GENERATE=1
@@ -107,8 +108,12 @@ while getopts "123d:c:ef:ghl:n:op:Pq:Rr:s:tuz" opt; do
 	n)
 		STREAMS=$OPTARG
 		;;
-	o)
+	O)
 		OPROFILE_FLAG="-y"
+		;;
+	o)
+		OUTPUT_DIR="${OPTARG}"
+		mkdir -p $OUTPUT_DIR
 		;;
 	P)
 		LINUXPERF_FLAG="-Y"
@@ -144,6 +149,13 @@ while getopts "123d:c:ef:ghl:n:op:Pq:Rr:s:tuz" opt; do
 	esac
 done
 
+if [ "x${OUTPUT_DIR}" = "x" ]; then
+	>&2 echo "Error: use -o to set output directory"
+	exit 1
+fi
+
+echo "SCALE: $SCALE_FACTOR"
+
 #
 # Reset the flags based to make the logic later in the script easier.
 #
@@ -154,21 +166,6 @@ if [ ${RUN_ALL_TESTS} -eq 1 ]; then
 	FLAG_POWER_TEST="-2"
 	FLAG_THROUGHPUT_TEST="-3"
 fi
-
-# Determine a unique identifer for this test run.
-RUN_NUMBER=-1
-if test -f run_number; then
-	read RUN_NUMBER < run_number
-fi
-if [ $RUN_NUMBER -eq -1 ]; then
-	RUN_NUMBER=0;
-fi
-
-# Create output directories.
-OUTPUT_DIR=$SRCDIR/scripts/output/$RUN_NUMBER
-mkdir -p $OUTPUT_DIR
-
-
 
 if [ "x${COMMENT}" != "x" ]; then
 	echo ${COMMENT} > ${OUTPUT_DIR}/comment.txt
@@ -188,7 +185,6 @@ echo "Using seed: `cat $SEED_FILE`"
 #
 #			-z ${DBPORT} \
 if [ ${RUN_LOAD_TEST} -eq 1 ]; then
-	echo "Starting a load test..."
 	$DBSCRIPTDIR/dbt3-${DATABASE}-load-test \
 			-o $OUTPUT_DIR/load \
 			${LOAD_PARAMETERS_ARG} \
@@ -318,9 +314,4 @@ $SRCDIR/scripts/dbt3-gen-report $OUTPUT_DIR > $OUTPUT_DIR/index.html \
 #
 $DBSCRIPTDIR/dbt3-${DATABASE}-stop-db
 
-RUN_NUMBER=`expr $RUN_NUMBER + 1`
-echo $RUN_NUMBER > run_number
-
-echo "Results are in $OUTPUT_DIR"
-
-exit 0
+echo "Done!"
