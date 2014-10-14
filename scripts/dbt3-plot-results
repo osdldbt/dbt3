@@ -58,18 +58,29 @@ df\$task <- NA
 
 df_plot <- df[0, ]
 
+for (i in 1:22) {
+  cnames <- c(cnames, paste("Q", i, sep=""))
+}
+cnames <- c(cnames, "RF1")
+cnames <- c(cnames, "RF2")
+
 if (${POWER_TEST} == 1) {
+  df_power <- df[0, ]
   count <- count + 1
-  labels <- c(labels, "Performance")
+  labels <- c(labels, "Power")
 
   for (i in 1:22) {
-    cnames <- c(cnames, paste("Q", i, sep=""))
-    df[df\$task_name == paste("PERF1.POWER.Q", i, sep=""), ]\$q = i
+    str <- paste("PERF1.POWER.Q", i, sep="")
+    df[df\$task_name == str, ]\$q = i
+    df_power <- rbind(df_power, df[df\$task_name == str, ])
   }
+  df[df\$task_name == "PERF1.POWER.RF1", ]\$q = 23
+  df[df\$task_name == "PERF1.POWER.RF2", ]\$q = 24
+  df_power <- rbind(df_power, df[df\$task_name == "PERF1.POWER.RF1", ])
+  df_power <- rbind(df_power, df[df\$task_name == "PERF1.POWER.RF2", ])
 
-  df_power <- df[grep("PERF1.POWER.Q", df\$task_name), ]
   df_power <- df_power[with(df_power, order(q)), ]
-  df_power\$task = "Performance Test"
+  df_power\$task = "Power Test"
 
   df_plot <- rbind(df_plot, df_power)
 }
@@ -80,16 +91,22 @@ if (${THROUGHPUT_TEST} == 1) {
 
   if (runs > 0) {
     for (i in 1:runs) {
+      df_thruput <- df[0, ]
       count <- count + 1
       labels <- c(labels, paste("Throughput", i))
 
       for (j in 1:22) {
         str <- paste("PERF1.THRUPUT.QS", i, ".Q", j, sep="")
         df[df\$task_name == str, ]\$q = j
+        df_thruput <- rbind(df_thruput, df[df\$task_name == str, ])
       }
+      str <- paste("PERF1.THRUPUT.RFST", i, ".RF1", sep="")
+      df[df\$task_name == str, ]\$q = 23
+      df_thruput <- rbind(df_thruput, df[df\$task_name == str, ])
+      str <- paste("PERF1.THRUPUT.RFST", i, ".RF2", sep="")
+      df[df\$task_name == str, ]\$q = 24
+      df_thruput <- rbind(df_thruput, df[df\$task_name == str, ])
 
-      str <- paste("PERF1.THRUPUT.QS", i, ".Q", sep="")
-      df_thruput <- df[grep(str, df\$task_name), ]
       df_thruput <- df_thruput[with(df_thruput, order(q)), ]
       df_thruput\$task = paste("Throughput Test", i)
 
@@ -98,7 +115,7 @@ if (${THROUGHPUT_TEST} == 1) {
   }
 }
 
-data <- matrix(df_plot\$seconds, ncol=22, byrow=T)
+data <- matrix(df_plot\$seconds, ncol=24, byrow=T)
 colnames(data) <- cnames
 rownames(data) <- labels
 
