@@ -51,6 +51,7 @@ df <- read.csv("${INFILE}", header=T)
 
 count <- 0
 labels <- NULL
+cnames <- NULL
 
 df\$q <- NA
 df\$task <- NA
@@ -62,6 +63,7 @@ if (${POWER_TEST} == 1) {
   labels <- c(labels, "Performance")
 
   for (i in 1:22) {
+    cnames <- c(cnames, paste("Q", i, sep=""))
     df[df\$task_name == paste("PERF1.POWER.Q", i, sep=""), ]\$q = i
   }
 
@@ -97,13 +99,15 @@ if (${THROUGHPUT_TEST} == 1) {
 }
 
 data <- matrix(df_plot\$seconds, ncol=22, byrow=T)
+colnames(data) <- cnames
+rownames(data) <- labels
 
 colors <- cm.colors(count)
 df_plot <- df_plot[with(df_plot, order(q, task_name)), ]
 bitmap("${OUTDIR}/q_time.png", type="png16m", units="px",
        width=1437, height=888, res=150, taa=4, gaa=4)
-barplot(data, names.arg=df_plot\$q, col=colors, beside=T,
-        main="Query Execution Time", xlab="Query", ylab="Seconds")
+barplot(data, col=colors, beside=T, horiz=T, las=1,
+        main="Query Execution Time", xlab="Seconds")
 legend("topright", legend=labels, fil=colors, bty="n")
 grid(col="gray")
 invisible(dev.off())
