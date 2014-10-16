@@ -37,7 +37,7 @@ ON supplier (s_nationkey, s_suppkey);" &
 
 	wait
 
-	${PSQL} -c "ANALZYE supplier;"
+	${PSQL} -c "ANALYZE supplier;"
 }
 
 part()
@@ -62,7 +62,7 @@ ON part(p_name);" &
 
 	wait
 
-	${PSQL} -c "ANALZYE part;"
+	${PSQL} -c "ANALYZE part;"
 }
 
 partsupp()
@@ -79,7 +79,7 @@ ON partsupp (ps_suppkey) ${TS_I_PS_SUPPKEY};" &
 
 	wait
 
-	${PSQL} -c "ANALZYE partsupp;"
+	${PSQL} -c "ANALYZE partsupp;"
 }
 
 customer()
@@ -105,7 +105,7 @@ ON customer (c_mktsegment, c_custkey);" &
 
 	wait
 
-	${PSQL} -c "ANALZYE customer;"
+	${PSQL} -c "ANALYZE customer;"
 }
 
 orders()
@@ -124,7 +124,7 @@ ON orders (o_orderkey, o_orderdate);" &
 
 	wait
 
-	${PSQL} -c "ANALZYE orders;"
+	${PSQL} -c "ANALYZE orders;"
 }
 
 lineitem()
@@ -162,7 +162,7 @@ ON lineitem (l_orderkey, l_linenumber, l_shipdate);" &
 
 	wait
 
-	${PSQL} -c "ANALZYE lineitem;"
+	${PSQL} -c "ANALYZE lineitem;"
 }
 
 nation()
@@ -175,7 +175,7 @@ ADD CONSTRAINT pk_nation PRIMARY KEY (n_nationkey) ${TS_PK_NATION};" &
 
 	wait
 
-	${PSQL} -c "ANALZYE nation;"
+	${PSQL} -c "ANALYZE nation;"
 }
 
 region()
@@ -188,7 +188,7 @@ ADD CONSTRAINT pk_region PRIMARY KEY (r_regionkey) ${TS_PK_REGION};" &
 
 	wait
 
-	${PSQL} -c "ANALZYE region;"
+	${PSQL} -c "ANALYZE region;"
 }
 
 if [ -z ${DBNAME} ]; then
