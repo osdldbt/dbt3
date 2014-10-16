@@ -18,7 +18,7 @@ DBPORT=$2
 
 SAMPLE_LENGTH=60
 
-PSQL="@PSQL@ -X -p ${DBPORT} -d ${SID} -t --no-align"
+PSQL="psql -v ON_ERROR_STOP=1 -X -p ${DBPORT} -d ${SID} -t --no-align"
 
 DBOUTPUT_DIR=$OUTPUT_DIR/db
 mkdir -p $DBOUTPUT_DIR

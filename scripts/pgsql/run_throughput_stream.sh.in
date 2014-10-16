@@ -25,7 +25,7 @@ OUTPUT_DIR=$5
 SEED_FILE=$6
 DBPORT=$7
 
-PSQL="@PSQL@ -X -p ${DBPORT} -d ${SID} -e"
+PSQL="psql -v ON_ERROR_STOP=1 -X -p ${DBPORT} -d ${SID} -e"
 RUNDIR=$OUTPUT_DIR/run
 RESULTSDIR="${OUTPUT_DIR}/results/${stream_num}"
 mkdir -p ${RESULTSDIR} || exit 1
