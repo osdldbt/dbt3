@@ -26,6 +26,7 @@ USE_OPROFILE=0
 USE_LINUXPERF=0
 
 TEST_ARGS=
+NO_REFRESH=0
 NO_REFRESH_FLAG=
 
 while getopts "ef:l:n:o:p:s:t:yYz" opt; do
@@ -54,6 +55,7 @@ while getopts "ef:l:n:o:p:s:t:yYz" opt; do
 	Y) USE_LINUXPERF=1
 		;;
 	z) NO_REFRESH_FLAG="-z"
+		NO_REFRESH=1
 		;;
 	esac
 done
@@ -85,6 +87,11 @@ fi
 
 $DBSCRIPTDIR/dbt3-pgsql-stop-db || exit 1
 $DBSCRIPTDIR/dbt3-pgsql-start-db -o ${OUTPUT_DIR} ${PARAMETERS_ARG} || exit 1
+
+# Generate the data for the refresh stream before we starting timing the test.
+if [ ${NO_REFRESH} -eq 0 ]; then
+	dbgen -s ${scale_factor} -U ${num_stream}
+fi
 
 s_time=`date +%s`
 record_start "PERF${TAG}.THRUPUT" || exit 1

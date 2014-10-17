@@ -101,6 +101,11 @@ if [ ${USE_LINUXPERF} -eq 1 ]; then
 	perf_start ${OUTPUT_DIR}/perf &
 fi
 
+# Generate the data for the refresh stream before we starting timing the test.
+if [ ${NO_REFRESH} -eq 0 ]; then
+	dbgen -s ${SCALE_FACTOR} -U 1
+fi
+
 s_time_power=`date +%s`
 record_start "PERF${TAG}.POWER" || exit 1
 
@@ -110,8 +115,8 @@ if [ ${NO_REFRESH} -eq 0 ]; then
 	s_time=`date +%s`
 	TASK="PERF${TAG}.POWER.RF1"
 	record_start "${TASK}" || exit 1
-	${DBSCRIPTDIR}/run_rf1.sh ${SCALE_FACTOR} ${RUNDIR} \
-			${DBPORT} > ${RESULTSDIR}/power.perf${TAG}.rf1.txt 2>&1 || exit 1
+	${DBSCRIPTDIR}/dbt3-pgsql-rf1 ${DBPORT} 1 \
+			> ${RESULTSDIR}/rf1.txt 2>&1 || exit 1
 	record_end "${TASK}" || exit 1
 	e_time=`date +%s`
 	echo "`date`: Power Test : Refresh Stream 1 completed." 
@@ -138,8 +143,8 @@ if [ ${NO_REFRESH} -eq 0 ]; then
 	s_time=`date +%s`
 	TASK="PERF${TAG}.POWER.RF2"
 	record_start "${TASK}" || exit 1
-	${DBSCRIPTDIR}/run_rf2.sh ${RUNDIR} \
-			${DBPORT} > ${RESULTSDIR}/power.perf${TAG}.rf2.txt 2>&1 || exit 1
+	${DBSCRIPTDIR}/dbt3-pgsql-rf2 ${DBPORT} ${SCALE_FACTOR} \
+			> ${RESULTSDIR}/rf2.txt 2>&1 || exit 1
 	record_end "${TASK}" || exit 1
 	e_time=`date +%s`
 	echo "`date`: Power Test : Refresh Stream 2 completed." 

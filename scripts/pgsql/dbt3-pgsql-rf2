@@ -1,0 +1,41 @@
+#!/bin/sh
+#
+# This file is released under the terms of the Artistic License.
+# Please see the file LICENSE, included in this package, for details.
+#
+# Copyright (C) 2003      Open Source Development Lab, Inc.
+#               2003      Jenny Zhang
+#               2005-2014 Mark Wong
+#               2014      2ndQuadrant, Ltd.
+#
+
+if [ $# -ne 2 ]; then
+        echo "Usage: $0 <db port> <stream>"
+        exit 1
+fi
+
+DBPORT=$1
+set_num=$2
+
+PSQL="psql -v ON_ERROR_STOP=1 -X -p ${DBPORT} -d ${SID}"
+
+echo "`date`: Stream ${set_num} : Starting Refresh Stream 2..."
+s_time=`date +%s`
+
+${PSQL} << __EOF__
+CREATE UNLOGGED TABLE tmp_orderkey$set_num (orderkey numeric(10));
+COPY tmp_orderkey$set_num
+FROM '${DSS_PATH}/delete.$set_num' USING DELIMITERS '|';
+__EOF__
+
+${PSQL} -c "DELETE FROM lineitem USING tmp_orderkey$set_num WHERE l_orderkey = orderkey;" &
+${PSQL} -c "DELETE FROM orders USING tmp_orderkey$set_num WHERE o_orderkey = orderkey;" &
+wait
+
+# clean up
+${PSQL} -c "DROP TABLE tmp_orderkey$set_num;"
+
+e_time=`date +%s`
+echo "`date`: Stream ${set_num} : Refresh Stream 2 completed."
+diff_time=$(( $e_time - $s_time ))
+echo "Stream ${set_num} : Elapsed time for Refresh Stream 2 : $diff_time seconds"

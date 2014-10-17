@@ -165,10 +165,6 @@ if test "$DATABASE_TO_USE" = "mysql"; then
 elif test "$DATABASE_TO_USE" = "pgsql"; then
   AC_DEFINE(PGSQL, 1)
 
-  AC_CONFIG_FILES([scripts/pgsql/run_rf1.sh],
-      [chmod +x scripts/pgsql/run_rf1.sh])
-  AC_CONFIG_FILES([scripts/pgsql/run_rf2.sh],
-      [chmod +x scripts/pgsql/run_rf2.sh])
   AC_CONFIG_FILES([scripts/pgsql/run_throughput_stream.sh],
       [chmod +x scripts/pgsql/run_throughput_stream.sh])
   AC_CONFIG_FILES([scripts/pgsql/db_stats.sh],
