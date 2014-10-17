@@ -110,8 +110,12 @@ if [ ${NO_REFRESH} -eq 0 ]; then
 	s_time=`date +%s`
 	TASK="PERF${TAG}.POWER.RF1"
 	record_start "${TASK}" || exit 1
-	${DBSCRIPTDIR}/dbt3-pgsql-rf1 ${DBPORT} 1 \
-			> ${RESULTSDIR}/rf1.txt 2>&1 || exit 1
+	${DBSCRIPTDIR}/dbt3-pgsql-rf1 ${SCALE_FACTOR} ${DBPORT} \
+			> ${RESULTSDIR}/rf1.txt 2>&1
+	DATASET=$?
+	if [ ${DATASET} -lt 1 ]; then
+		exit 1
+	fi
 	record_end "${TASK}" || exit 1
 	e_time=`date +%s`
 	echo "`date`: Power Test : Refresh Stream 1 completed." 
@@ -138,7 +142,7 @@ if [ ${NO_REFRESH} -eq 0 ]; then
 	s_time=`date +%s`
 	TASK="PERF${TAG}.POWER.RF2"
 	record_start "${TASK}" || exit 1
-	${DBSCRIPTDIR}/dbt3-pgsql-rf2 ${DBPORT} ${SCALE_FACTOR} \
+	${DBSCRIPTDIR}/dbt3-pgsql-rf2 ${DBPORT} ${DATASET} \
 			> ${RESULTSDIR}/rf2.txt 2>&1 || exit 1
 	record_end "${TASK}" || exit 1
 	e_time=`date +%s`

@@ -183,6 +183,13 @@ CREATE TABLE time_statistics (
 	e_time TIMESTAMP);" || exit 1
 
 ${PSQL} << __EOF__
+CREATE SEQUENCE dataset
+MINVALUE 1
+START WITH 1;
+SELECT nextval('dataset');
+__EOF__
+
+${PSQL} << __EOF__
 GRANT SELECT ON nation TO PUBLIC;
 GRANT SELECT ON customer TO PUBLIC;
 GRANT SELECT ON part TO PUBLIC;

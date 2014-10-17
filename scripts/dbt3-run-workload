@@ -187,16 +187,9 @@ else
 fi
 echo "Using seed: `cat $SEED_FILE`"
 
-# Generate the data for the refresh stream before we starting timing the test.
-# 1 dataset for for the power test plus a dataset per throughput stream.
-if [ ${NO_REFRESH} -eq 0 ]; then
-	dbgen -s ${SCALE_FACTOR} -U $(( ${STREAMS} + 1 ))
-fi
-
 #
 # Load Test
 #
-#			-z ${DBPORT} \
 if [ ${RUN_LOAD_TEST} -eq 1 ]; then
 	$DBSCRIPTDIR/dbt3-${DATABASE}-load-test \
 			-o $OUTPUT_DIR/load \

@@ -28,7 +28,11 @@ refresh_streams()
 		echo "`date`: Throughput $stream_num : Starting RF 1..."
 		s_time_rf1=`date +%s`
 		record_start "${RF1TASK}" || exit 1
-		${DBSCRIPTDIR}/dbt3-pgsql-rf1 ${DBPORT} ${DATASET} > ${RF1OUT} 2>&1 || exit 1
+		${DBSCRIPTDIR}/dbt3-pgsql-rf1 ${scale_factor} ${DBPORT} > ${RF1OUT} 2>&1
+		DATASET=$?
+		if [ ${DATASET} -lt 1 ]; then
+			exit 1
+		fi
 		record_end "${RF1TASK}" || exit 1
 		e_time_rf1=`date +%s`
 		diff_time_rf1=$(( $e_time_rf1 - $s_time_rf1 ))

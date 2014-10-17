@@ -8,23 +8,38 @@
 #               2014      2ndQuadrant, Ltd.
 
 if [ $# -ne 2 ]; then
-        echo "Usage: $0 <db port> <stream>"
+        echo "Usage: $0 <scale factor> <db port>"
         exit 1
 fi
 
-DBPORT=$1
-set_num=$2
+SCALE_FACTOR=$1
+DBPORT=$2
 
 PSQL="psql -X -p ${DBPORT} -d ${SID}"
 
-echo "`date`: Stream ${set_num} : Starting Refresh Stream 1..."
+DATASET=`${PSQL} -A -t -c "SELECT nextval('dataset');"`
+dbgen -s ${SCALE_FACTOR} -U ${DATASET} -S ${DATASET} || exit 1
+
+echo "`date`: Stream ${DATASET} : Starting Refresh Stream 1..."
 s_time=`date +%s`
 
-${PSQL} -c "COPY lineitem FROM '${DSS_PATH}/lineitem.tbl.u$set_num' USING DELIMITERS '|';" &
-${PSQL} -c "COPY orders FROM '${DSS_PATH}/orders.tbl.u$set_num' USING DELIMITERS '|';" &
-wait
+${PSQL} << __EOF__
+BEGIN;
+COPY lineitem
+FROM '${DSS_PATH}/lineitem.tbl.u${DATASET}'
+USING DELIMITERS '|';
+COPY orders
+FROM '${DSS_PATH}/orders.tbl.u${DATASET}'
+USING DELIMITERS '|';
+COMMIT;
+__EOF__
 
 e_time=`date +%s`
-echo "`date`: Stream ${set_num} : Refresh Stream 1 completed."
+echo "`date`: Stream ${DATASET} : Refresh Stream 1 completed."
 diff_time=$(( $e_time - $s_time ))
-echo "Stream ${set_num} : Elapsed time for Refresh Stream 1 : $diff_time seconds"
+echo "Stream ${DATASET} : Elapsed time for Refresh Stream 1 : $diff_time seconds"
+
+if [ ${DATASET} -gt 0 ]; then
+	exit ${DATASET}
+fi
+exit -1
