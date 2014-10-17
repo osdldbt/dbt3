@@ -74,20 +74,27 @@ else
 fi
 
 OUTDIR=`dirname ${INFILE}`
-make_sar_csv ${OUTDIR}/load/sar_raw.out
+
+if [ -f "${OUTDIR}/load/sar_raw.out" ]; then
+	make_sar_csv ${OUTDIR}/load/sar_raw.out
+fi
 
 if [ ${FLAG_POWER_TEST} -eq 1 ]; then
-	POWER=`perl ${SCRIPT_DIR}/get_power.pl -i ${INFILE} -p ${PERFNUM} -s ${SCALE_FACTOR} ${NO_REFRESH_FLAG}`
+	POWER=`${SCRIPT_DIR}/dbt3-power-score -i ${INFILE} -p ${PERFNUM} -s ${SCALE_FACTOR} ${NO_REFRESH_FLAG}`
 	echo "power = ${POWER}"  | tee -a ${OUTFILE}
 
-	make_sar_csv ${OUTDIR}/power${PERFNUM}/sar_raw.out
+	if [ -f "${OUTDIR}/power${PERFNUM}/sar_raw.out" ]; then
+		make_sar_csv ${OUTDIR}/power${PERFNUM}/sar_raw.out
+	fi
 fi
 
 if [ ${FLAG_THROUGHPUT_TEST} -eq 1 ]; then
 	THROUGHPUT=`${SCRIPT_DIR}/get-throughput -i ${INFILE} -p ${PERFNUM} -s ${SCALE_FACTOR} -n ${STREAMS}`
 	echo "throughput = ${THROUGHPUT}" | tee -a ${OUTFILE}
 
-	make_sar_csv ${OUTDIR}/throughput${PERFNUM}/sar_raw.out
+	if [ -f "${OUTDIR}/throughput${PERFNUM}/sar_raw.out" ]; then
+		make_sar_csv ${OUTDIR}/throughput${PERFNUM}/sar_raw.out
+	fi
 fi
 
 if [ ${FLAG_POWER_TEST} -eq 1 ] && [ ${FLAG_THROUGHPUT_TEST} -eq 1 ]; then

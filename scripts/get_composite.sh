@@ -52,12 +52,11 @@ SCRIPT_DIR="${DBT3_HOME}/scripts/${DATABASE}";
 cat /dev/null >  ${OUTFILE}
 
 if [ ${FLAG_POWER_TEST} -eq 1 ]; then
-	POWER=`perl ${SCRIPT_DIR}/get_power.pl -i ${INFILE} -p ${PERFNUM} -s ${SCALE_FACTOR} ${NO_REFRESH_FLAG}`
-	echo "power = ${POWER}"  | tee -a ${OUTFILE}
+	POWER=`${SCRIPT_DIR}/dbt3-power-score -i ${INFILE} -p ${PERFNUM} -s ${SCALE_FACTOR} ${NO_REFRESH_FLAG}`
+	echo "power = ${POWER}" | tee -a ${OUTFILE}
 fi
 
 if [ ${FLAG_THROUGHPUT_TEST} -eq 1 ]; then
-#	THROUGHPUT=`${SCRIPT_DIR}/get-throughput -i ${INFILE} -p ${PERFNUM} -s ${SCALE_FACTOR} -n ${STREAMS}`
 	THROUGHPUT=`${SCRIPT_DIR}/get-throughput -i ${INFILE} -p ${PERFNUM} -s ${SCALE_FACTOR}`
 	echo "throughput = ${THROUGHPUT}" | tee -a ${OUTFILE}
 fi
