@@ -88,11 +88,6 @@ fi
 $DBSCRIPTDIR/dbt3-pgsql-stop-db || exit 1
 $DBSCRIPTDIR/dbt3-pgsql-start-db -o ${OUTPUT_DIR} ${PARAMETERS_ARG} || exit 1
 
-# Generate the data for the refresh stream before we starting timing the test.
-if [ ${NO_REFRESH} -eq 0 ]; then
-	dbgen -s ${scale_factor} -U ${num_stream}
-fi
-
 s_time=`date +%s`
 record_start "PERF${TAG}.THRUPUT" || exit 1
 

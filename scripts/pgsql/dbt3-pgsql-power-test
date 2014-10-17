@@ -101,11 +101,6 @@ if [ ${USE_LINUXPERF} -eq 1 ]; then
 	perf_start ${OUTPUT_DIR}/perf &
 fi
 
-# Generate the data for the refresh stream before we starting timing the test.
-if [ ${NO_REFRESH} -eq 0 ]; then
-	dbgen -s ${SCALE_FACTOR} -U 1
-fi
-
 s_time_power=`date +%s`
 record_start "PERF${TAG}.POWER" || exit 1
 
