@@ -27,6 +27,9 @@ BEGIN;
 CREATE TEMPORARY TABLE tmp_orderkey$set_num (orderkey numeric(10));
 COPY tmp_orderkey$set_num
 FROM '${DSS_PATH}/delete.$set_num' USING DELIMITERS '|';
+CREATE INDEX
+ON tmp_orderkey$set_num (orderkey);
+ANALYZE tmp_orderkey$set_num;
 DELETE FROM lineitem
 USING tmp_orderkey$set_num
 WHERE l_orderkey = orderkey;
