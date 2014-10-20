@@ -9,9 +9,6 @@
 #               2014      2ndQuadrant, Ltd.
 #
 
-SRCDIR=@TOPDIR@
-. ${SRCDIR}/scripts/dbt3_profile || exit 1
-
 refresh_streams()
 {
 	stream_num=1
@@ -28,7 +25,7 @@ refresh_streams()
 		echo "`date`: Throughput $stream_num : Starting RF 1..."
 		s_time_rf1=`date +%s`
 		record_start "${RF1TASK}" || exit 1
-		${DBSCRIPTDIR}/dbt3-pgsql-rf1 ${scale_factor} ${DBPORT} > ${RF1OUT} 2>&1
+		dbt3-pgsql-rf1 ${scale_factor} > ${RF1OUT} 2>&1
 		DATASET=$?
 		if [ ${DATASET} -lt 1 ]; then
 			exit 1
@@ -41,7 +38,7 @@ refresh_streams()
 		echo "`date`: Throughput $stream_num : Starting RF 2..."
 		s_time_rf2=`date +%s`
 		record_start "${RF2TASK}" || exit 1
-		${DBSCRIPTDIR}/dbt3-pgsql-rf2 ${DBPORT} ${DATASET} > ${RF2OUT} 2>&1 || exit 1
+		dbt3-pgsql-rf2 ${DATASET} > ${RF2OUT} 2>&1 || exit 1
 		record_end "${RF2TASK}" || exit 1
 		e_time_rf2=`date +%s`
 		diff_time_rf2=$(( $e_time_rf2 - $s_time_rf2 ))
@@ -53,15 +50,34 @@ refresh_streams()
 	done
 }
 
+record_start()
+{
+	NAME=$1
+
+	psql -v ON_ERROR_STOP=1 -X -q << __EOF__ > /dev/null 2>&1
+INSERT INTO time_statistics (task_name, s_time)
+VALUES ('${NAME}', CURRENT_TIMESTAMP);
+__EOF__
+}
+
+record_end()
+{
+	NAME=$1
+
+	psql -v ON_ERROR_STOP=1 -X -q << __EOF__ > /dev/null 2>&1
+UPDATE time_statistics
+SET e_time = current_timestamp
+WHERE task_name = '${NAME}';
+__EOF__
+}
+
 EXPLAIN_ANALYZE=0
 NO_REFRESH=0
-while getopts "ef:l:n:o:s:t:z" opt; do
+while getopts "ef:n:o:s:t:z" opt; do
 	case $opt in
 	e) EXPLAIN_ANALYZE=1
 		;;
 	f) scale_factor=$OPTARG
-		;;
-	l) DBPORT=${OPTARG}
 		;;
 	n) num_stream=$OPTARG
 		;;
@@ -78,15 +94,13 @@ done
 
 RUNDIR=$OUTPUT_DIR/run
 
-DBSCRIPTDIR=$SRCDIR/scripts/pgsql
-
 # Start each stream.
 i=1
 while [ $i -le $num_stream ] 
 do
-	${DBSCRIPTDIR}/run_throughput_stream.sh ${scale_factor} ${TAG} ${i} \
+	dbt3-pgsql-throughput-stream ${scale_factor} ${TAG} ${i} \
 			${EXPLAIN_ANALYZE} ${OUTPUT_DIR} \
-			${SEED_FILE} ${DBPORT} > ${RUNDIR}/thruput_qs${i} 2>&1 &
+			${SEED_FILE} > ${RUNDIR}/thruput_qs${i} 2>&1 &
 	
 	i=$(( $i + 1 ))
 done

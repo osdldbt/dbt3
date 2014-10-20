@@ -164,15 +164,6 @@ if test "$DATABASE_TO_USE" = "mysql"; then
 
 elif test "$DATABASE_TO_USE" = "pgsql"; then
   AC_DEFINE(PGSQL, 1)
-
-  AC_CONFIG_FILES([scripts/pgsql/run_throughput_stream.sh],
-      [chmod +x scripts/pgsql/run_throughput_stream.sh])
-  AC_CONFIG_FILES([scripts/pgsql/db_stats.sh],
-      [chmod +x scripts/pgsql/db_stats.sh])
-  AC_CONFIG_FILES([scripts/pgsql/pgsql_profile],
-      [chmod +x scripts/pgsql/pgsql_profile])
-  AC_CONFIG_FILES([scripts/pgsql/throughput_stream_wrapper.sh],
-      [chmod +x scripts/pgsql/throughput_stream_wrapper.sh])
 elif test "$DATABASE_TO_USE" = "sapdb"; then
   AC_DEFINE(SAPDB, 1)
 
@@ -226,7 +217,6 @@ fi
 
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([doc/Makefile])
-AC_CONFIG_FILES([scripts/dbt3_profile])
 AC_CONFIG_FILES([src/Makefile])
 AC_CONFIG_FILES([src/dbgen/Makefile])
 

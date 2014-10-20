@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 # This file is released under the terms of the Artistic License.
 # Please see the file LICENSE, included in this package, for details.
@@ -9,11 +9,29 @@
 #               2014      2ndQuadrant, Ltd.
 #
 
-SRCDIR=@TOPDIR@
-. ${SRCDIR}/scripts/dbt3_profile || exit 1
+record_start()
+{
+	NAME=$1
 
-if [ $# -ne 7 ]; then
-        echo "Usage: $0 <scale_factor> <perf_run_num> <stream_num> <0/1 - explain analyze off/on> <run dir> <seed file> <db port>"
+	psql -v ON_ERROR_STOP=1 -X -q << __EOF__ > /dev/null 2>&1
+INSERT INTO time_statistics (task_name, s_time)
+VALUES ('${NAME}', CURRENT_TIMESTAMP);
+__EOF__
+}
+
+record_end()
+{
+	NAME=$1
+
+	psql -v ON_ERROR_STOP=1 -X -q << __EOF__ > /dev/null 2>&1
+UPDATE time_statistics
+SET e_time = current_timestamp
+WHERE task_name = '${NAME}';
+__EOF__
+}
+
+if [ $# -ne 6 ]; then
+        echo "Usage: $0 <scale_factor> <perf_run_num> <stream_num> <0/1 - explain analyze off/on> <run dir> <seed file>"
         exit 1
 fi
 
@@ -23,14 +41,11 @@ stream_num=$3
 EXPLAIN_ANALYZE=$4
 OUTPUT_DIR=$5
 SEED_FILE=$6
-DBPORT=$7
 
-PSQL="psql -v ON_ERROR_STOP=1 -X -p ${DBPORT} -d ${SID} -e"
+PSQL="psql -v ON_ERROR_STOP=1 -X -e"
 RUNDIR=$OUTPUT_DIR/run
 RESULTSDIR="${OUTPUT_DIR}/results/${stream_num}"
 mkdir -p ${RESULTSDIR} || exit 1
-
-DBSCRIPTDIR=$SRCDIR/scripts/pgsql
 
 # output PID to a tmp file
 echo "$$" > $RUNDIR/PID$stream_num

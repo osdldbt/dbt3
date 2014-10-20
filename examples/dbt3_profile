@@ -1,38 +1,33 @@
 #!/bin/sh
-
 #
 # This file is released under the terms of the Artistic License.
-# Please see # the file LICENSE, included in this package, for details.
+# Please see the file LICENSE, included in this package, for details.
 #
-# Copyright (C) 2002 Jenny Zhang & Open Source Development Lab, Inc.
+# Copyright (C) 2002 Open Source Development Lab, Inc.
+#               2002 Jenny Zhang 
+#               2014 Mark Wong
+#               2014 2ndQuadrant, Ltd.
 #
 
-DIR=`dirname $0`
-
-export DBT3_HOME="@TOPDIR@"
-export DATABASE=@DATABASE_TO_USE@
-
-export DSS_QUERY="@TOPDIR@/queries/@DATABASE_TO_USE@"
-export DSS_PATH="${HOME}/local/data"
-export DSS_CONFIG="@TOPDIR@/src/dbgen"
-export DBT3_PERL_MODULE="@TOPDIR@/perlmodules"
+export DSS_QUERY="/home/mark/src/dbt3/queries/pgsql"
+export DSS_PATH="/tmp/dss_path"
+export DSS_CONFIG="/home/mark/src/dbt3/src/dbgen"
 
 export DBGEN="${DSS_CONFIG}/dbgen"
 export QGEN="${DSS_CONFIG}/qgen"
-export PARSE_QUERY="@TOPDIR@/src/parse_query"
-export POWER="@TOPDIR@/src/power"
 
-. @TOPDIR@/scripts/${DATABASE}/${DATABASE}_profile
-
-clearprof () {
+clearprof()
+{
 	sudo /usr/sbin/readprofile -m /boot/System.map-`uname -r` -r
 }
 
-getprof () {
+getprof()
+{
 	sudo /usr/sbin/readprofile -n -m /boot/System.map-`uname -r` -v | sort -grk3,4 > $OUTPUT_DIR/readprofile.txt
 }
 
-clearoprof () {
+clearoprof()
+{
 	sudo opcontrol --vmlinux=/boot/vmlinux
 	sleep 2
 	sudo opcontrol --start-daemon
@@ -45,7 +40,8 @@ clearoprof () {
 	sudo opcontrol --reset
 }
 
-getoprof () {
+getoprof()
+{
 	mkdir -p $OUTPUT_DIR/oprofile/annotate
 	sudo opcontrol --dump
 	sudo opreport -l -o $OUTPUT_DIR/oprofile/oprofile.txt
@@ -53,7 +49,8 @@ getoprof () {
 	sudo opcontrol --shutdown
 	sudo opannotate --source --assembly > $OUTPUT_DIR/oprofile/assembly.txt 2>&1
 	sudo opannotate --source --output-dir=$OUTPUT_DIR/oprofile/annotate
-	sudo opreport -l -c -p /lib/modules/`uname -r` -o ${OUTPUT_DIR}/oprofile/call-graph.txt > /dev/null 2>&1
+	sudo opreport -l -c -p /lib/modules/`uname -r` \
+			-o ${OUTPUT_DIR}/oprofile/call-graph.txt > /dev/null 2>&1
 }
 
 perf_start()

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 # This file is released under the terms of the Artistic License.
 # Please see the file LICENSE, included in this package, for details.
@@ -13,12 +13,14 @@ killall sar sadc pidstat db_stats.sh' INT
 trap 'echo "Test was interrupted. Got TERM signal."; \
 killall sar sadc pidstat db_stats.sh' TERM
 
-DIR=`dirname $0`
-source ${DIR}/dbt3_profile || exit 1
+if [ "x${DSS_PATH}" = "x" ]; then
+	>&2 echo "Error: DSS_PATH environment variable not set"
+	exit 1
+fi
 
 usage()
 {
-	echo "usage: run_workload.sh [-123eghoPRuz] [-c comment] [-d data dir]"
+	echo "usage: run_workload.sh [-123aeghoPRuz] [-c comment]"
 	echo "  [-f scale factor] [-l database port] [-n streams]"
 	echo "  [-p load test database parameters]"
 	echo "  [-q power test database parameters]"
@@ -28,8 +30,8 @@ usage()
 	echo " 1 - run load test"
 	echo " 2 - run power test"
 	echo " 3 - run throughput test"
+	echo " a - dbms under test (mysql, pgsql, sapdb)"
 	echo " c - comment about the test"
-	echo " d - database directory"
 	echo " e - EXPLAIN ANALYZE (PostgreSQL only)"
 	echo " g - generate flat files"
 	echo " h - this help message"
@@ -38,41 +40,34 @@ usage()
 	echo " o - output directory"
 	echo " O - enable oprofile"
 	echo " P - enable linux perf"
-	echo " p - database parameters for the load test"
-	echo " q - database parameters for the power test"
+	echo " p - database parameters for the load test (pgsql only)"
+	echo " q - database parameters for the power test (pgsql only)"
 	echo " R - materialized view mode"
-	echo " r - database parameters for the throughput test"
+	echo " r - database parameters for the throughput test (pgsql only)"
 	echo " s - seed"
 	echo " u - use tablespaces"
 	echo " z - do not run refresh streams"
 }
 
-SRCDIR=${DBT3_HOME}
-SCRIPTDIR=$SRCDIR/scripts
-DBSCRIPTDIR=$SRCDIR/scripts/$DATABASE
-export PATH=$PATH:$DBSCRIPTDIR
-
-SEED=0
-REDIR_LOG=0
-REDIR_TMP=0
-SCALE_FACTOR=1
-STREAMS=1
-MAX=1
-GENERATE=0
-TEST_ARGS=
-DBDATA=${DSS_PATH}
-
-OUTPUT_DIR=""
+DATABASE=""
 COMMENT=""
+FLAG_POWER_TEST=""
+FLAG_THROUGHPUT_TEST=""
+GENERATE=0
 RUN_ALL_TESTS=1
 RUN_LOAD_TEST=0
 RUN_POWER_TEST=0
 RUN_THROUGHPUT_TEST=0
-FLAG_POWER_TEST=""
-FLAG_THROUGHPUT_TEST=""
-WORKLOAD="H"
+MAX=1
 NO_REFRESH=0
-while getopts "123d:c:ef:ghl:n:Oo:p:Pq:Rr:s:tuz" opt; do
+OUTPUT_DIR=""
+SCALE_FACTOR=1
+SEED=0
+STREAMS=1
+TEST_ARGS=""
+WORKLOAD="H"
+
+while getopts "123a:c:ef:ghl:n:Oo:p:Pq:Rr:s:tuz" opt; do
 	case $opt in
 	1)
 		RUN_LOAD_TEST=1
@@ -88,11 +83,12 @@ while getopts "123d:c:ef:ghl:n:Oo:p:Pq:Rr:s:tuz" opt; do
 		FLAG_THROUGHPUT_TEST="-3"
 		RUN_ALL_TESTS=0
 		;;
+	a)
+		DATABASE=${OPTARG}
+		export DATABASE=${DATABASE}
+		;;
 	c)
 		COMMENT=${OPTARG}
-		;;
-	d)
-		DBDATA=${OPTARG}
 		;;
 	e)
 		# PostgreSQL only: EXPLAIN ANALIZE.
@@ -120,6 +116,7 @@ while getopts "123d:c:ef:ghl:n:Oo:p:Pq:Rr:s:tuz" opt; do
 	o)
 		OUTPUT_DIR="${OPTARG}"
 		mkdir -p $OUTPUT_DIR
+		QTIMECSV="${OUTPUT_DIR}/q_time.csv"
 		;;
 	P)
 		LINUXPERF_FLAG="-Y"
@@ -181,7 +178,10 @@ fi
 # Set the seed file.
 SEED_FILE=$OUTPUT_DIR/seed
 if [ $SEED -eq 0 ]; then
-	$SRCDIR/scripts/init_seed.sh > $SEED_FILE
+	# generate the initial seed according to cluse 2.1.3.3
+	# the initial seed is the time stamp of the end of the database load time
+	# expressed in the format mmddhhmms.
+	date +%-m%d%H%M%S > $SEED_FILE
 else
 	echo $SEED > $SEED_FILE
 fi
@@ -191,14 +191,13 @@ echo "Using seed: `cat $SEED_FILE`"
 # Load Test
 #
 if [ ${RUN_LOAD_TEST} -eq 1 ]; then
-	$DBSCRIPTDIR/dbt3-${DATABASE}-load-test \
+	dbt3-${DATABASE}-load-test \
 			-o $OUTPUT_DIR/load \
 			${LOAD_PARAMETERS_ARG} \
 			${OPROFILE_FLAG} \
 			${LINUXPERF_FLAG} \
 			-f $SCALE_FACTOR \
 			-g $GENERATE \
-			-d ${DBDATA} \
 			${WORKLOAD_ARG} \
 			${TABLESPACES_FLAG} || exit 1
 else
@@ -207,24 +206,28 @@ else
 	# be cleared out.  Otherwise the data collection will be
 	# incomprehensible with duplicate data.
 	#
-	${DBSCRIPTDIR}/dbt3-${DATABASE}-start-db
-	clear_time_statistics || exit 1
+	dbt3-${DATABASE}-start-db
+	psql -v ON_ERROR_STOP=1 -X -q -c "TRUNCATE TABLE time_statistics;"
 fi
 
 i=1
 while [ $i -le $MAX ]
 do
+	if [ ${RUN_POWER_TEST} -eq 0 ] && [ ${RUN_THROUGHPUT_TEST} -eq 0 ]; then
+		break
+	fi
+
 	#
 	# Start time of a Power and Throughput test.
 	#
 	s_time=`date +%s`
-	record_start "PERF${i}" || exit 1
+	psql -v ON_ERROR_STOP=1 -X -q << __EOF__ > /dev/null 2>&1
+INSERT INTO time_statistics (task_name, s_time)
+VALUES ('PERF${i}', CURRENT_TIMESTAMP);
+__EOF__
 
 	if [ ${RUN_POWER_TEST} -eq 1 ]; then
-		#
-		# Power Test
-		#
-		${DBSCRIPTDIR}/dbt3-${DATABASE}-power-test \
+		dbt3-${DATABASE}-power-test \
 				-f ${SCALE_FACTOR} \
 				-o ${OUTPUT_DIR}/power${i} \
 				${POWER_PARAMETERS_ARG}\
@@ -241,10 +244,7 @@ do
 	fi
 
 	if [ ${RUN_THROUGHPUT_TEST} -eq 1 ]; then
-	#
-	# Throughput Test
-	#
-		${DBSCRIPTDIR}/dbt3-${DATABASE}-throughput-test \
+		dbt3-${DATABASE}-throughput-test \
 				-n ${STREAMS} \
 				-f ${SCALE_FACTOR} \
 				-o ${OUTPUT_DIR}/throughput${i} \
@@ -265,59 +265,65 @@ do
 	# The database should be shut down after the last test, so start it back
 	# up so we can update and retrieve test information in the database.
 	#
-	${DBSCRIPTDIR}/dbt3-${DATABASE}-start-db -p "-c port=${DBPORT}"
+	dbt3-${DATABASE}-start-db -p "-c port=${DBPORT}"
 
 	#
 	# End time of a Power and Throughput test.
 	#
-	record_end "PERF${i}" || exit 1
+	psql -v ON_ERROR_STOP=1 -X -q << __EOF__ > /dev/null 2>&1
+UPDATE time_statistics
+SET e_time = current_timestamp
+WHERE task_name = 'PERF${i}';
+__EOF__
 	e_time=`date +%s`
-	diff_time=`expr $e_time - $s_time`
+	diff_time=$(( $e_time - $s_time ))
 	echo "Elapsed time for performance test ${i} : $diff_time seconds"
 
 	#
 	# Increment loop counter.
 	#
-	i=`expr $i + 1`
+	i=$(( $i + 1 ))
 done
 
 # -------------------------------------------
 # Post-processing
 # -------------------------------------------
 
-QTIMECSV="${OUTPUT_DIR}/q_time.csv"
-
 # Get system details.
-echo -n "Getting system configuration... "
-$SCRIPTDIR/dbt3-get-config $SCALE_FACTOR $STREAMS "$LOAD_PARAMETERS" "$POWER_PARAMETERS" "$THROUGHPUT_PARAMETERS" $OUTPUT_DIR || exit 1
-echo "done."
+echo "Getting system configuration... "
+dbt3-get-config $SCALE_FACTOR $STREAMS "$LOAD_PARAMETERS" "$POWER_PARAMETERS" \
+"$THROUGHPUT_PARAMETERS" $OUTPUT_DIR || exit 1
 
-# Get query times.
 echo "Getting query times... "
-${DBSCRIPTDIR}/dbt3-${DATABASE}-get-query-time > ${QTIMECSV} || exit 1
+# Make sure the database is started, which is might be depending on what parts
+# of the workload are executed.
+dbt3-${DATABASE}-start-db
+dbt3-${DATABASE}-get-query-time > ${QTIMECSV} || exit 1
 
-#
-# Calculate composite score.      
-#
-echo "Post processing query results... "
-if [ ${RUN_POWER_TEST} -eq 1 ] || [ ${RUN_THROUGHPUT_TEST} -eq 1 ]; then
-    $SRCDIR/scripts/dbt3-post-process \
-	-i ${QTIMECSV} \
-	-p 1 \
-	-s ${SCALE_FACTOR} \
-	-n ${STREAMS} \
-	-o ${OUTPUT_DIR}/calc_composite.out \
-	${NO_REFRESH_FLAG} \
-	${FLAG_POWER_TEST} ${FLAG_THROUGHPUT_TEST} || exit 1
+which R > /dev/null 2>&1
+if [ $? -eq 0 ]; then
+	#
+	# Calculate composite score.      
+	#
+	echo "Post processing query results... "
+	if [ ${RUN_POWER_TEST} -eq 1 ] || [ ${RUN_THROUGHPUT_TEST} -eq 1 ]; then
+    	dbt3-post-process \
+		-i ${QTIMECSV} \
+		-p 1 \
+		-s ${SCALE_FACTOR} \
+		-n ${STREAMS} \
+		-o ${OUTPUT_DIR}/calc_composite.out \
+		${NO_REFRESH_FLAG} \
+		${FLAG_POWER_TEST} ${FLAG_THROUGHPUT_TEST} || exit 1
 fi
 
 echo "Generating a report... "
-$SRCDIR/scripts/dbt3-gen-report $OUTPUT_DIR > $OUTPUT_DIR/index.html \
-		|| exit 1
+dbt3-gen-report $OUTPUT_DIR > $OUTPUT_DIR/index.html
+fi
 
 #
 # Stop the database at the end of the test.
 #
-$DBSCRIPTDIR/dbt3-${DATABASE}-stop-db
+dbt3-${DATABASE}-stop-db
 
 echo "Done!"

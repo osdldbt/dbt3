@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 # This file is released under the terms of the Artistic License.
 # Please see the file LICENSE, included in this package, for details.
@@ -9,32 +9,16 @@
 #               2014      2ndQuadrant, Ltd.
 #
 
-# 15 July 2004 - Revamped by Mark Wong
-
-DIR=`dirname $0`
-. ${DIR}/../dbt3_profile || exit 1
-
-SRCDIR=${DBT3_HOME}
-
-DBSCRIPTDIR=$SRCDIR/scripts/pgsql
-
-DBSTATS="$DBSCRIPTDIR/db_stats.sh"
-
+GENERATE=0
+ONLY_LOAD=0
 PARAMETERS=""
 SF=0
 USE_OPROFILE=0
 USE_LINUXPERF=0
-GENERATE=0
-ONLY_LOAD=0
-DBDATA=${DSS_PATH}
 WORKLOAD="H"
-while getopts "d:f:g:lo:p:RtyYz:" opt; do
+
+while getopts "f:g:lo:p:RtyY:" opt; do
 	case $opt in
-	d)
-		DBDATA=${OPTARG}
-		export DSS_PATH=$DBDATA
-		mkdir -p $DSS_PATH
-		;;
 	f)
 		SF=$OPTARG
 		;;
@@ -65,23 +49,17 @@ while getopts "d:f:g:lo:p:RtyYz:" opt; do
 	Y)
 		USE_LINUXPERF=1
 		;;
-	z)
-		DBPORT=$OPTARG
-		;;
 	?)
 		echo "Usage: $0 [-o <dir> -p <db_param> -f <scale_factor>]"
 		exit 1
 	esac
 done
 
-if test -z $OUTPUT_DIR ; then 
-  OUTPUT_DIR=$DBSCRIPTDIR/output
-  mkdir -p $OUTPUT_DIR
-fi
+mkdir -p ${DSS_PATH} || exit 1
 
 # Check to see if we have the files. If we don't have them - create them. 
 have_all_files=0
-for f in customer lineitem  nation  orders  partsupp  part  region  supplier ; do
+for f in customer lineitem nation orders partsupp part region supplier; do
     if ! test -f $DSS_PATH/$f.tbl ; then
         have_all_files=1
     fi
@@ -93,24 +71,26 @@ if [ $GENERATE -ne 0 -o $have_all_files -eq 1 ]; then
 	${DBGEN} -s $SF || exit 1
 	chmod a+r ${DSS_PATH}/*.tbl
 else
-	echo "Create the database using existing datafiles."
+	echo "Creating the database using existing data files."
 fi
 
 # Start collecting system statistics.
-$SRCDIR/scripts/dbt3-sysstats --outdir $OUTPUT_DIR --iter 1440 --sample 60 || exit 1
+dbt3-sysstats --outdir $OUTPUT_DIR --sample 60 || exit 1
 
-$DBSCRIPTDIR/dbt3-pgsql-create-db -o ${OUTPUT_DIR} -l ${DBPORT} \
-		${PARAMETERS_ARG}
-	
-${DBSCRIPTDIR}/dbt3-pgsql-drop-tables -l ${DBPORT} || exit 1
-${DBSCRIPTDIR}/dbt3-pgsql-create-tables -d ${DBDATA} -l ${DBPORT} ${TABLESPACE_FLAG} || exit 1
+dbt3-pgsql-create-db -o ${OUTPUT_DIR} ${PARAMETERS_ARG}
+
+dbt3-pgsql-drop-tables || exit 1
+dbt3-pgsql-create-tables ${TABLESPACE_FLAG} || exit 1
 
 echo "`date` Load Test Starting..."
 s_time=`date +%s`
-record_start "LOAD" || exit 1
+psql -v ON_ERROR_STOP=1 -X -q << __EOF__ > /dev/null 2>&1
+INSERT INTO time_statistics (task_name, s_time)
+VALUES ('LOAD', CURRENT_TIMESTAMP);
+__EOF__
 
 # Collect database statistics
-${DBSTATS} ${OUTPUT_DIR} ${DBPORT} 2> /dev/null &
+dbt3-pgsql-dbstat ${OUTPUT_DIR} 2> /dev/null &
 
 # Initialize profile counters.
 if [ -f /proc/profile ]; then
@@ -125,9 +105,13 @@ if [ ${USE_LINUXPERF} -eq 1 ]; then
 	perf_start ${OUTPUT_DIR}/perf &
 fi
 
-${DBSCRIPTDIR}/dbt3-pgsql-load-data -d ${DBDATA} || exit 1
+dbt3-pgsql-load-data || exit 1
 
-record_end "LOAD" || exit 1
+psql -v ON_ERROR_STOP=1 -X -q << __EOF__ > /dev/null 2>&1
+UPDATE time_statistics
+SET e_time = current_timestamp
+WHERE task_name = 'LOAD';
+__EOF__
 e_time=`date +%s`
 diff_time=`expr $e_time - $s_time`
 echo "Elapsed time for Load Test : $diff_time seconds"
@@ -137,8 +121,8 @@ read SARPID < ${OUTPUT_DIR}/sar.pid
 kill ${SARPID}
 read PIDSTATPID < ${OUTPUT_DIR}/pidstat.pid
 kill ${PIDSTATPID}
-read DBSTATSPID < ${OUTPUT_DIR}/db_stats.pid
-kill ${DBSTATSPID}
+read DBSTATPID < ${OUTPUT_DIR}/dbstat.pid
+kill ${DBSTATPID}
 
 # Collect profile data.
 if [ -f /proc/profile ]; then

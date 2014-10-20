@@ -7,43 +7,25 @@
 #               2002-2014 Mark Wong
 #               2014      2ndQuadrant, Ltd.
 
-DIR=`dirname $0`
-. ${DIR}/pgsql_profile || exit 1
-
 create_table() {
-	table=${1}
-	create=${2}
+	SQL=${1}
 
 	${PSQL} << __EOF__
-${create};
+${SQL};
 __EOF__
 	return $?
 }
 
-if [ -z ${DBNAME} ]; then
-    echo "DBNAME not defined."
-    exit 1
-fi
-
 USE_TABLESPACES=0
-while getopts "bd:l:t" OPT; do
+while getopts "t" OPT; do
 	case ${OPT} in
-	d)
-		DBDATA=${OPTARG}
-		;;
-	l)
-		PORT=${OPTARG}
-		;;
 	t)
 		USE_TABLESPACES=1
 		;;
 	esac
 done
 
-if [ ! "x${PORT}" = "x" ]; then
-	PORTARG="-p ${PORT}"
-fi
-PSQL="psql -v ON_ERROR_STOP=1 -X -p ${DBPORT} -d ${SID}"
+PSQL="psql -v ON_ERROR_STOP=1 -X -A -t"
 
 if [ ${USE_TABLESPACES} -eq 1 ]; then
 	TS_SUPPLIER_DIR="${TSDIR}/supplier/ts"
@@ -83,7 +65,7 @@ if [ ${USE_TABLESPACES} -eq 1 ]; then
 	${PSQL} -c "CREATE ${REGION_TABLESPACE} LOCATION '${TS_REGION_DIR}';"
 fi
 
-create_table supplier "
+create_table "
 CREATE TABLE supplier (
 	s_suppkey  INTEGER,
 	s_name CHAR(25),
@@ -94,7 +76,7 @@ CREATE TABLE supplier (
 	s_comment VARCHAR(101))
 	${SUPPLIER_TABLESPACE};" || exit 1
 
-create_table part "
+create_table "
 CREATE TABLE part (
 	p_partkey INTEGER,
 	p_name VARCHAR(55),
@@ -107,7 +89,7 @@ CREATE TABLE part (
 	p_comment VARCHAR(23))
 	${PART_TABLESPACE};" || exit 1
 
-create_table partsupp "
+create_table "
 CREATE TABLE partsupp (
 	ps_partkey INTEGER,
 	ps_suppkey INTEGER,
@@ -116,7 +98,7 @@ CREATE TABLE partsupp (
 	ps_comment VARCHAR(199))
 	${PARTSUPP_TABLESPACE};" || exit 1
 
-create_table customer "
+create_table "
 CREATE TABLE customer (
 	c_custkey INTEGER,
 	c_name VARCHAR(25),
@@ -128,7 +110,7 @@ CREATE TABLE customer (
 	c_comment VARCHAR(117))
 	${CUSTOMER_TABLESPACE};" || exit 1
 
-create_table orders "
+create_table "
 CREATE TABLE orders (
 	o_orderkey INTEGER,
 	o_custkey INTEGER,
@@ -141,7 +123,7 @@ CREATE TABLE orders (
 	o_comment VARCHAR(79))
 	${ORDERS_TABLESPACE};" || exit 1
 
-create_table lineitem "
+create_table "
 CREATE TABLE lineitem (
 	l_orderkey INTEGER,
 	l_partkey INTEGER,
@@ -161,7 +143,7 @@ CREATE TABLE lineitem (
 	l_comment VARCHAR(44))
 	${LINEITEM_TABLESPACE};" || exit 1
 
-create_table nation "
+create_table "
 CREATE TABLE nation (
 	n_nationkey INTEGER,
 	n_name CHAR(25),
@@ -169,14 +151,14 @@ CREATE TABLE nation (
 	n_comment VARCHAR(152))
 	${NATION_TABLESPACE};" || exit 1
 
-create_table region "
+create_table "
 CREATE TABLE region (
 	r_regionkey INTEGER,
 	r_name CHAR(25),
 	r_comment VARCHAR(152))
 	${REGION_TABLESPACE};" || exit 1
 
-create_table time_statistics "
+create_table "
 CREATE TABLE time_statistics (
 	task_name VARCHAR(40),
 	s_time TIMESTAMP,
@@ -188,17 +170,3 @@ MINVALUE 1
 START WITH 1;
 SELECT nextval('dataset');
 __EOF__
-
-${PSQL} << __EOF__
-GRANT SELECT ON nation TO PUBLIC;
-GRANT SELECT ON customer TO PUBLIC;
-GRANT SELECT ON part TO PUBLIC;
-GRANT SELECT ON partsupp TO PUBLIC;
-GRANT SELECT ON region TO PUBLIC;
-GRANT SELECT,INSERT,UPDATE,DELETE ON lineitem TO PUBLIC;
-GRANT SELECT,INSERT,UPDATE,DELETE ON orders TO PUBLIC;
-GRANT SELECT,INSERT,UPDATE,DELETE ON time_statistics TO PUBLIC;
-__EOF__
-if [ $? -ne 0 ]; then
-	exit 1
-fi

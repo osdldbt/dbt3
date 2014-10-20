@@ -9,15 +9,14 @@
 #               2014      2ndQuadrant, Ltd.
 #
 
-if [ $# -ne 2 ]; then
-        echo "Usage: $0 <db port> <dataset>"
+if [ $# -ne 1 ]; then
+        echo "Usage: $0 <dataset>"
         exit 1
 fi
 
-DBPORT=$1
-set_num=$2
+set_num=$1
 
-PSQL="psql -v ON_ERROR_STOP=1 -X -p ${DBPORT} -d ${SID}"
+PSQL="psql -v ON_ERROR_STOP=1 -X"
 
 echo "`date`: Stream ${set_num} : Starting Refresh Stream 2..."
 s_time=`date +%s`

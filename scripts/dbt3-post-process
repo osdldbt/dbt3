@@ -21,9 +21,6 @@ make_sar_csv() {
 	${SADF} ${FILE} -- -W > ${DIR}/sar-swap.csv
 }
 
-DIR=`dirname $0`
-. ${DIR}/dbt3_profile || exit 1
-
 PLOT_OPTS=""
 FLAG_POWER_TEST=0
 FLAG_THROUGHPUT_TEST=0
@@ -59,8 +56,6 @@ while getopts "23i:n:o:p:s:z" OPT; do
 	esac
 done
 
-SCRIPT_DIR="${DBT3_HOME}/scripts";
-
 #
 # Make sure the outfile is created.
 #
@@ -80,7 +75,7 @@ if [ -f "${OUTDIR}/load/sar_raw.out" ]; then
 fi
 
 if [ ${FLAG_POWER_TEST} -eq 1 ]; then
-	POWER=`${SCRIPT_DIR}/dbt3-power-score -i ${INFILE} -p ${PERFNUM} -s ${SCALE_FACTOR} ${NO_REFRESH_FLAG}`
+	POWER=`dbt3-power-score -i ${INFILE} -p ${PERFNUM} -s ${SCALE_FACTOR} ${NO_REFRESH_FLAG}`
 	echo "power = ${POWER}"  | tee -a ${OUTFILE}
 
 	if [ -f "${OUTDIR}/power${PERFNUM}/sar_raw.out" ]; then
@@ -89,7 +84,7 @@ if [ ${FLAG_POWER_TEST} -eq 1 ]; then
 fi
 
 if [ ${FLAG_THROUGHPUT_TEST} -eq 1 ]; then
-	THROUGHPUT=`${SCRIPT_DIR}/get-throughput -i ${INFILE} -p ${PERFNUM} -s ${SCALE_FACTOR} -n ${STREAMS}`
+	THROUGHPUT=`get-throughput -i ${INFILE} -p ${PERFNUM} -s ${SCALE_FACTOR} -n ${STREAMS}`
 	echo "throughput = ${THROUGHPUT}" | tee -a ${OUTFILE}
 
 	if [ -f "${OUTDIR}/throughput${PERFNUM}/sar_raw.out" ]; then
@@ -105,6 +100,6 @@ fi
 # -------------------------------------
 # Plot a result chart with using gnuplot
 # -------------------------------------
-$SCRIPT_DIR/dbt3-plot-results -i ${INFILE} ${NO_REFRESH_FLAG} \
+dbt3-plot-results -i ${INFILE} ${NO_REFRESH_FLAG} \
 		-o `dirname ${OUTFILE}` ${PLOT_OPTS} \
 		|| >&2 echo "Failed to plot query times..."

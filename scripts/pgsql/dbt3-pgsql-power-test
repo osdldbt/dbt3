@@ -8,24 +8,38 @@
 #               2004-2014 Mark Wong
 #               2014      2ndQuadrant, Ltd.
 
-DIR=`dirname $0`
-. ${DIR}/../dbt3_profile || exit 1
-
-SRCDIR=${DBT3_HOME}
-
 EXPLAIN_ARG=
 USE_OPROFILE=0
 USE_LINUXPERF=0
 NO_REFRESH=0
 
+record_start()
+{
+	NAME=$1
+
+	psql -v ON_ERROR_STOP=1 -X -q << __EOF__ > /dev/null 2>&1
+INSERT INTO time_statistics (task_name, s_time)
+VALUES ('${NAME}', CURRENT_TIMESTAMP);
+__EOF__
+}
+
+record_end()
+{
+	NAME=$1
+
+	psql -v ON_ERROR_STOP=1 -X -q << __EOF__ > /dev/null 2>&1
+UPDATE time_statistics
+SET e_time = current_timestamp
+WHERE task_name = '${NAME}';
+__EOF__
+}
+
 # process the command line parameters
-while getopts "ef:l:p:o:s:t:yYz" opt; do
+while getopts "ef:p:o:s:t:yYz" opt; do
 	case $opt in
 		e) EXPLAIN_ARG="-y"
 			;;
 		f) SCALE_FACTOR=$OPTARG
-			;;
-		l) DBPORT=$OPTARG
 			;;
 		o) OUTPUT_DIR=$OPTARG
 			RESULTSDIR="${OUTPUT_DIR}/results"
@@ -53,12 +67,7 @@ done
 RUNDIR=$OUTPUT_DIR/run
 mkdir -p $RUNDIR
 
-SCRIPTDIR=$SRCDIR/scripts
-DBSCRIPTDIR=$SRCDIR/scripts/pgsql
-
-DBSTATS="${DBSCRIPTDIR}/db_stats.sh"
-
-PSQL="psql -v ON_ERROR_STOP=1 -X -p ${DBPORT} -d ${SID} -e"
+PSQL="psql -v ON_ERROR_STOP=1 -X -e"
 
 # Generate queries for the Power test.
 SEED=`cat $SEED_FILE`
@@ -78,14 +87,14 @@ __EOF__
 	i=$(( ${i} + 1 ))
 done
 
-$DBSCRIPTDIR/dbt3-pgsql-stop-db || exit 1
-$DBSCRIPTDIR/dbt3-pgsql-start-db -o ${OUTPUT_DIR} ${PARAMETERS_ARG} || exit 1
+dbt3-pgsql-stop-db || exit 1
+dbt3-pgsql-start-db -o ${OUTPUT_DIR} ${PARAMETERS_ARG} || exit 1
 
 # Start collecting system statistics.
-$SRCDIR/scripts/dbt3-sysstats --outdir $OUTPUT_DIR --sample 60 || exit 1
+dbt3-sysstats --outdir $OUTPUT_DIR --sample 60 || exit 1
 
 # Collect database statistics
-${DBSTATS} ${OUTPUT_DIR} ${DBPORT} &
+dbt3-pgsql-dbstat ${OUTPUT_DIR} &
 
 # Clear the read profile counters.
 if [ -f /proc/profile ]; then
@@ -102,7 +111,10 @@ if [ ${USE_LINUXPERF} -eq 1 ]; then
 fi
 
 s_time_power=`date +%s`
-record_start "PERF${TAG}.POWER" || exit 1
+psql -v ON_ERROR_STOP=1 -X -q << __EOF__ > /dev/null 2>&1
+INSERT INTO time_statistics (task_name, s_time)
+VALUES ('PERF${TAG}.POWER', CURRENT_TIMESTAMP);
+__EOF__
 
 if [ ${NO_REFRESH} -eq 0 ]; then
 	# Refresh Stream 1
@@ -110,8 +122,7 @@ if [ ${NO_REFRESH} -eq 0 ]; then
 	s_time=`date +%s`
 	TASK="PERF${TAG}.POWER.RF1"
 	record_start "${TASK}" || exit 1
-	${DBSCRIPTDIR}/dbt3-pgsql-rf1 ${SCALE_FACTOR} ${DBPORT} \
-			> ${RESULTSDIR}/rf1.txt 2>&1
+	dbt3-pgsql-rf1 ${SCALE_FACTOR} > ${RESULTSDIR}/rf1.txt 2>&1
 	DATASET=$?
 	if [ ${DATASET} -lt 1 ]; then
 		exit 1
@@ -142,8 +153,7 @@ if [ ${NO_REFRESH} -eq 0 ]; then
 	s_time=`date +%s`
 	TASK="PERF${TAG}.POWER.RF2"
 	record_start "${TASK}" || exit 1
-	${DBSCRIPTDIR}/dbt3-pgsql-rf2 ${DBPORT} ${DATASET} \
-			> ${RESULTSDIR}/rf2.txt 2>&1 || exit 1
+	dbt3-pgsql-rf2 ${DATASET} > ${RESULTSDIR}/rf2.txt 2>&1 || exit 1
 	record_end "${TASK}" || exit 1
 	e_time=`date +%s`
 	echo "`date`: Power Test : Refresh Stream 2 completed." 
@@ -161,10 +171,10 @@ read SARPID < ${OUTPUT_DIR}/sar.pid
 kill ${SARPID}
 read PIDSTATPID < ${OUTPUT_DIR}/pidstat.pid
 kill ${PIDSTATPID}
-read DBSTATSPID < ${OUTPUT_DIR}/db_stats.pid
-kill ${DBSTATSPID}
+read DBSTATPID < ${OUTPUT_DIR}/dbstat.pid
+kill ${DBSTATPID}
 
-$DBSCRIPTDIR/dbt3-pgsql-stop-db || exit 1
+dbt3-pgsql-stop-db || exit 1
 
 if [ -f /proc/profile ]; then
 	profname="Power_Test_$TAG"
@@ -179,5 +189,3 @@ fi
 if [ ${USE_LINUXPERF} -eq 1 ]; then
 	perf_collect ${OUTPUT_DIR}/perf
 fi
-
-exit 0

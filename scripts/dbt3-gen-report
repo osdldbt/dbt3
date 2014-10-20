@@ -6,9 +6,6 @@
 # Copyright (C) 2005-2014 Mark Wong
 #               2014      2ndQuadrant, Ltd.
 
-DIR=`dirname $0`
-. ${DIR}/dbt3_profile || exit 1
-
 if [ $# -ne 1 ]; then
 	echo "usage: $0 <results directory>"
 	exit;
@@ -16,11 +13,8 @@ fi
 
 RESULT_PATH=$1
 
-SRCDIR=${DBT3_HOME}
-DBDIR=$SRCDIR/scripts/${DATABASE}
-
 OSVER=`uname -s -r`
-DBVER=`$DBDIR/dbt3-${DATABASE}-get-version`
+DBVER=`dbt3-${DATABASE}-get-version`
 
 CPU_MODEL=`uname -p`
 CPUS=`grep CPUS ${RESULT_PATH}/config.txt | awk '{print $2}'`
@@ -33,7 +27,8 @@ STREAMS=`grep num_stream ${RESULT_PATH}/config.txt | awk '{print $2}'`
 if [ -d "${RESULT_PATH}/load" ]; then
 	LOAD=`grep LOAD ${RESULT_PATH}/q_time.csv | awk -F, '{ print $5 }'`
 	# Round to 2 decimal places, convert to hours.
-	LOAD=`echo "scale=2; ${LOAD} / 3600" | bc -l`
+	LOAD_HOUR=`echo "scale=2; ${LOAD} / 3600" | bc -l`
+	LOAD_MIN=`echo "scale=2; ${LOAD} / 60" | bc -l`
 else
 	LOAD=0
 fi
@@ -87,7 +82,7 @@ gen_results()
 	dbt-plot-sar-blockdev ${SUBDIR}/sar-blockdev.csv ${SUBDIR} 2> /dev/null
 	dbt-plot-sar-cpu ${SUBDIR}/sar-cpu.csv ${SUBDIR} 2> /dev/null
 
-	dbt-pgsql-plot-database-stats ${SUBDIR}/db/pg_stat_databases.csv ${DBNAME} \
+	dbt-pgsql-plot-database-stats ${SUBDIR}/db/pg_stat_databases.csv \
 			${SUBDIR}/db 2> /dev/null
 	mkdir -p ${SUBDIR}/db/tables
 	for TABLENAME in `cat ${SUBDIR}/db/table-list.txt`; do
@@ -130,7 +125,7 @@ echo "<tr>"
 echo "<td align=\"right\">Composite:</td><td align=\"right\">${COMPOSITE}</td>"
 echo "</tr>"
 echo "<tr>"
-echo "<td align=\"right\">Load Time:</td><td align=\"right\">${LOAD} Hours</td>"
+echo "<td align=\"right\">Load Time:</td><td align=\"right\">${LOAD_MIN} Minutes / ${LOAD_HOUR} Hours</td>"
 echo "</tr>"
 echo "<tr>"
 echo "<td align=\"right\">Query Processing Power:</td><td align=\"right\">${POWER}</td>"
@@ -170,7 +165,7 @@ echo "<p>"
 # to live with "No such file or directory" messages if they don't exists.
 #
 i=1
-for ARG in `ls -d power*`
+for ARG in `ls -d power* 2> /dev/null`
 do
 	gen_results "Power Test" $ARG
 	echo "<a href=\"$ARG/index.html\">Power Test ${i}</a>"
@@ -180,7 +175,7 @@ echo "</p>"
 
 echo "<p>"
 i=1
-for ARG in `ls -d throughput*`
+for ARG in `ls -d throughput* 2> /dev/null`
 do
 	gen_results "Throughput Test" $ARG
 	echo "<a href=\"$ARG/index.html\">Throughput Test ${i}</a>"

@@ -1,8 +1,2 @@
-#!/bin/bash
-
-DIR=`dirname $0`
-. ${DIR}/pgsql_profile || exit 1
-
+#!/bin/sh
 psql --version | head -n 1 || exit 1
-
-exit 0

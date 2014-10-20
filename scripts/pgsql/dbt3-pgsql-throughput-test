@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 # This file is released under the terms of the Artistic License.
 # Please see the file LICENSE, included in this package, for details.
@@ -17,11 +17,6 @@
 #                     complete, we only want to wait for the processes that
 #                     are executing the queries.
 
-DIR=`dirname $0`
-. ${DIR}/../dbt3_profile || exit 1
-
-SRCDIR=${DBT3_HOME}
-
 USE_OPROFILE=0
 USE_LINUXPERF=0
 
@@ -29,13 +24,11 @@ TEST_ARGS=
 NO_REFRESH=0
 NO_REFRESH_FLAG=
 
-while getopts "ef:l:n:o:p:s:t:yYz" opt; do
+while getopts "ef:n:o:p:s:t:yYz" opt; do
 	case $opt in
 	e) TEST_ARGS="$TEST_ARGS -e"
 		;;
 	f) scale_factor=$OPTARG
-		;;
-	l) DBPORT=$OPTARG
 		;;
 	n) num_stream=$OPTARG
 		;;
@@ -66,11 +59,6 @@ echo "Seed : $SEED" > $OUTPUT_DIR/readme.txt
 RUNDIR=$OUTPUT_DIR/run
 mkdir -p $RUNDIR
 
-DBSCRIPTDIR=$SRCDIR/scripts/pgsql
-parsequery_dir="$SRCDIR/dbdriver/utils"
-
-DBSTATS="${DBSCRIPTDIR}/db_stats.sh"
-
 # Clear the read profile counters.
 if [ -f /proc/profile ]; then
 	clearprof
@@ -85,20 +73,23 @@ if [ ${USE_LINUXPERF} -eq 1 ]; then
 	perf_start ${OUTPUT_DIR}/perf &
 fi
 
-$DBSCRIPTDIR/dbt3-pgsql-stop-db || exit 1
-$DBSCRIPTDIR/dbt3-pgsql-start-db -o ${OUTPUT_DIR} ${PARAMETERS_ARG} || exit 1
+dbt3-pgsql-stop-db || exit 1
+dbt3-pgsql-start-db -o ${OUTPUT_DIR} ${PARAMETERS_ARG} || exit 1
 
 s_time=`date +%s`
-record_start "PERF${TAG}.THRUPUT" || exit 1
+psql -v ON_ERROR_STOP=1 -X -q << __EOF__ > /dev/null 2>&1
+INSERT INTO time_statistics (task_name, s_time)
+VALUES ('PERF${TAG}.THRUPUT', CURRENT_TIMESTAMP);
+__EOF__
 
 # Start collecting system statistics. 
-$SRCDIR/scripts/dbt3-sysstats --outdir $OUTPUT_DIR --sample 60 || exit 1
+dbt3-sysstats --outdir $OUTPUT_DIR --sample 60 || exit 1
 
 # Start collecting database statistics.
-${DBSTATS} ${OUTPUT_DIR} ${DBPORT} &
+dbt3-pgsql-dbstat ${OUTPUT_DIR} &
 
 # Start the streams.
-${DBSCRIPTDIR}/throughput_stream_wrapper.sh -l ${DBPORT} -f ${scale_factor} \
+dbt3-pgsql-throughput-stream-wrapper -f ${scale_factor} \
 		-t ${TAG} -n ${num_stream} ${TEST_ARGS} -o ${OUTPUT_DIR} \
 		-s ${SEED_FILE} ${NO_REFRESH_FLAG} || exit 1
 
@@ -107,16 +98,20 @@ read SARPID < ${OUTPUT_DIR}/sar.pid
 kill ${SARPID}
 read PIDSTATPID < ${OUTPUT_DIR}/pidstat.pid
 kill ${PIDSTATPID}
-read DBSTATSPID < ${OUTPUT_DIR}/db_stats.pid
-kill ${DBSTATSPID}
+read DBSTATPID < ${OUTPUT_DIR}/dbstat.pid
+kill ${DBSTATPID}
 
-record_end "PERF${TAG}.THRUPUT" || exit 1
+psql -v ON_ERROR_STOP=1 -X -q << __EOF__ > /dev/null 2>&1
+UPDATE time_statistics
+SET e_time = current_timestamp
+WHERE task_name = 'PERF${TAG}.THRUPUT';
+__EOF__
 e_time=`date +%s`
 diff_time=$(( $e_time - $s_time ))
 echo "Stream ${TAG} : Elapsed time for Throughput Test : $diff_time seconds"
 
 # Stop the database after the test.
-$DBSCRIPTDIR/dbt3-pgsql-stop-db || exit 1
+dbt3-pgsql-stop-db || exit 1
 
 if [ -f /proc/profile ]; then
 	profname="Throughput_Test_$TAG"

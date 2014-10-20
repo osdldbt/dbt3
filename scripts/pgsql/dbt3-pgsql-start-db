@@ -8,9 +8,6 @@
 #               2014      Mark Wong
 #               2014      2ndQuadrant, Ltd.
 
-DIR=`dirname $0`
-. ${DIR}/pgsql_profile || exit 1
-
 if [ -z ${PGDATA} ]; then
 	echo "PGDATA not defined."
 	exit 1

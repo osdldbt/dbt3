@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 # This file is released under the terms of the Artistic License.
 # Please see the file LICENSE, included in this package, for details.
@@ -8,17 +8,16 @@
 #               2014      Mark Wong
 #               2014      2ndQuadrant, Ltd.
 
-if [ $# -ne 2 ]; then
-	echo "usage: db_stats.sh <output_dir> <db port>"
+if [ $# -ne 1 ]; then
+	echo "usage: $0 <output_dir>"
 	exit 1
 fi
 
 OUTPUT_DIR=$1
-DBPORT=$2
 
 SAMPLE_LENGTH=60
 
-PSQL="psql -v ON_ERROR_STOP=1 -X -p ${DBPORT} -d ${SID} -t --no-align"
+PSQL="psql -v ON_ERROR_STOP=1 -X -t --no-align"
 
 DBOUTPUT_DIR=$OUTPUT_DIR/db
 mkdir -p $DBOUTPUT_DIR
@@ -83,7 +82,7 @@ ${PSQL} -c "SELECT indexname "`
 		`"WHERE schemaname = 'public' "`
 		`"ORDER BY indexname;" -o ${DBOUTPUT_DIR}/index-list.txt
 
-echo "$$" > ${OUTPUT_DIR}/db_stats.pid
+echo "$$" > ${OUTPUT_DIR}/dbstat.pid
 
 # Take the initial data points with headers so that data is identifiable later.
 ${PSQL} -c "COPY (${LOCKSTAT}) TO STDOUT (FORMAT CSV, HEADER);" \

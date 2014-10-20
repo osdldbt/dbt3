@@ -7,15 +7,14 @@
 #               2005-2014 Mark Wong
 #               2014      2ndQuadrant, Ltd.
 
-if [ $# -ne 2 ]; then
-        echo "Usage: $0 <scale factor> <db port>"
+if [ $# -ne 1 ]; then
+        echo "Usage: $0 <scale factor>"
         exit 1
 fi
 
 SCALE_FACTOR=$1
-DBPORT=$2
 
-PSQL="psql -X -p ${DBPORT} -d ${SID}"
+PSQL="psql -X -v ON_ERROR_STOP=1"
 
 DATASET=`${PSQL} -A -t -c "SELECT nextval('dataset');"`
 dbgen -s ${SCALE_FACTOR} -U ${DATASET} -S ${DATASET} || exit 1
