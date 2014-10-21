@@ -60,30 +60,7 @@ How to run
 
      Other options need not to be modified by hand.
 
- (3) Run `gen_data.sh' to generate a data set in flat file format to be
-     loaded.
-
-     Running `gen_data.sh' script with specifying a scalefactor parameter
-     would generate flat files into `DSS_PATH' directory.
-
-       $ cd scripts
-       $ ./gen_data.sh 10
-         (generate dataset with scale factor 10)
-
-     After gen_data.sh script, make sure the data files have been generated
-     correctly.
-
-       $ ls -l /tmp/dbt3.10
-       total 10895544
-       -rw-rw-r-- 1 snaga snaga  243386690 Apr 16 00:57 customer.tbl
-       -rw-rw-r-- 1 snaga snaga 7715685934 Apr 16 01:01 lineitem.tbl
-       -rw-rw-r-- 1 snaga snaga       2078 Apr 16 00:56 nation.tbl
-       -rw-rw-r-- 1 snaga snaga 1734296707 Apr 16 01:00 orders.tbl
-       -rw-rw-r-- 1 snaga snaga 1196552305 Apr 16 00:57 partsupp.tbl
-       -rw-rw-r-- 1 snaga snaga  242067136 Apr 16 00:57 part.tbl
-       -rw-rw-r-- 1 snaga snaga        391 Apr 16 00:56 region.tbl
-       -rw-rw-r-- 1 snaga snaga   14090274 Apr 16 00:56 supplier.tbl
-       $
+ (3) TODO: Replaced with dbgen instructions on how to generate data files.
 
  (4) Run `dbt3-run-workload' to run test workloads.
 
