@@ -167,32 +167,6 @@ elif test "$DATABASE_TO_USE" = "pgsql"; then
 elif test "$DATABASE_TO_USE" = "sapdb"; then
   AC_DEFINE(SAPDB, 1)
 
-  AC_CONFIG_FILES([dbdriver/scripts/sapdb/explain_single_query.sh],
-      [chmod +x dbdriver/scripts/sapdb/explain_single_query.sh])
-  AC_CONFIG_FILES([dbdriver/scripts/sapdb/explain_power_query.sh],
-      [chmod +x dbdriver/scripts/sapdb/explain_power_query.sh])
-  AC_CONFIG_FILES([dbdriver/scripts/sapdb/run_dbt3.sh],
-      [chmod +x dbdriver/scripts/sapdb/run_dbt3.sh])
-  AC_CONFIG_FILES([dbdriver/scripts/sapdb/run_load_test.sh],
-      [chmod +x dbdriver/scripts/sapdb/run_load_test.sh])
-  AC_CONFIG_FILES([dbdriver/scripts/sapdb/run_single_query.sh],
-      [chmod +x dbdriver/scripts/sapdb/run_single_query.sh])
-  AC_CONFIG_FILES([dbdriver/scripts/sapdb/run_perf_test.sh],
-      [chmod +x dbdriver/scripts/sapdb/run_perf_test.sh])
-  AC_CONFIG_FILES([dbdriver/scripts/sapdb/run_power_query.sh],
-      [chmod +x dbdriver/scripts/sapdb/run_power_query.sh])
-  AC_CONFIG_FILES([dbdriver/scripts/sapdb/run_power_test.sh],
-      [chmod +x dbdriver/scripts/sapdb/run_power_test.sh])
-  AC_CONFIG_FILES([dbdriver/scripts/sapdb/run_refresh_stream.sh],
-      [chmod +x dbdriver/scripts/sapdb/run_refresh_stream.sh])
-  AC_CONFIG_FILES([dbdriver/scripts/sapdb/run_rf1.sh],
-      [chmod +x dbdriver/scripts/sapdb/run_rf1.sh])
-  AC_CONFIG_FILES([dbdriver/scripts/sapdb/run_rf2.sh],
-      [chmod +x dbdriver/scripts/sapdb/run_rf2.sh])
-  AC_CONFIG_FILES([dbdriver/scripts/sapdb/run_throughput_query.sh],
-      [chmod +x dbdriver/scripts/sapdb/run_throughput_query.sh])
-  AC_CONFIG_FILES([dbdriver/scripts/sapdb/run_throughput_test.sh],
-      [chmod +x dbdriver/scripts/sapdb/run_throughput_test.sh])
   AC_CONFIG_FILES([scripts/sapdb/backup_db.sh],
       [chmod +x scripts/sapdb/backup_db.sh])
   AC_CONFIG_FILES([scripts/sapdb/build_db.sh],
