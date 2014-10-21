@@ -12,11 +12,11 @@
 
 usage()
 {
-	echo "usage: get_throughput.sh -i <q_time.out> -n <streams> -p <perfrun>"
+	echo "usage: get_throughput.sh -i <q_time.out> -n <streams>"
 	echo "           -s <scale factor> [-v]"
 }
 
-while getopts "i:n:p:s:" OPT; do
+while getopts "i:n:s:" OPT; do
 	case ${OPT} in
 	i)
 		INFILE=${OPTARG}
@@ -24,16 +24,13 @@ while getopts "i:n:p:s:" OPT; do
 	n)
 		STREAMS=${OPTARG}
 		;;
-	p)
-		PERFNUM=${OPTARG}
-		;;
 	s)
 		SCALE_FACTOR=${OPTARG}
 		;;
 	esac
 done
 
-if [ -z ${INFILE} ] || [ -z ${STREAMS} ] || [ -z ${PERFNUM} ] || [ -z ${SCALE_FACTOR} ]; then
+if [ -z ${INFILE} ] || [ -z ${STREAMS} ] || [ -z ${SCALE_FACTOR} ]; then
 	usage
 	exit 1
 fi
@@ -41,7 +38,7 @@ fi
 #
 # Get the execution time for the throughput test.
 #
-THROUGHPUT=`grep "PERF${PERFNUM}.THRUPUT," ${INFILE} | awk -F ',' '{ print $5 }'`
+THROUGHPUT=`grep "PERF.THRUPUT," ${INFILE} | awk -F ',' '{ print $5 }'`
 if [ -z ${THROUGHPUT} ]; then
 	echo "No throughput data retrieved from database."
 	exit 1
@@ -49,5 +46,3 @@ fi
 
 THROUGHPUT=`echo "scale=2; 22 * 3600 * ${STREAMS} * ${SCALE_FACTOR} / ${THROUGHPUT}" | bc -l`
 echo ${THROUGHPUT}
-
-exit 0

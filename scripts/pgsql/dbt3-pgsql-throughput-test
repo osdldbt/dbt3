@@ -24,7 +24,7 @@ TEST_ARGS=
 NO_REFRESH=0
 NO_REFRESH_FLAG=
 
-while getopts "ef:n:o:p:s:t:yYz" opt; do
+while getopts "ef:n:o:p:s:yYz" opt; do
 	case $opt in
 	e) TEST_ARGS="$TEST_ARGS -e"
 		;;
@@ -40,8 +40,6 @@ while getopts "ef:n:o:p:s:t:yYz" opt; do
 		PARAMETERS_ARG="-p \"${THROUGHPUT_PARAMETERS} $OPTARG\""
 		;;
 	s) SEED_FILE=$OPTARG
-		;;
-	t) TAG=$OPTARG
 		;;
 	y) USE_OPROFILE=1
 		;;
@@ -79,7 +77,7 @@ dbt3-pgsql-start-db -o ${OUTPUT_DIR} ${PARAMETERS_ARG} || exit 1
 s_time=`date +%s`
 psql -v ON_ERROR_STOP=1 -X -q << __EOF__ > /dev/null 2>&1
 INSERT INTO time_statistics (task_name, s_time)
-VALUES ('PERF${TAG}.THRUPUT', CURRENT_TIMESTAMP);
+VALUES ('PERF.THRUPUT', CURRENT_TIMESTAMP);
 __EOF__
 
 # Start collecting system statistics. 
@@ -90,7 +88,7 @@ dbt3-pgsql-dbstat ${OUTPUT_DIR} &
 
 # Start the streams.
 dbt3-pgsql-throughput-stream-wrapper -f ${scale_factor} \
-		-t ${TAG} -n ${num_stream} ${TEST_ARGS} -o ${OUTPUT_DIR} \
+		-n ${num_stream} ${TEST_ARGS} -o ${OUTPUT_DIR} \
 		-s ${SEED_FILE} ${NO_REFRESH_FLAG} || exit 1
 
 # Stop collecting system statistics.
@@ -104,22 +102,22 @@ kill ${DBSTATPID}
 psql -v ON_ERROR_STOP=1 -X -q << __EOF__ > /dev/null 2>&1
 UPDATE time_statistics
 SET e_time = current_timestamp
-WHERE task_name = 'PERF${TAG}.THRUPUT';
+WHERE task_name = 'PERF.THRUPUT';
 __EOF__
 e_time=`date +%s`
 diff_time=$(( $e_time - $s_time ))
-echo "Stream ${TAG} : Elapsed time for Throughput Test : $diff_time seconds"
+echo "Elapsed time for Throughput Test : $diff_time seconds"
 
 # Stop the database after the test.
 dbt3-pgsql-stop-db || exit 1
 
 if [ -f /proc/profile ]; then
-	profname="Throughput_Test_$TAG"
+	profname="Throughput_Test"
 	getprof
 fi
 
 if [ $USE_OPROFILE -eq 1 ]; then
-	profname="Throughput_Test_$TAG"
+	profname="Throughput_Test"
 	getoprof
 fi
 

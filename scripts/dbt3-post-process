@@ -24,7 +24,7 @@ make_sar_csv() {
 PLOT_OPTS=""
 FLAG_POWER_TEST=0
 FLAG_THROUGHPUT_TEST=0
-while getopts "23i:n:o:p:s:z" OPT; do
+while getopts "23i:n:o:s:z" OPT; do
 	case ${OPT} in
 	2)
 		FLAG_POWER_TEST=1
@@ -43,9 +43,6 @@ while getopts "23i:n:o:p:s:z" OPT; do
 	o)
 		OUTFILE=${OPTARG}
 		;;
-	p)
-		PERFNUM=${OPTARG}
-		;;
 	s)
 		SCALE_FACTOR=${OPTARG}
 		;;
@@ -59,7 +56,7 @@ done
 #
 # Make sure the outfile is created.
 #
-touch ${OUTFILE}
+echo "" > ${OUTFILE}
 
 which sadf > /dev/null 2>&1
 if [ $? -eq 0 ]; then
@@ -75,20 +72,20 @@ if [ -f "${OUTDIR}/load/sar_raw.out" ]; then
 fi
 
 if [ ${FLAG_POWER_TEST} -eq 1 ]; then
-	POWER=`dbt3-power-score -i ${INFILE} -p ${PERFNUM} -s ${SCALE_FACTOR} ${NO_REFRESH_FLAG}`
+	POWER=`dbt3-power-score -i ${INFILE} -s ${SCALE_FACTOR} ${NO_REFRESH_FLAG}`
 	echo "power = ${POWER}"  | tee -a ${OUTFILE}
 
-	if [ -f "${OUTDIR}/power${PERFNUM}/sar_raw.out" ]; then
-		make_sar_csv ${OUTDIR}/power${PERFNUM}/sar_raw.out
+	if [ -f "${OUTDIR}/power/sar_raw.out" ]; then
+		make_sar_csv ${OUTDIR}/power/sar_raw.out
 	fi
 fi
 
 if [ ${FLAG_THROUGHPUT_TEST} -eq 1 ]; then
-	THROUGHPUT=`get-throughput -i ${INFILE} -p ${PERFNUM} -s ${SCALE_FACTOR} -n ${STREAMS}`
+	THROUGHPUT=`get-throughput -i ${INFILE} -s ${SCALE_FACTOR} -n ${STREAMS}`
 	echo "throughput = ${THROUGHPUT}" | tee -a ${OUTFILE}
 
-	if [ -f "${OUTDIR}/throughput${PERFNUM}/sar_raw.out" ]; then
-		make_sar_csv ${OUTDIR}/throughput${PERFNUM}/sar_raw.out
+	if [ -f "${OUTDIR}/throughput/sar_raw.out" ]; then
+		make_sar_csv ${OUTDIR}/throughput/sar_raw.out
 	fi
 fi
 

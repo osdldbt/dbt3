@@ -74,14 +74,14 @@ if (${POWER_TEST} == 1) {
   labels <- c(labels, "Power")
 
   for (i in 1:22) {
-    str <- paste("PERF1.POWER.Q", i, sep="")
+    str <- paste("PERF.POWER.Q", i, sep="")
     df[df\$task_name == str, ]\$q = i
     df_power <- rbind(df_power, df[df\$task_name == str, ])
   }
-  df[df\$task_name == "PERF1.POWER.RF1", ]\$q = 23
-  df[df\$task_name == "PERF1.POWER.RF2", ]\$q = 24
-  df_power <- rbind(df_power, df[df\$task_name == "PERF1.POWER.RF1", ])
-  df_power <- rbind(df_power, df[df\$task_name == "PERF1.POWER.RF2", ])
+  df[df\$task_name == "PERF.POWER.RF1", ]\$q = 23
+  df[df\$task_name == "PERF.POWER.RF2", ]\$q = 24
+  df_power <- rbind(df_power, df[df\$task_name == "PERF.POWER.RF1", ])
+  df_power <- rbind(df_power, df[df\$task_name == "PERF.POWER.RF2", ])
 
   df_power <- df_power[with(df_power, order(q)), ]
 

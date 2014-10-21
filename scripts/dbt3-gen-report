@@ -32,10 +32,11 @@ if [ -d "${RESULT_PATH}/load" ]; then
 else
 	LOAD=0
 fi
-if [ -f ${RESULT_PATH}/calc_composite.out ]; then
-	COMPOSITE=`grep composite ${RESULT_PATH}/calc_composite.out | awk '{printf("%0.0f", $3)}'`
-	POWER=`grep power ${RESULT_PATH}/calc_composite.out | awk '{printf("%0.0f", $3)}'`
-	THROUGHPUT=`grep throughput ${RESULT_PATH}/calc_composite.out | awk '{print $3}'`
+METRICS="${RESULT_PATH}/metrics.txt"
+if [ -f "${METRICS}" ]; then
+	COMPOSITE=`grep composite ${METRICS} | awk '{printf("%0.0f", $3)}'`
+	POWER=`grep power ${METRICS} | awk '{printf("%0.0f", $3)}'`
+	THROUGHPUT=`grep throughput ${METRICS} | awk '{print $3}'`
 else
 	COMPOSITE="N/A"
 	POWER="N/A"
@@ -159,28 +160,15 @@ if [ -d "${RESULT_PATH}/load" ]; then
 fi
 
 echo "<p>"
-#
-# There can be multiple power* and throughput* test directories and I don't
-# know how to test for that without doing the ls.  So we're going to have
-# to live with "No such file or directory" messages if they don't exists.
-#
-i=1
-for ARG in `ls -d power* 2> /dev/null`
-do
-	gen_results "Power Test" $ARG
-	echo "<a href=\"$ARG/index.html\">Power Test ${i}</a>"
-	i=$(( $i + 1 ))
-done
+DIR="power"
+gen_results "Power Test" ${DIR}
+echo "<a href=\"${DIR}/index.html\">Power Test</a>"
 echo "</p>"
 
 echo "<p>"
-i=1
-for ARG in `ls -d throughput* 2> /dev/null`
-do
-	gen_results "Throughput Test" $ARG
-	echo "<a href=\"$ARG/index.html\">Throughput Test ${i}</a>"
-	i=$(( $i + 1))
-done
+DIR="throughput"
+gen_results "Throughput Test" ${DIR}
+echo "<a href=\"${DIR}/index.html\">Throughput Test</a>"
 echo "</p>"
 
 echo "</body>"

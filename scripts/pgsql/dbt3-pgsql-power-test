@@ -35,7 +35,7 @@ __EOF__
 }
 
 # process the command line parameters
-while getopts "ef:p:o:s:t:yYz" opt; do
+while getopts "ef:p:o:s:yYz" opt; do
 	case $opt in
 		e) EXPLAIN_ARG="-y"
 			;;
@@ -50,8 +50,6 @@ while getopts "ef:p:o:s:t:yYz" opt; do
 			PARAMETERS_ARG="-p \"${POWER_PARAMETERS} $OPTARG\""
 			;;
 		s) SEED_FILE=$OPTARG
-			;;
-		t) TAG=$OPTARG
 			;;
 		y) USE_OPROFILE=1
 			;;
@@ -113,14 +111,14 @@ fi
 s_time_power=`date +%s`
 psql -v ON_ERROR_STOP=1 -X -q << __EOF__ > /dev/null 2>&1
 INSERT INTO time_statistics (task_name, s_time)
-VALUES ('PERF${TAG}.POWER', CURRENT_TIMESTAMP);
+VALUES ('PERF.POWER', CURRENT_TIMESTAMP);
 __EOF__
 
 if [ ${NO_REFRESH} -eq 0 ]; then
 	# Refresh Stream 1
 	echo "`date`: Power Test : Starting Refresh Stream 1" 
 	s_time=`date +%s`
-	TASK="PERF${TAG}.POWER.RF1"
+	TASK="PERF.POWER.RF1"
 	record_start "${TASK}" || exit 1
 	dbt3-pgsql-rf1 ${SCALE_FACTOR} > ${RESULTSDIR}/rf1.txt 2>&1
 	DATASET=$?
@@ -138,7 +136,7 @@ i=1
 while [ ${i} -le 22 ]; do
 	Q=`${QGEN} -c -r ${SEED} -p 0 -s ${SCALE_FACTOR} ${EXPLAIN_ARG} ${i}`
 	N=`echo ${Q} | sed -n -r 's/.*\(#\)([[:digit:]]+)\..*/\1/p'`
-	TASK="PERF${TAG}.POWER.Q${N}"
+	TASK="PERF.POWER.Q${N}"
 	record_start "${TASK}" || exit 1
 	${PSQL} << __EOF__ > ${RESULTSDIR}/${N}.txt
 ${Q}
@@ -151,7 +149,7 @@ if [ ${NO_REFRESH} -eq 0 ]; then
 	# Refresh Stream 2
 	echo "`date`: Power Test : Starting Refresh Stream 2" 
 	s_time=`date +%s`
-	TASK="PERF${TAG}.POWER.RF2"
+	TASK="PERF.POWER.RF2"
 	record_start "${TASK}" || exit 1
 	dbt3-pgsql-rf2 ${DATASET} > ${RESULTSDIR}/rf2.txt 2>&1 || exit 1
 	record_end "${TASK}" || exit 1
@@ -160,7 +158,7 @@ if [ ${NO_REFRESH} -eq 0 ]; then
 	diff_time=$(( $e_time - $s_time ))
 fi
 
-record_end ""PERF${TAG}.POWER"" || exit 1
+record_end ""PERF.POWER"" || exit 1
 e_time_power=`date +%s`
 echo "`date`: Power Test completed."
 diff_time=$(( $e_time_power - $s_time_power ))
@@ -177,12 +175,12 @@ kill ${DBSTATPID}
 dbt3-pgsql-stop-db || exit 1
 
 if [ -f /proc/profile ]; then
-	profname="Power_Test_$TAG"
+	profname="Power_Test"
 	getprof
 fi
 
 if [ $USE_OPROFILE -eq 1 ]; then
-	profname="Power_Test_$TAG"
+	profname="Power_Test"
 	getoprof
 fi
 

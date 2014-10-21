@@ -58,7 +58,6 @@ RUN_ALL_TESTS=1
 RUN_LOAD_TEST=0
 RUN_POWER_TEST=0
 RUN_THROUGHPUT_TEST=0
-MAX=1
 NO_REFRESH=0
 OUTPUT_DIR=""
 SCALE_FACTOR=1
@@ -210,84 +209,67 @@ else
 	psql -v ON_ERROR_STOP=1 -X -q -c "TRUNCATE TABLE time_statistics;"
 fi
 
-i=1
-while [ $i -le $MAX ]
-do
-	if [ ${RUN_POWER_TEST} -eq 0 ] && [ ${RUN_THROUGHPUT_TEST} -eq 0 ]; then
-		break
-	fi
-
-	#
-	# Start time of a Power and Throughput test.
-	#
+if [ ${RUN_POWER_TEST} -eq 1 ] || [ ${RUN_THROUGHPUT_TEST} -eq 1 ]; then
+	# Start time of the Performance Test (Power and Throughput).
 	s_time=`date +%s`
 	psql -v ON_ERROR_STOP=1 -X -q << __EOF__ > /dev/null 2>&1
 INSERT INTO time_statistics (task_name, s_time)
-VALUES ('PERF${i}', CURRENT_TIMESTAMP);
+VALUES ('PERF', CURRENT_TIMESTAMP);
 __EOF__
+fi
 
-	if [ ${RUN_POWER_TEST} -eq 1 ]; then
-		dbt3-${DATABASE}-power-test \
-				-f ${SCALE_FACTOR} \
-				-o ${OUTPUT_DIR}/power${i} \
-				${POWER_PARAMETERS_ARG}\
-				${TEST_ARGS} \
-				-s ${SEED_FILE} \
-				-t ${i} \
-				${OPROFILE_FLAG} \
-				${LINUXPERF_FLAG} \
-				${NO_REFRESH_FLAG}
-		if [ $? -eq 1 ] ; then 
-			echo "power_test problem!"
-			exit 1  
-		fi
+if [ ${RUN_POWER_TEST} -eq 1 ]; then
+	dbt3-${DATABASE}-power-test \
+			-f ${SCALE_FACTOR} \
+			-o ${OUTPUT_DIR}/power \
+			${POWER_PARAMETERS_ARG}\
+			${TEST_ARGS} \
+			-s ${SEED_FILE} \
+			${OPROFILE_FLAG} \
+			${LINUXPERF_FLAG} \
+			${NO_REFRESH_FLAG}
+	if [ $? -eq 1 ] ; then
+		echo "power_test problem!"
+		exit 1
 	fi
+fi
 
-	if [ ${RUN_THROUGHPUT_TEST} -eq 1 ]; then
-		dbt3-${DATABASE}-throughput-test \
-				-n ${STREAMS} \
-				-f ${SCALE_FACTOR} \
-				-o ${OUTPUT_DIR}/throughput${i} \
-				${THROUGHPUT_PARAMETERS_ARG} \
-				${TEST_ARGS} \
-				-s ${SEED_FILE} \
-				-t $i \
-				${OPROFILE_FLAG} \
-				${LINUXPERF_FLAG} \
-				${NO_REFRESH_FLAG}
-		if [ $? -eq 1 ] ; then 
-			echo "throughput_test problem!"
-			exit 1  
-		fi
+if [ ${RUN_THROUGHPUT_TEST} -eq 1 ]; then
+	dbt3-${DATABASE}-throughput-test \
+			-n ${STREAMS} \
+			-f ${SCALE_FACTOR} \
+			-o ${OUTPUT_DIR}/throughput \
+			${THROUGHPUT_PARAMETERS_ARG} \
+			${TEST_ARGS} \
+			-s ${SEED_FILE} \
+			${OPROFILE_FLAG} \
+			${LINUXPERF_FLAG} \
+			${NO_REFRESH_FLAG}
+	if [ $? -eq 1 ] ; then
+		echo "throughput_test problem!"
+		exit 1
 	fi
+fi
 
-	#
-	# The database should be shut down after the last test, so start it back
-	# up so we can update and retrieve test information in the database.
-	#
-	dbt3-${DATABASE}-start-db -p "-c port=${DBPORT}"
-
-	#
-	# End time of a Power and Throughput test.
-	#
+if [ ${RUN_POWER_TEST} -eq 1 ] || [ ${RUN_THROUGHPUT_TEST} -eq 1 ]; then
+	# End time of the Performance Test.
 	psql -v ON_ERROR_STOP=1 -X -q << __EOF__ > /dev/null 2>&1
 UPDATE time_statistics
 SET e_time = current_timestamp
-WHERE task_name = 'PERF${i}';
+WHERE task_name = 'PERF';
 __EOF__
 	e_time=`date +%s`
 	diff_time=$(( $e_time - $s_time ))
-	echo "Elapsed time for performance test ${i} : $diff_time seconds"
-
-	#
-	# Increment loop counter.
-	#
-	i=$(( $i + 1 ))
-done
+	echo "Elapsed time for performance test: $diff_time seconds"
+fi
 
 # -------------------------------------------
 # Post-processing
 # -------------------------------------------
+
+# Make sure the database is started, which it might be depending on what parts
+# of the workload are executed.
+dbt3-${DATABASE}-start-db
 
 # Get system details.
 echo "Getting system configuration... "
@@ -295,24 +277,20 @@ dbt3-get-config $SCALE_FACTOR $STREAMS "$LOAD_PARAMETERS" "$POWER_PARAMETERS" \
 "$THROUGHPUT_PARAMETERS" $OUTPUT_DIR || exit 1
 
 echo "Getting query times... "
-# Make sure the database is started, which is might be depending on what parts
-# of the workload are executed.
-dbt3-${DATABASE}-start-db
 dbt3-${DATABASE}-get-query-time > ${QTIMECSV} || exit 1
 
 which R > /dev/null 2>&1
 if [ $? -eq 0 ]; then
 	#
-	# Calculate composite score.      
+	# Calculate composite score.
 	#
 	echo "Post processing query results... "
 	if [ ${RUN_POWER_TEST} -eq 1 ] || [ ${RUN_THROUGHPUT_TEST} -eq 1 ]; then
     	dbt3-post-process \
 		-i ${QTIMECSV} \
-		-p 1 \
 		-s ${SCALE_FACTOR} \
 		-n ${STREAMS} \
-		-o ${OUTPUT_DIR}/calc_composite.out \
+		-o ${OUTPUT_DIR}/metrics.txt \
 		${NO_REFRESH_FLAG} \
 		${FLAG_POWER_TEST} ${FLAG_THROUGHPUT_TEST} || exit 1
 fi
