@@ -112,7 +112,6 @@ EXTRA_DIST = \
              scripts/vmplot.sh \
              scripts/pgsql/analyze_stats.pl \
              scripts/pgsql/get_power.pl \
-             scripts/pgsql/get-throughput \
              scripts/pgsql/graph_query_time.pl \
              scripts/mysql/analyze_stats.pl \
              scripts/mysql/get_power.pl \

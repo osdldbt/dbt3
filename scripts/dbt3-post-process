@@ -81,7 +81,7 @@ if [ ${FLAG_POWER_TEST} -eq 1 ]; then
 fi
 
 if [ ${FLAG_THROUGHPUT_TEST} -eq 1 ]; then
-	THROUGHPUT=`get-throughput -i ${INFILE} -s ${SCALE_FACTOR} -n ${STREAMS}`
+	THROUGHPUT=`dbt3-throughput-score -i ${INFILE} -s ${SCALE_FACTOR} -n ${STREAMS}`
 	echo "throughput = ${THROUGHPUT}" | tee -a ${OUTFILE}
 
 	if [ -f "${OUTDIR}/throughput/sar_raw.out" ]; then

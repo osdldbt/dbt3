@@ -1,21 +1,17 @@
-#!/bin/bash
+#!/bin/sh
 #
 # This file is released under the terms of the Artistic License.
 # Please see the file LICENSE, included in this package, for details.
 #
 # Copyright (C) 2003-2006 Jenny Zhang & Open Source Development Labs, Inc.
+#               2003-2006 Open Source Development Labs, Inc.
+#               2005-2014 Mark Wong
+#               2014      2ndQuadrant, Ltd.
 #
-# May 26, 2005
-# Mark Wong
-# Rewritten from perl to bash.
-#
-
-DIR=`dirname $0`
-source ${DIR}/dbt3_profile || exit 1
 
 FLAG_POWER_TEST=0
 FLAG_THROUGHPUT_TEST=0
-while getopts "23i:n:o:p:s:z" OPT; do
+while getopts "23i:n:o:s:z" OPT; do
 	case ${OPT} in
 	2)
 		FLAG_POWER_TEST=1
@@ -32,9 +28,6 @@ while getopts "23i:n:o:p:s:z" OPT; do
 	o)
 		OUTFILE=${OPTARG}
 		;;
-	p)
-		PERFNUM=${OPTARG}
-		;;
 	s)
 		SCALE_FACTOR=${OPTARG}
 		;;
@@ -44,20 +37,18 @@ while getopts "23i:n:o:p:s:z" OPT; do
 	esac
 done
 
-SCRIPT_DIR="${DBT3_HOME}/scripts/${DATABASE}";
-
 #
 # Make sure the outfile is created.
 #
-cat /dev/null >  ${OUTFILE}
+cat /dev/null > ${OUTFILE}
 
 if [ ${FLAG_POWER_TEST} -eq 1 ]; then
-	POWER=`${SCRIPT_DIR}/dbt3-power-score -i ${INFILE} -p ${PERFNUM} -s ${SCALE_FACTOR} ${NO_REFRESH_FLAG}`
+	POWER=`dbt3-power-score -i ${INFILE} -s ${SCALE_FACTOR} ${NO_REFRESH_FLAG}`
 	echo "power = ${POWER}" | tee -a ${OUTFILE}
 fi
 
 if [ ${FLAG_THROUGHPUT_TEST} -eq 1 ]; then
-	THROUGHPUT=`${SCRIPT_DIR}/get-throughput -i ${INFILE} -p ${PERFNUM} -s ${SCALE_FACTOR}`
+	THROUGHPUT=`dbt3-throughput-score -i ${INFILE} -s ${SCALE_FACTOR}`
 	echo "throughput = ${THROUGHPUT}" | tee -a ${OUTFILE}
 fi
 
@@ -65,5 +56,3 @@ if [ ${FLAG_POWER_TEST} -eq 1 ] && [ ${FLAG_THROUGHPUT_TEST} -eq 1 ]; then
 	COMPOSITE=`echo "scale=2; sqrt(${POWER} * ${THROUGHPUT})" | bc -l`
 	echo "composite = ${COMPOSITE}" | tee -a ${OUTFILE}
 fi
-
-exit 0

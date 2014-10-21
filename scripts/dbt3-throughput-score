@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 # This file is released under the terms of the Artistic License.
 # Please see the file LICENSE, included in this package, for details.
@@ -12,8 +12,7 @@
 
 usage()
 {
-	echo "usage: get_throughput.sh -i <q_time.out> -n <streams>"
-	echo "           -s <scale factor> [-v]"
+	echo "usage: $0 -i <q_time.out> -n <streams> -s <scale factor>"
 }
 
 while getopts "i:n:s:" OPT; do
