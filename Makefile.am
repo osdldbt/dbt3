@@ -20,7 +20,6 @@ EXTRA_DIST = \
              doc/pgsql/dbt3-user-manual-pg.sxw \
              doc/sapdb/dbt3-sizing.sxc \
              doc/sapdb/dbt3-user-manual.sxw \
-             perlmodules/Data_report.pm \
              queries/pgsql/1.sql \
              queries/pgsql/10.sql \
              queries/pgsql/11.sql \
