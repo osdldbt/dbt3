@@ -22,7 +22,6 @@ output_dir=$6
 
 kernel=`uname -s -r`
 dbver=`dbt3-${DATABASE}-get-version`
-procps=`vmstat -V | grep version | awk '{print $3}'`
 sysstat=`sar -V 2>&1 | head -n 1 | awk '{print $3}'`
 
 NODE=`hostname`
@@ -49,7 +48,6 @@ echo "node: $NODE" > $output_dir/config.txt
 echo "kernel: $kernel" >> $output_dir/config.txt
 echo "distribution: $DISTRO" >> $output_dir/config.txt
 echo "dbver: $dbver">> $output_dir/config.txt
-echo "procps: $procps">> $output_dir/config.txt
 echo "sysstat: $sysstat">> $output_dir/config.txt
 echo "CPUS: $CPUS">> $output_dir/config.txt
 echo "MHz: $MHz">> $output_dir/config.txt
@@ -61,5 +59,3 @@ echo "load_parameters: ${LOAD_PARAM}">> $output_dir/config.txt
 echo "power_parameters: ${POWER_PARAM}">> $output_dir/config.txt
 echo "throughput_parameters: ${THROUGHPUT_PARAM}">> $output_dir/config.txt
 echo "shmmax: $shmmax_value" >> $output_dir/config.txt
-
-exit 0

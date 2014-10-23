@@ -13,10 +13,10 @@ fi
 
 RESULT_PATH=$1
 
-OSVER=`uname -s -r`
+OSVER=`grep "^kernel" ${RESULT_PATH}/config.txt | cut -d ' ' -f3-`
 DBVER=`dbt3-${DATABASE}-get-version`
 
-CPU_MODEL=`uname -p`
+CPU_MODEL=`grep "^model" ${RESULT_PATH}/config.txt | awk '{print $2}'`
 CPUS=`grep CPUS ${RESULT_PATH}/config.txt | awk '{print $2}'`
 CPU_MHZ=`grep MHz ${RESULT_PATH}/config.txt | awk '{print $2}'`
 RAM=`grep memory ${RESULT_PATH}/config.txt | awk '{print $2}'`
