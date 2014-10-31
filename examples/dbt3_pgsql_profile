@@ -9,10 +9,10 @@
 #               2014     2ndQuadrant, Ltd.
 #
 
-export DBT3_DIR=/tmp/dbt3
+export DBT3_DIR=~/local/dbt3
 
 export PGDATABASE=dbt3
-export PGDATA=/tmp/pgdata
+export PGDATA=$DBT3_DIR/pgdata
 
 # To set the pg_xlog directory, uncomment and modify appropriately.
 #export PGXLOG_ARG="-X /mnt/pg_xlog"

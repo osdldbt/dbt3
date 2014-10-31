@@ -1,17 +1,6 @@
-#!/bin/sh
-#
-# This file is released under the terms of the Artistic License.
-# Please see the file LICENSE, included in this package, for details.
-#
-# Copyright (C) 2002 Open Source Development Lab, Inc.
-#               2002 Jenny Zhang 
-#               2014 Mark Wong
-#               2014 2ndQuadrant, Ltd.
-#
-
-export DSS_QUERY="/home/mark/src/dbt3/queries/pgsql"
-export DSS_PATH="/tmp/dss_path"
-export DSS_CONFIG="/home/mark/src/dbt3/src/dbgen"
+export DSS_QUERY="~/dbt3/queries/pgsql"
+export DSS_PATH="/tmp/dss"
+export DSS_CONFIG="~/dbt3/src/dbgen"
 
 export DBGEN="${DSS_CONFIG}/dbgen"
 export QGEN="${DSS_CONFIG}/qgen"
