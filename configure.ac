@@ -66,9 +66,6 @@ if test "$DATABASE_TO_USE" = "mysql"; then
     MYSQL_BASEDIR="$MYSQL_PATH"
   fi
 
-  AC_SUBST(MYSQL_BASEDIR)
-  AC_SUBST(MYSQL_BASEDIR_CNF)
-
   AC_PATH_PROGS(MYSQL_CONFIG, mysql_config, , [$MYSQL_TEST_PATH])
   AC_PATH_PROGS(MYSQL_CLIENT, mysql, , [$MYSQL_TEST_PATH])
   AC_PATH_PROGS(MYSQL_ADMIN, mysqladmin, , [$MYSQL_TEST_PATH])
@@ -170,6 +167,10 @@ fi
 
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([doc/Makefile])
+AC_CONFIG_FILES([scripts/Makefile])
+AC_CONFIG_FILES([scripts/mysql/Makefile])
+AC_CONFIG_FILES([scripts/pgsql/Makefile])
+AC_CONFIG_FILES([scripts/sapdb/Makefile])
 AC_CONFIG_FILES([src/Makefile])
 AC_CONFIG_FILES([src/dbgen/Makefile])
 

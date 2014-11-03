@@ -7,7 +7,7 @@
 
 AUTOMAKE_OPTIONS = foreign
 
-SUBDIRS = doc src
+SUBDIRS = doc scripts src
 
 EXTRA_DIST = \
              doc/Makefile \
