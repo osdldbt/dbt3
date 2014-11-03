@@ -77,26 +77,6 @@ if test "$DATABASE_TO_USE" = "mysql"; then
   AC_PATH_PROGS(MYSQLD_SAFE, mysqld_safe, , [$MYSQL_TEST_PATH])
   AC_PATH_PROGS(MYSQLD, mysqld, , [$MYSQL_TEST_PATH])
 
-  dnl REQUIRE_PROG(LOCKFILEPROG, lockfile, [$PATH:/usr/local/bin:/usr/bin:/usr/X11R6/bin])
-  AC_PATH_PROGS([LOCKFILEPROG],[lockfile lockfile-create], , 
-               [$PATH:/usr/local/bin:/usr/bin:/usr/X11R6/bin])
-  if test -z "$LOCKFILEPROG"; then 
-    AC_MSG_ERROR([Couldn't find lockfile program!])
-  fi 
-  if test `basename "$LOCKFILEPROG"` = "lockfile-create" ; then 
-    LOCKFILECREATE="$LOCKFILEPROG"
-    AC_PATH_PROGS([LOCKFILEREMOVE],[lockfile-remove], ,
-               [$PATH:/usr/local/bin:/usr/bin:/usr/X11R6/bin])
-    AC_PATH_PROGS([LOCKFILETOUCH],[lockfile-touch], ,
-               [$PATH:/usr/local/bin:/usr/bin:/usr/X11R6/bin])
-    AC_SUBST(LOCKFILETOUCH)
-  elif test `basename "$LOCKFILEPROG"` = "lockfile" ; then 
-    LOCKFILECREATE="$LOCKFILEPROG -s 0"
-    LOCKFILEREMOVE="rm -f"
-  fi
-  AC_SUBST(LOCKFILECREATE)
-  AC_SUBST(LOCKFILEREMOVE)
-
   MY_CNF=$TOPDIR/scripts/mysql/my.cnf
   MYSQL_CLIENT="${MYSQL_CLIENT} --defaults-file=${MY_CNF}"
   MYSQL_ADMIN="${MYSQL_ADMIN} --defaults-file=${MY_CNF}"
@@ -143,7 +123,6 @@ if test "$DATABASE_TO_USE" = "mysql"; then
   AC_DEFINE(MYSQL, 1)
 
   AC_CONFIG_FILES([scripts/mysql/my.cnf])
-  AC_CONFIG_FILES([scripts/mysql/lockfile.sh])
   AC_CONFIG_FILES([scripts/mysql/get_query_plan.sh],
       [chmod +x scripts/mysql/get_query_plan.sh])
   AC_CONFIG_FILES([scripts/mysql/run_power_query.sh],
