@@ -8,7 +8,7 @@
 #               2005-2014 Mark Wong
 #               2014      2ndQuadrant, Ltd.
 #
-set -x
+
 record_start()
 {
 	NAME=$1
