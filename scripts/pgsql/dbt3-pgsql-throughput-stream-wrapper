@@ -13,7 +13,6 @@ refresh_streams()
 {
 	stream_num=1
 	while [ $stream_num -le $num_stream ]; do
-		DATASET=$(( ${stream_num} + 1 ))
 		STREAM="PERF.THRUPUT.RFST${stream_num}"
 		RF1TASK="PERF.THRUPUT.RFST${stream_num}.RF1"
 		RF2TASK="PERF.THRUPUT.RFST${stream_num}.RF2"

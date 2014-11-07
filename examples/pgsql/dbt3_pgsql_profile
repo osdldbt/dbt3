@@ -1,0 +1,20 @@
+export DSS_QUERY="~/dbt3/queries/pgsql"
+export DSS_PATH="/tmp/dss"
+export DSS_CONFIG="~/dbt3/src/dbgen"
+
+export DBGEN="${DSS_CONFIG}/dbgen"
+export QGEN="${DSS_CONFIG}/qgen"
+
+export DBT3_DIR=~/local/dbt3
+
+export PGDATABASE=dbt3
+export PGDATA=$DBT3_DIR/pgdata
+
+export PGPORT=5432
+
+export DEFAULT_LOAD_PARAMETERS=""
+export DEFAULT_POWER_PARAMETERS=""
+export DEFAULT_THROUGHPUT_PARAMETERS=""
+
+# Directory with tablespace mount points, if using tablespaces.
+export TSDIR=${DBT3_DIR}

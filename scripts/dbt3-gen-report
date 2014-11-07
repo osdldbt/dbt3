@@ -6,33 +6,132 @@
 # Copyright (C) 2005-2014 Mark Wong
 #               2014      2ndQuadrant, Ltd.
 
-if [ $# -ne 1 ]; then
-	echo "usage: $0 <results directory>"
-	exit;
+gen_results()
+{
+	SUBDIR=$2
+	OUTDIR=$INDIR/$SUBDIR
+	SUBHTMLFILE=$OUTDIR/index.html
+
+	make_charts $OUTDIR
+
+cat << __EOF__ > $SUBHTMLFILE
+<html>
+<head>
+<title>Database Test 3 $1 Results</title>
+</head>
+<body>
+
+<img src="sar-cpu.png" />
+<p>
+</p>
+
+<h2>Kernel and Application Profiles</h2>
+<p>
+__EOF__
+
+	if [ -f "${SUBDIR}/readprofile.txt" ]; then
+		cat << __EOF__ >> $SUBHTMLFILE
+<a href="readprofile.txt">readprofile</a><br />
+__EOF__
+	fi
+
+	if [ -d "${SUBDIR}/oprofile" ]; then
+		cat << __EOF__ >> $SUBHTMLFILE
+<a href="oprofile/oprofile.txt">oprofile</a><br />
+<a href="oprofile/assembly.txt">annotated assembly</a><br />
+__EOF__
+	fi
+
+cat << __EOF__ >> $SUBHTMLFILE
+</p>
+
+<h2>Database Information</h2>
+<a href="param.txt">database parameters</a><br />
+<a href="db/">database raw statistics</a><br />
+__EOF__
+
+	if [ "$1" != "Load Test" ]; then
+		cat << __EOF__ >> $SUBHTMLFILE
+<a href="db/index.csv">table indexes</a><br />
+<a href="plans">query plans</a><br />
+<a href="results">query results</a><br />
+__EOF__
+	fi
+
+cat << __EOF__ >> $SUBHTMLFILE
+</body>
+</html>
+__EOF__
+}
+
+make_charts()
+{
+	SARDIR=$1
+
+	dbt-plot-sar-cpu $SARDIR/sar-cpu.csv $SARDIR
+	dbt-plot-sar-blockdev $SARDIR/sar-blockdev.csv $SARDIR
+
+	DBDIR=$SARDIR/db
+	if [ "x$DATABASE" = "xpgsql" ]; then
+		dbt-pgsql-plot-database-stats $DBDIR/pg_stat_databases.csv \
+				$DBNAME $DBDIR
+
+		OUTDIR=$DBDIR/tables
+		mkdir -p $OUTDIR
+		for table in `cat $DBDIR/table-list.txt`; do
+			dbt-pgsql-plot-table-stats $DBDIR/pg_stat_tables.csv $table \
+					$OUTDIR 2> /dev/null
+		done
+
+		OUTDIR=$DBDIR/indexes
+		mkdir -p $OUTDIR
+		for index in `cat $DBDIR/index-list.txt`; do
+			dbt-pgsql-plot-index-stats $DBDIR/pg_stat_indexes.csv $index \
+					$OUTDIR 2> /dev/null
+		done
+	fi
+}
+
+while getopts d:i:o: f; do
+	case $f in
+		d) DBNAME=$OPTARG;;
+		i) INDIR=$OPTARG;;
+		o) OUTDIR=$OPTARG;;
+		\?) usage; exit 1;;
+	esac
+done
+
+if [ -z $INDIR ]; then
+	echo "Specify dbt3 results directory with -i"
+	usage
+	exit 1
 fi
 
-RESULT_PATH=$1
+if [ -z $OUTDIR ]; then
+	OUTDIR=$INDIR
+fi
 
-OSVER=`grep "^kernel" ${RESULT_PATH}/config.txt | cut -d ' ' -f3-`
-DBVER=`dbt3-${DATABASE}-get-version`
+OSVER=`grep "^kernel" $INDIR/config.txt | cut -d ' ' -f3-`
+DBVER=`grep "^dbver" $INDIR/config.txt | cut -d " " -f2-`
 
-CPU_MODEL=`grep "^model" ${RESULT_PATH}/config.txt | awk '{print $2}'`
-CPUS=`grep CPUS ${RESULT_PATH}/config.txt | awk '{print $2}'`
-CPU_MHZ=`grep MHz ${RESULT_PATH}/config.txt | awk '{print $2}'`
-RAM=`grep memory ${RESULT_PATH}/config.txt | awk '{print $2}'`
+CPU_MODEL=`grep "^model" $INDIR/config.txt | cut -d " " -f2-`
+CPUS=`grep CPUS $INDIR/config.txt | awk '{print $2}'`
+CPU_MHZ=`grep MHz $INDIR/config.txt | awk '{print $2}'`
+RAM=`grep memory $INDIR/config.txt | awk '{print $2}'`
 
-SF=`grep scale_factor ${RESULT_PATH}/config.txt | awk '{print $2}'`
-STREAMS=`grep num_stream ${RESULT_PATH}/config.txt | awk '{print $2}'`
+SF=`grep scale_factor $INDIR/config.txt | awk '{print $2}'`
+STREAMS=`grep num_stream $INDIR/config.txt | awk '{print $2}'`
 
-if [ -d "${RESULT_PATH}/load" ]; then
-	LOAD=`grep LOAD ${RESULT_PATH}/q_time.csv | awk -F, '{ print $5 }'`
+LOADDIR=$INDIR/load
+if [ -d "$LOADDIR" ]; then
+	LOAD=`grep LOAD $INDIR/q_time.csv | awk -F, '{ print $5 }'`
 	# Round to 2 decimal places, convert to hours.
 	LOAD_HOUR=`echo "scale=2; ${LOAD} / 3600" | bc -l`
 	LOAD_MIN=`echo "scale=2; ${LOAD} / 60" | bc -l`
 else
 	LOAD=0
 fi
-METRICS="${RESULT_PATH}/metrics.txt"
+METRICS="$INDIR/metrics.txt"
 if [ -f "${METRICS}" ]; then
 	COMPOSITE=`grep composite ${METRICS} | awk '{printf("%0.0f", $3)}'`
 	POWER=`grep power ${METRICS} | awk '{printf("%0.0f", $3)}'`
@@ -43,133 +142,86 @@ else
 	THROUGHPUT="N/A"
 fi
 
-gen_results()
-{
-	SUBDIR=$2
+HTMLFILE=$INDIR/index.html
 
-	echo "<html>" > ${SUBDIR}/index.html
-	echo "<head>" >> ${SUBDIR}/index.html
-	echo "<title>Database Test 3 $1 Results</title>" >> ${SUBDIR}/index.html
-	echo "</head>" >> ${SUBDIR}/index.html
-	echo "<body>" >> ${SUBDIR}/index.html
+cat << __EOF__ > $HTMLFILE
+<html>
+<head>
+<title>Database Test 3 Results</title>
+</head>
+<body>
+<h1>Database Test 3 Results</h1>
 
-	echo "<img src=\"sar-cpu.png\" />" >> ${SUBDIR}/index.html
-	echo "<p>" >> ${SUBDIR}/index.html
-	echo "</p>" >> ${SUBDIR}/index.html
+<table border="1">
+<tr>
+<th>Software Version</th><th>Hardware Configuration</th><th>Workload Parameters</th>
+</tr>
+<tr>
+<td>Operating System: $OSVER</td><td>$CPUS CPUs @ $CPU_MHZ</td><td>Scale Factor: $SF</td>
+</tr>
+<tr>
+<td>Database Server: $DBVER</td><td>$CPU_MODEL</td><td>Streams: $STREAMS</td>
+</tr>
+<tr>
+<td></td><td>$RAM KB RAM</td><td></td>
+</tr>
+</table>
 
-	echo "<h2>Kernel and Application Profiles</h2>" >> ${SUBDIR}/index.html
-	echo "<p>"
-	if [ -f "${SUBDIR}/readprofile.txt" ]; then
-		echo "<a href=\"readprofile.txt\">readprofile</a><br />" >> ${SUBDIR}/index.html
-	fi
-	if [ -d "${SUBDIR}/oprofile" ]; then
-		echo "<a href=\"oprofile/oprofile.txt\">oprofile</a><br />" >> ${SUBDIR}/index.html
-		echo "<a href=\"oprofile/assembly.txt\">annotated assembly</a><br />" >> ${SUBDIR}/index.html
-	fi
-	echo "</p>" >> ${SUBDIR}/index.html
+<h2>Metrics</h2>
+<table border="0">
+<tr>
+<td align="right">Composite:</td><td align="right">$COMPOSITE</td>
+</tr>
+<tr>
+<td align="right">Load Time:</td><td align="right">$LOAD_MIN Minutes / $LOAD_HOUR Hours</td>
+</tr>
+<tr>
+<td align="right">Query Processing Power:</td><td align="right">$POWER</td>
+</tr>
+<tr>
+<td align="right">Throughput Numerical Quantity:</td><td align="right">$THROUGHPUT</td>
+</tr>
+</table>
+__EOF__
 
-	echo "<h2>Database Information</h2>" >> ${SUBDIR}/index.html
-	echo "<a href=\"param.txt\">database parameters</a><br />" >> ${SUBDIR}/index.html
-	echo "<a href=\"db/\">database raw statistics</a><br />" >> ${SUBDIR}/index.html
-	if [ "$1" != "Load Test" ]; then
-		echo "<a href=\"db/index.csv\">table indexes</a><br />" >> ${SUBDIR}/index.html
-		echo "<a href=\"db/plans\">query plans</a><br />" >> ${SUBDIR}/index.html
-		echo "<a href=\"results\">query results</a><br />" >> ${SUBDIR}/index.html
-	fi
-
-	echo "</body>" >> ${SUBDIR}/index.html
-	echo "</html>" >> ${SUBDIR}/index.html
-
-	dbt-plot-sar-blockdev ${SUBDIR}/sar-blockdev.csv ${SUBDIR} 2> /dev/null
-	dbt-plot-sar-cpu ${SUBDIR}/sar-cpu.csv ${SUBDIR} 2> /dev/null
-
-	dbt-pgsql-plot-database-stats ${SUBDIR}/db/pg_stat_databases.csv \
-			${SUBDIR}/db 2> /dev/null
-	mkdir -p ${SUBDIR}/db/tables
-	for TABLENAME in `cat ${SUBDIR}/db/table-list.txt`; do
-		dbt-pgsql-plot-table-stats ${SUBDIR}/db/pg_stat_tables.csv \
-				${TABLENAME} ${SUBDIR}/db/tables 2> /dev/null
-	done
-
-	mkdir -p ${SUBDIR}/db/indexes
-	for INDEXNAME in `cat ${SUBDIR}/db/index-list.txt`; do
-		dbt-pgsql-plot-index-stats ${SUBDIR}/db/pg_stat_indexes.csv \
-				${INDEXNAME} ${SUBDIR}/db/indexes 2> /dev/null
-	done
-}
-
-echo "<html>"
-echo "<head>"
-echo "<title>Database Test 3 Results</title>"
-echo "</head>"
-echo "<body>"
-echo "<h1>Database Test 3 Results</h1>"
-
-echo "<table border=\"1\">"
-echo "<tr>"
-echo "<th>Software Version</th><th>Hardware Configuration</th><th>Workload Parameters</th>"
-echo "</tr>"
-echo "<tr>"
-echo "<td>Operating System: ${OSVER}</td><td>${CPUS} CPUs @ ${CPU_MHZ}</td><td>Scale Factor: ${SF}</td>"
-echo "</tr>"
-echo "<tr>"
-echo "<td>Database Server: ${DBVER}</td><td>${CPU_MODEL}</td><td>Streams: ${STREAMS}</td>"
-echo "</tr>"
-echo "<tr>"
-echo "<td></td><td>${RAM} KB RAM</td><td></td>"
-echo "</tr>"
-echo "</table>"
-
-echo "<h2>Metrics</h2>"
-echo "<table border=\"0\">"
-echo "<tr>"
-echo "<td align=\"right\">Composite:</td><td align=\"right\">${COMPOSITE}</td>"
-echo "</tr>"
-echo "<tr>"
-echo "<td align=\"right\">Load Time:</td><td align=\"right\">${LOAD_MIN} Minutes / ${LOAD_HOUR} Hours</td>"
-echo "</tr>"
-echo "<tr>"
-echo "<td align=\"right\">Query Processing Power:</td><td align=\"right\">${POWER}</td>"
-echo "</tr>"
-echo "<tr>"
-echo "<td align=\"right\">Throughput Numerical Quantity:</td><td align=\"right\">${THROUGHPUT}</td>"
-echo "</tr>"
-echo "</table>"
-
-if [ -f "${RESULT_PATH}/q_time.png" ]; then
-	echo "<h2>Query Times</h2>"
-	echo "<img src=\"q_time.png\" />"
-	echo "<p>"
-	echo "<a href=\"q_time.csv\">Text Version of Chart</a>"
-	echo "</p>"
+if [ -f "$INDIR/q_time.png" ]; then
+	cat << __EOF__ >> $HTMLFILE
+<h2>Query Times</h2>
+<img src="q_time.png" />
+<p>
+<a href="q_time.csv">Text Version of Chart</a>
+</p>
+__EOF__
 fi
 
 # Generate individual Web pages for each test result directory.
-echo "<h2>Individual Test Results</h2>"
+cat << __EOF__ >> $HTMLFILE
+<h2>Individual Test Results</h2>
+__EOF__
 
-cd ${RESULT_PATH}
-
-#
-# There will only be 1 load test if any.
-#
-if [ -d "${RESULT_PATH}/load" ]; then
+if [ -d "$INDIR/load" ]; then
 	gen_results "Load Test" "load"
-	echo "<p>"
-	echo "<a href=\"load/index.html\">Load Test</a>"
-	echo "</p>"
+	cat << __EOF__ >> $HTMLFILE
+<p>
+<a href="load/index.html">Load Test</a>
+</p>
+__EOF__
 fi
 
-echo "<p>"
-DIR="power"
-gen_results "Power Test" ${DIR}
-echo "<a href=\"${DIR}/index.html\">Power Test</a>"
-echo "</p>"
+POWERDIR="power"
+THROUGHPUTDIR="throughput"
+gen_results "Power Test" $POWERDIR
+gen_results "Throughput Test" $THROUGHPUTDIR
 
-echo "<p>"
-DIR="throughput"
-gen_results "Throughput Test" ${DIR}
-echo "<a href=\"${DIR}/index.html\">Throughput Test</a>"
-echo "</p>"
+cat << __EOF__ >> $HTMLFILE
+<p>
+<a href="$POWERDIR/index.html">Power Test</a>
+</p>
 
-echo "</body>"
-echo "</html>"
+<p>
+<a href="$THROUGHPUTDIR/index.html">Throughput Test</a>
+</p>
+
+</body>
+</html>
+__EOF__
