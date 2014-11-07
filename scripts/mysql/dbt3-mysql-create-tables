@@ -21,13 +21,10 @@ create_table() {
     fi
 }
 
-while getopts "bd:e:" OPT; do
+while getopts "be:" OPT; do
     case ${OPT} in
 	b)
 	BACKGROUND=yes
-	;;
-	d)
-	DBDATA=${OPTARG}
 	;;
 	e)
 	MYSQL_ENGINE=${OPTARG}

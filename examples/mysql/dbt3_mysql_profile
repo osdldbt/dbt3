@@ -9,4 +9,3 @@ export DBT3_DIR=/tmp/dbt3
 
 export DBNAME=dbt3
 export MYDATA=$DBT3_DIR/mydata
-export DBDATA="/tmp/dbt3data"

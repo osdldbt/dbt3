@@ -22,7 +22,7 @@ load_table() {
 	fi
 	# This disable/enable trick only works on MyISAM for the moment. 
 	$MYSQL -e "alter table $table disable keys;"
-	mysqlimport -u root --fields-terminated-by='|' $DBNAME $DBDATA/$file
+	mysqlimport -u root --fields-terminated-by='|' $DBNAME $DSS_PATH/$file
 	$MYSQL -e "alter table $table enable keys;"
 }
 
@@ -104,12 +104,6 @@ region()
 	$MYSQL -e "ALTER TABLE region ADD PRIMARY KEY (r_regionkey);" &
 	$MYSQL -e "analyze table region"
 }
-
-while getopts "d:" OPT; do
-	case ${OPT} in
-	d) DBDATA=${OPTARG};;
-	esac
-done
 
 supplier &
 part &

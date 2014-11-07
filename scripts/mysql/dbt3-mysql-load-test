@@ -14,14 +14,8 @@ SF=0
 USE_OPROFILE=0
 GENERATE=0
 ONLY_LOAD=0
-DBDATA=${DSS_PATH}
-while getopts "d:f:g:lo:p:ty" opt; do
+while getopts "f:g:lo:p:ty" opt; do
 	case $opt in
-	d)
-		DBDATA=${OPTARG}
-		export DSS_PATH=$DBDATA
-		mkdir -p $DSS_PATH
-		;;
 	f)
 		SF=$OPTARG
 		;;
@@ -81,8 +75,8 @@ dbt3-sysstats --outdir $OUTPUT_DIR --sample 60 || exit 1
 
 dbt3-mysql-create-db -o ${OUTPUT_DIR} ${PARAMETERS}
 	
-dbt3-mysql-drop-tables -d ${DBDATA}
-dbt3-mysql-create-tables -d ${DBDATA} || exit 1
+dbt3-mysql-drop-tables
+dbt3-mysql-create-tables || exit 1
 
 echo "`date +'%Y-%m-%d %H:%M:%S'` Starting Load Test..."
 s_time=`date +%s`
@@ -91,7 +85,7 @@ dbt3-mysql-time-statistics -s -n "LOAD" || exit 1
 # Collect database statistics
 dbt3-mysql-dbstat ${OUTPUT_DIR} 2> /dev/null &
 
-dbt3-mysql-load-data -d ${DBDATA} || exit 1
+dbt3-mysql-load-data || exit 1
 
 dbt3-mysql-time-statistics -e -n "LOAD" || exit 1
 e_time=`date +%s`
