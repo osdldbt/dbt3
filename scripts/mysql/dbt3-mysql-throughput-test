@@ -3,30 +3,18 @@
 # This file is released under the terms of the Artistic License.
 # Please see the file LICENSE, included in this package, for details.
 #
-# Copyright (C) 2003-2006 Jenny Zhang & Open Source Development Labs, Inc.
+# Copyright (C) 2003-2006 Jenny Zhang
+#               2003-2006 Open Source Development Labs, Inc.
+#               2004-2014 Mark Wong
+#               2014      2ndQuadrant, Ltd.
 #
-#
-# 2004 July 16 : Reworked by Mark Wong
-# 2004 September 28 : Turn this into a wrapper script because we don't know
-#                     how long the test will execute so we collect stats
-#                     until the test is done.  Because of the way things are
-#                     run in the background and we wait for processs to
-#                     complete, we only want to wait for the processes that
-#                     are executing the queries.
-
-DIR=`dirname $0`
-. ${DIR}/../dbt3_profile || exit 1
-
-echo "Starting a throughput test..."
-
-SRCDIR=${DBT3_HOME}
-
+set -x
 USE_OPROFILE=0
 
 TEST_ARGS=
 NO_REFRESH_FLAG=
 
-while getopts "ef:n:o:p:s:t:yz" opt; do
+while getopts "ef:n:o:p:s:yz" opt; do
 	case $opt in
 	e) TEST_ARGS="$TEST_ARGS -e"
 		;;
@@ -41,8 +29,6 @@ while getopts "ef:n:o:p:s:t:yz" opt; do
 		;;
 	s) SEED_FILE=$OPTARG
 		;;
-	t) TAG=$OPTARG
-		;;
 	y) USE_OPROFILE=1
 		;;
 	z) NO_REFRESH_FLAG="-z"
@@ -56,11 +42,6 @@ echo "Seed : $SEED" > $OUTPUT_DIR/readme.txt
 RUNDIR=$OUTPUT_DIR/run
 mkdir -p $RUNDIR
 
-DBSCRIPTDIR=$SRCDIR/scripts/mysql
-parsequery_dir="$SRCDIR/dbdriver/utils"
-
-DBSTATS="$DBSCRIPTDIR/db_stats.sh"
-
 # Clear the read profile counters.
 if [ -f /proc/profile ]; then
 	clearprof
@@ -71,47 +52,49 @@ if [ $USE_OPROFILE -eq 1 ]; then
 	clearoprof
 fi
 
-#$DBSCRIPTDIR/stop_db.sh  > /dev/null 2>&1
-#$DBSCRIPTDIR/dbt3-mysql-start-db -p "${PARAMETERS}" || exit 1
-$DBSCRIPTDIR/dbt3-mysql-start-db -p "${PARAMETERS}" || exit 1
+dbt3-mysql-start-db -p "$PARAMETERS"
 
-s_time=`$GTIME`
-$DBSCRIPTDIR/dbt3-mysql-time-statistics -s -n "PERF${TAG}.THRUPUT" || exit 1
+s_time=`date +%s`
+dbt3-mysql-time-statistics -s -n "PERF.THRUPUT" || exit 1
 
 # Start collecting system statistics. 
-$SRCDIR/scripts/dbt3-sysstats --outdir $OUTPUT_DIR --iter 1440 --sample 60 || exit 1
+dbt3-sysstats --outdir $OUTPUT_DIR --sample 60 || exit 1
 
 # Start collecting database statistics.
-$DBSTATS $SID $OUTPUT_DIR &
+dbt3-mysql-dbstat $OUTPUT_DIR 2> /dev/null &
 
 # Start the streams.
-$DBSCRIPTDIR/throughput_stream_wrapper.sh -f $scale_factor -t $TAG -n $num_stream $TEST_ARGS -o $OUTPUT_DIR -s ${SEED_FILE} ${NO_REFRESH_FLAG}
+
+dbt3-mysql-throughput-stream-wrapper -f $scale_factor -n $num_stream \
+		$TEST_ARGS -o $OUTPUT_DIR -s $SEED_FILE $NO_REFRESH_FLAG
 if [ $? -eq 1 ] ; then
-  echo "throughput_stream_wrapper problem"
+  echo "dbt3-throughput-stream-wrapper problem"
   exit 1
 fi
 
 # Stop collecting system statistics.
-$SRCDIR/scripts/dbt3-sysstats --stop
+echo "Stopping system statistics"
+read SARPID < $OUTPUT_DIR/sar.pid
+kill $SARPID
+read PIDSTATPID < $OUTPUT_DIR/pidstat.pid
+kill $PIDSTATPID
+#read DBSTATPID < $OUTPUT_DIR/dbstat.pid
+#kill $DBSTATPID
 
-$DBSCRIPTDIR/dbt3-mysql-time-statistics -e -n "PERF${TAG}.THRUPUT" || exit 1
-e_time=`$GTIME`
-diff_time=`expr $e_time - $s_time`
-echo "Stream ${TAG} : Elapsed time for Throughput Test : $diff_time seconds"
+dbt3-mysql-time-statistics -e -n "PERF.THRUPUT" || exit 1
+e_time=`date +%s`
+diff_time=$(( $e_time - $s_time ))
+echo "Stream: Elapsed time for Throughput Test : $diff_time seconds"
 
 # Stop the database after the test.
-#$DBSCRIPTDIR/stop_db.sh || exit 1
+#stop_db.sh || exit 1
 
 if [ -f /proc/profile ]; then
-	profname="Throughput_Test_$TAG"
+	profname="Throughput_Test"
 	getprof
 fi
 
 if [ $USE_OPROFILE -eq 1 ]; then
-	profname="Throughput_Test_$TAG"
+	profname="Throughput_Test"
 	getoprof
 fi
-
-echo "Finishing the throughput test..."
-
-exit 0

@@ -74,14 +74,6 @@ if test "$DATABASE_TO_USE" = "mysql"; then
   AC_PATH_PROGS(MYSQLD_SAFE, mysqld_safe, , [$MYSQL_TEST_PATH])
   AC_PATH_PROGS(MYSQLD, mysqld, , [$MYSQL_TEST_PATH])
 
-  MY_CNF=$TOPDIR/scripts/mysql/my.cnf
-  MYSQL_CLIENT="${MYSQL_CLIENT} --defaults-file=${MY_CNF}"
-  MYSQL_ADMIN="${MYSQL_ADMIN} --defaults-file=${MY_CNF}"
-  MYSQLIMPORT="${MYSQLIMPORT} --defaults-file=${MY_CNF}"
-  MYSQL_INSTALL_DB="${MYSQL_INSTALL_DB} --defaults-file=${MY_CNF}"
-  MYSQLD="${MYSQLD} --defaults-file=${MY_CNF}"
-  MYSQLD_SAFE="${MYSQLD_SAFE} --defaults-file=${MY_CNF}"
-  
   AC_SUBST(MYSQLD)
   AC_SUBST(MYSQLD_SAFE)
 
@@ -118,26 +110,6 @@ if test "$DATABASE_TO_USE" = "mysql"; then
   AC_SUBST(MYSQL_SOCK)
 
   AC_DEFINE(MYSQL, 1)
-
-  AC_CONFIG_FILES([scripts/mysql/my.cnf])
-  AC_CONFIG_FILES([scripts/mysql/get_query_plan.sh],
-      [chmod +x scripts/mysql/get_query_plan.sh])
-  AC_CONFIG_FILES([scripts/mysql/run_power_query.sh],
-      [chmod +x scripts/mysql/run_power_query.sh])
-  AC_CONFIG_FILES([scripts/mysql/run_rf1.sh],
-      [chmod +x scripts/mysql/run_rf1.sh])
-  AC_CONFIG_FILES([scripts/mysql/run_rf2.sh],
-      [chmod +x scripts/mysql/run_rf2.sh])
-  AC_CONFIG_FILES([scripts/mysql/run_throughput_stream.sh],
-      [chmod +x scripts/mysql/run_throughput_stream.sh])
-  AC_CONFIG_FILES([scripts/mysql/db_stats.sh],
-      [chmod +x scripts/mysql/db_stats.sh])
-  AC_CONFIG_FILES([scripts/mysql/mysql_profile],
-      [chmod +x scripts/mysql/mysql_profile])
-  AC_CONFIG_FILES([scripts/mysql/throughput_stream_wrapper.sh],
-      [chmod +x scripts/mysql/throughput_stream_wrapper.sh])
-
-
 elif test "$DATABASE_TO_USE" = "pgsql"; then
   AC_DEFINE(PGSQL, 1)
 elif test "$DATABASE_TO_USE" = "sapdb"; then

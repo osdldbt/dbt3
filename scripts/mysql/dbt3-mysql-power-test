@@ -3,38 +3,30 @@
 # This file is released under the terms of the Artistic License.
 # Please see the file LICENSE, included in this package, for details.
 #
-# Copyright (C) 2003-2006 Jenny Zhang & Open Source Development Labs, Inc.
+# Copyright (C) 2003-2006 Jenny Zhang
+#               2003-2006 Open Source Development Labs, Inc.
+#               2014      Mark Wong
+#               2014      2ndQuadrant, Ltd.
 #
-# 15 July 2004: Reworked by Mark Wong
-
-DIR=`dirname $0`
-. ${DIR}/../dbt3_profile || exit 1
-
-SRCDIR=${DBT3_HOME}
-
-echo "Starting a power test...";
 
 EXPLAIN_ANALYZE=0
 USE_OPROFILE=0
 NO_REFRESH=0
 
 # process the command line parameters
-while getopts "ef:p:o:s:t:yz" opt; do
+while getopts "ef:p:o:s:yz" opt; do
 	case $opt in
 		e) EXPLAIN_ANALYZE=1
 			;;
 		f) SCALE_FACTOR=$OPTARG
 			;;
 		o) OUTPUT_DIR=$OPTARG
-		   mkdir -p $OUTPUT_DIR/results
-		   mkdir -p $OUTPUT_DIR/dss
-		   export DSS_PATH=$OUTPUT_DIR/dss
+		   RESULTSDIR="$OUTPUT_DIR/results"
+		   mkdir -p $RESULTSDIR
 			;;
 		p) PARAMETERS="${POWER_PARAMETERS} $OPTARG"
 			;;
 		s) SEED_FILE=$OPTARG
-			;;
-		t) TAG=$OPTARG
 			;;
 		y) USE_OPROFILE=1
 			;;
@@ -48,24 +40,9 @@ done
 RUNDIR=$OUTPUT_DIR/run
 mkdir -p $RUNDIR
 
-SCRIPTDIR=$SRCDIR/scripts
-DBSCRIPTDIR=$SRCDIR/scripts/mysql
-
-param_file="$RUNDIR/power_plan.para"
-query_file="$RUNDIR/power_plan.sql"
-tmp_query_file="$RUNDIR/tmp_power_plan.sql"
-
-DBSTATS="${DBSCRIPTDIR}/db_stats.sh"
-
 # Generate queries for the Power test.
 read SEED < $SEED_FILE
 echo "Seed : $SEED" > $OUTPUT_DIR/readme.txt
-echo "${QGEN}: Generating queries for the Power test."
-echo "	seed: $SEED	scale: $SCALE_FACTOR"
-
-echo -n "Executing qgen..."
-${QGEN} -c -r $SEED -p 0 -s $SCALE_FACTOR -l $param_file -x > $query_file
-echo "done."
 
 # Get the EXPLAIN plans for only the SELECT statements.
 PLANDIR=$OUTPUT_DIR/db/plans
@@ -74,29 +51,22 @@ mkdir -p $PLANDIR
 i=1
 while [ $i -le 22 ]
 do
-#    if [ $i -ne 15 ]; then
-	echo -n "Getting a query plan for Q$i..."
-	$DBSCRIPTDIR/get_query_plan.sh $SCALE_FACTOR $i $PLANDIR/power_query$i.txt $RUNDIR $SEED_FILE
-	echo "done."
-#    fi
-    i=`expr $i + 1`
+	# Remember the query planned is in the order determined by the seed.
+	Q=`$QGEN -c -r $SEED -p 0 -s $SCALE_FACTOR $i`
+	N=`echo $Q | sed -n -r 's/.*\(#\)([[:digit:]]+)\..*/\1/p'`
+	mysql -u root -D $DBNAME << __EOF__ > $RESULTSDIR/$N.txt
+$Q
+__EOF__
+    i=$(( $i + 1 ))
 done
 echo "Plan files: $PLANDIR"
 
-echo -n "Parsing a query file..."
-# Modify query file so that the commands are in one line.
-${PARSE_QUERY} $query_file $tmp_query_file E
-echo "done."
-
-#$DBSCRIPTDIR/stop_db.sh || exit 1
-#$DBSCRIPTDIR/dbt3-mysql-start-db -p "${PARAMETERS}" || exit 1
 # Start collecting system statistics.
 echo -n "Starting sysstats..."
-$SRCDIR/scripts/dbt3-sysstats --outdir $OUTPUT_DIR --iter 1440 --sample 60 || exit 1
-echo "done."
+dbt3-sysstats --outdir $OUTPUT_DIR --sample 60 || exit 1
 
 # Collect database statistics
-$DBSTATS $SID $OUTPUT_DIR &
+dbt3-mysql-dbstat ${OUTPUT_DIR} 2> /dev/null &
 
 # Clear the read profile counters.
 if [ -f /proc/profile ]; then
@@ -108,65 +78,81 @@ if [ $USE_OPROFILE -eq 1 ]; then
 	clearoprof
 fi
 
-s_time_power=`$GTIME`
-$DBSCRIPTDIR/dbt3-mysql-time-statistics -s -n "PERF${TAG}.POWER" || exit 1
+s_time_power=`date +%s`
+dbt3-mysql-time-statistics -s -n "PERF.POWER" || exit 1
 
 if [ ${NO_REFRESH} -eq 0 ]; then
 	# Refresh Stream 1
 	echo "`date`: Power Test : Starting Refresh Stream 1" 
-	s_time=`$GTIME`
-	$DBSCRIPTDIR/dbt3-mysql-time-statistics -s -n "PERF${TAG}.POWER.RF1" || exit 1
-	$DBSCRIPTDIR/run_rf1.sh $SCALE_FACTOR $RUNDIR > $OUTPUT_DIR/results/power.perf${TAG}.rf1.result 2>&1 || exit 1
-	$DBSCRIPTDIR/dbt3-mysql-time-statistics -e -n "PERF${TAG}.POWER.RF1" || exit 1
-	e_time=`$GTIME`
+	s_time=`date +%s`
+	dbt3-mysql-time-statistics -s -n "PERF.POWER.RF1" || exit 1
+	dbt3-mysql-rf1 $SCALE_FACTOR > $RESULTSDIR/rf1.txt 2>&1
+	DATASET=$?
+	if [ $DATASET -lt 1 ]; then
+		exit 1
+	fi
+	dbt3-mysql-time-statistics -e -n "PERF.POWER.RF1" || exit 1
+	e_time=`date +%s`
 	echo "`date`: Power Test : Refresh Stream 1 completed." 
-	diff_time=`expr $e_time - $s_time`
+	diff_time=$(( $e_time - $s_time ))
 fi
 
 # Execute the queries.
-echo -n "Starting run_power_query.sh..."
-$DBSCRIPTDIR/run_power_query.sh $SCALE_FACTOR $TAG $EXPLAIN_ANALYZE $OUTPUT_DIR $RUNDIR $SEED_FILE
+i=1
+while [ $i -le 22 ]
+do
+	Q=`$QGEN -c -r $SEED -p 0 -s $SCALE_FACTOR -x $i`
+	N=`echo $Q | sed -n -r 's/.*\(#\)([[:digit:]]+)\..*/\1/p'`
+	TASK="PERF.POWER.Q$N"
+	dbt3-mysql-time-statistics -s -n $TASK || exit 1
+	mysql -u root -D $DBNAME << __EOF__ > $PLANDIR/$N.txt
+$Q
+__EOF__
+	dbt3-mysql-time-statistics -e -n $TASK || exit 1
+    i=$(( $i + 1 ))
+done
+run_power_query.sh $SCALE_FACTOR $EXPLAIN_ANALYZE $OUTPUT_DIR $RUNDIR $SEED_FILE
 if [ $? -eq 1 ] ; then 
 	echo "run_power_query.sh failed"
 	exit 1
 fi 
-echo "done."
 
 if [ ${NO_REFRESH} -eq 0 ]; then
 	# Refresh Stream 2
 	echo "`date`: Power Test : Starting Refresh Stream 2" 
-	s_time=`$GTIME`
+	s_time=`date +%s`
 
-	$DBSCRIPTDIR/dbt3-mysql-time-statistics -s -n "PERF${TAG}.POWER.RF2" || exit 1
-	$DBSCRIPTDIR/run_rf2.sh $RUNDIR > $OUTPUT_DIR/results/power.perf${TAG}.rf2.result 2>&1 || exit 1
-	$DBSCRIPTDIR/dbt3-mysql-time-statistics -e -n "PERF${TAG}.POWER.RF2" || exit 1
-	e_time=`$GTIME`
+	dbt3-mysql-time-statistics -s -n "PERF.POWER.RF2" || exit 1
+	dbt3-mysql-rf2 $DATASET > $RESULTSDIR/rf2.txt 2>&1 || exit 1
+	dbt3-mysql-time-statistics -e -n "PERF.POWER.RF2" || exit 1
+	e_time=`date +%s`
 	echo "`date`: Power Test : Refresh Stream 2 completed." 
-	diff_time=`expr $e_time - $s_time`
+	diff_time=$(( $e_time - $s_time ))
 fi
 
-$DBSCRIPTDIR/dbt3-mysql-time-statistics -e -n "PERF${TAG}.POWER" || exit 1
-e_time_power=`$GTIME`
+dbt3-mysql-time-statistics -e -n "PERF.POWER" || exit 1
+e_time_power=`date +%s`
 echo "`date`: Power Test completed."
-diff_time=`expr $e_time_power - $s_time_power`
+diff_time=$(( $e_time_power - $s_time_power ))
 echo "Elapsed time for Power Test : $diff_time seconds"
 
 # Stop collecting system statistics.
 echo "Stopping system statistics"
-$SRCDIR/scripts/dbt3-sysstats --stop
-
-#$DBSCRIPTDIR/stop_db.sh || exit 1
+read SARPID < $OUTPUT_DIR/sar.pid
+kill $SARPID
+read PIDSTATPID < $OUTPUT_DIR/pidstat.pid
+kill $PIDSTATPID
+#read DBSTATPID < $OUTPUT_DIR/dbstat.pid
+#kill $DBSTATPID
 
 if [ -f /proc/profile ]; then
-	profname="Power_Test_$TAG"
+	profname="Power_Test"
 	getprof
 fi
 
 if [ $USE_OPROFILE -eq 1 ]; then
-	profname="Power_Test_$TAG"
+	profname="Power_Test"
 	getoprof
 fi
 
 echo "Finishing the power test...";
-
-exit 0

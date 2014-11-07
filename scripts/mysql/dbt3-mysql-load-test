@@ -3,19 +3,11 @@
 # This file is released under the terms of the Artistic License.
 # Please see the file LICENSE, included in this package, for details.
 #
-# Copyright (C) 2002-2006 Jenny Zhang & Open Source Development Labs, Inc.
+# Copyright (C) 2002-2006 Jenny Zhang
+#               2002-2006 Open Source Development Labs, Inc.
+#               2014      Mark Wong
+#               2014      2ndQuadrant, Ltd.
 #
-
-# 15 July 2004 - Revamped by Mark Wong
-
-DIR=`dirname $0`
-. ${DIR}/../dbt3/profile || exit 1
-
-SRCDIR=${DBT3_HOME}
-
-DBSCRIPTDIR=$SRCDIR/scripts/mysql
-
-DBSTATS="$DBSCRIPTDIR/db_stats.sh"
 
 PARAMETERS=""
 SF=0
@@ -44,7 +36,7 @@ while getopts "d:f:g:lo:p:ty" opt; do
 		mkdir -p $OUTPUT_DIR
 		;;
 	p)
-		PARAMETERS="${LOAD_PARAMETERS} $OPTARG"
+		PARAMETERS="-p \"${LOAD_PARAMETERS} $OPTARG\""
 		;;
 	t)
 		TABLESPACE_FLAG="-t -b"
@@ -58,11 +50,6 @@ while getopts "d:f:g:lo:p:ty" opt; do
 	esac
 done
 
-if test -z $OUTPUT_DIR ; then 
-  OUTPUT_DIR=$DBSCRIPTDIR/output
-  mkdir -p $OUTPUT_DIR
-fi
-
 # Check to see if we have the files. If we don't have them - create them. 
 have_all_files=0
 for f in customer lineitem  nation  orders  partsupp  part  region  supplier ; do
@@ -73,11 +60,9 @@ done
 
 if [ $GENERATE -ne 0 -o $have_all_files -eq 1 ]; then
 	echo "Generating data for scale factor $SF..."
-	date
 	# DBGEN reads DSS_PATH env var to determine where to put the files
 	${DBGEN} -s $SF || exit 1
 	chmod a+r ${DSS_PATH}/*.tbl
-	date
 else
 	echo "Create the database using existing datafiles."
 fi
@@ -92,38 +77,39 @@ if [ $USE_OPROFILE -eq 1 ]; then
 fi
 
 # Start collecting system statistics.
-$SRCDIR/scripts/dbt3-sysstats --outdir $OUTPUT_DIR --iter 1440 --sample 60 || exit 1
+dbt3-sysstats --outdir $OUTPUT_DIR --sample 60 || exit 1
 
-$DBSCRIPTDIR/dbt3-mysql-create-db -o ${OUTPUT_DIR} -p "${PARAMETERS}"
+dbt3-mysql-create-db -o ${OUTPUT_DIR} ${PARAMETERS}
 	
-date
-${DBSCRIPTDIR}/dbt3-mysql-drop-tables -d ${DBDATA}
-${DBSCRIPTDIR}/dbt3-mysql-create-tables -d ${DBDATA} || exit 1
-date
+dbt3-mysql-drop-tables -d ${DBDATA}
+dbt3-mysql-create-tables -d ${DBDATA} || exit 1
 
 echo "`date +'%Y-%m-%d %H:%M:%S'` Starting Load Test..."
-s_time=`$GTIME`
-$DBSCRIPTDIR/dbt3-mysql-time-statistics -s -n "LOAD" || exit 1
+s_time=`date +%s`
+dbt3-mysql-time-statistics -s -n "LOAD" || exit 1
 
 # Collect database statistics
-${DBSTATS} ${OUTPUT_DIR} ${DBPORT} &
+dbt3-mysql-dbstat ${OUTPUT_DIR} 2> /dev/null &
 
-${DBSCRIPTDIR}/dbt3-mysql-load-data -d ${DBDATA} || exit 1
+dbt3-mysql-load-data -d ${DBDATA} || exit 1
 
 if [ ${ONLY_LOAD} -eq 0 ]; then
-	date
-	$DBSCRIPTDIR/dbt3-mysql-create-indexes || exit 1
-	date
+	dbt3-mysql-create-indexes || exit 1
 fi
 
-$DBSCRIPTDIR/dbt3-mysql-time-statistics -e -n "LOAD" || exit 1
-e_time=`$GTIME`
+dbt3-mysql-time-statistics -e -n "LOAD" || exit 1
+e_time=`date +%s`
 echo "`date +'%Y-%m-%d %H:%M:%S'` Load Test Completed"
 diff_time=`expr $e_time - $s_time`
 echo "Elapsed time for Load Test : $diff_time seconds"
 
 # Stop collecting system statistics.
-$SRCDIR/scripts/dbt3-sysstats --stop
+read SARPID < $OUTPUT_DIR/sar.pid
+kill $SARPID
+read PIDSTATPID < $OUTPUT_DIR/pidstat.pid
+kill $PIDSTATPID
+#read DBSTATPID < $OUTPUT_DIR/dbstat.pid
+#kill $DBSTATPID
 
 # Collect profile data.
 if [ -f /proc/profile ]; then
@@ -135,5 +121,3 @@ if [ $USE_OPROFILE -eq 1 ]; then
 	profname='Load_Test'
 	getoprof
 fi
-
-exit 0

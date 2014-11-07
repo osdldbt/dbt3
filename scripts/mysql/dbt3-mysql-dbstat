@@ -1,0 +1,17 @@
+#!/bin/bash
+
+if [ $# -ne 1 ]; then
+	echo "usage: `basename $0` <output_dir>"
+	exit 1
+fi
+
+OUTPUT_DIR=$1
+
+SAMPLE_LENGTH=60
+
+DBOUTPUT_DIR=$OUTPUT_DIR/db
+mkdir -p $DBOUTPUT_DIR
+
+# put db info into the readme.txt file
+mysql --version >> $OUTPUT_DIR/readme.txt
+echo "Database statistics taken at $SAMPLE_LENGTH second intervals, $ITERATIONS times." >> $OUTPUT_DIR/readme.txt

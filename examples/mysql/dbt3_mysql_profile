@@ -1,0 +1,12 @@
+export DSS_QUERY="/home/mark/src/dbt3/queries/mysql"
+export DSS_PATH="/home/mark/local/dbt3/dss"
+export DSS_CONFIG="/home/mark/src/dbt3/src/dbgen"
+
+export DBGEN="${DSS_CONFIG}/dbgen"
+export QGEN="${DSS_CONFIG}/qgen"
+
+export DBT3_DIR=/tmp/dbt3
+
+export DBNAME=dbt3
+export MYDATA=$DBT3_DIR/mydata
+export DBDATA="/tmp/dbt3data"

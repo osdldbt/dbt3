@@ -1,14 +1,12 @@
 #!/bin/sh
-
 #
 # This file is released under the terms of the Artistic License.
 # Please see the file LICENSE, included in this package, for details.
 #
-# Copyright (C) 2002-2008 Mark Wong & Open Source Development Labs, Inc.
+# Copyright (C) 2002-2008 Open Source Development Labs, Inc.
+#               2002-2014 Mark Wong
+#               2014      2ndQuadrant, Ltd.
 #
-
-DIR=`dirname $0`
-. ${DIR}/mysql_profile || exit 1
 
 # dont start script as root!
 id=`id | sed s/\(.*// | sed s/uid=//`
@@ -56,13 +54,11 @@ if [ -d $MYDATA -a -d $MYDATA/mysql -a -f $MYDATA/mysql/user.frm ]; then
 else
 	# initialize database cluster
 	echo "initializing database ..."
-	mysql_install_db --datadir=${MYDATA}
+	BASEDIR=`which mysql_install_db`
+	mysql_install_db --basedir=`dirname $BASEDIR`/.. --datadir=${MYDATA}
 fi
 
-dbt3-mysql-start-db -p ${DEFAULTS_FILE}
+dbt3-mysql-start-db
 
 echo -n "Creating database $DBNAME..."
-mysqladmin --defaults-file=${DEFAULTS_FILE} create $DBNAME || exit 1
-echo "done."
-
-exit 0
+mysqladmin -u root create $DBNAME || exit 1

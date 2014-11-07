@@ -1,0 +1,49 @@
+#!/bin/sh
+#
+# This file is released under the terms of the Artistic License.
+# Please see the file LICENSE, included in this package, for details.
+#
+# Copyright (C) 2003      Open Source Development Lab, Inc.
+#               2014      Mark Wong
+#               2014      2ndQuadrant, Ltd.
+#
+
+MYSQL="mysql -u root -D $DBNAME -s -N"
+
+set_num=`$MYSQL << __EOF__
+BEGIN;
+UPDATE dataset
+SET count = count + 1
+WHERE id = 1;
+SELECT count
+FROM dataset
+WHERE id = 1;
+COMMIT;
+__EOF__
+`
+
+echo "`date`: Stream ${set_num} : Starting Refresh Stream 2..."
+s_time=`date +%s`
+
+$MYSQL << __EOF__
+BEGIN;
+create table tmp_orderkey$set_num (orderkey numeric(10));
+load data infile '$DSS_PATH/delete.$set_num'
+into table tmp_orderkey$set_num fields terminated by '|';
+
+delete from lineitem
+using lineitem, tmp_orderkey$set_num
+where l_orderkey=tmp_orderkey$set_num.orderkey;
+
+delete from orders
+using orders, tmp_orderkey$set_num
+where o_orderkey=tmp_orderkey$set_num.orderkey;
+
+drop table tmp_orderkey$set_num;
+COMMIT;
+__EOF__
+
+e_time=`date +%s`
+echo "`date`: Stream ${set_num} : Refresh Stream 2 completed."
+diff_time=$(( $e_time - $s_time ))
+echo "Stream ${set_num} : Elapsed time for Refresh Stream 2 : $diff_time seconds"

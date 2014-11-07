@@ -4,13 +4,13 @@
 # This file is released under the terms of the Artistic License.  Please see
 # the file LICENSE, included in this package, for details.
 #
-# Copyright (C) 2003 Jenny Zhang & Open Source Development Lab, Inc.
+# Copyright (C) 2003      Open Source Development Lab, Inc.
+#               2003      Jenny Zhang
+#               2014      Mark Wong
+#               2014      2ndQuadrant, Ltd.
 #
 # Author: Jenny Zhang
 # Heavily modified by: Mark Wong
-
-DIR=`dirname $0`
-. ${DIR}/mysql_profile
 
 SQL="SELECT task_name, s_time, e_time, (e_time-s_time) AS diff_time, unix_timestamp(e_time) - unix_timestamp(s_time) AS seconds FROM time_statistics"
 ARGS=
@@ -29,6 +29,5 @@ while getopts "ho:" opt; do
 done
 
 
-mysql --defaults-file=${DEFAULTS_FILE} --skip-column-names -D $SID -e "${SQL}" $ARGS \
-  | grep -e PERF -e LOAD | sed -e 's/\t/,/g;'
-
+mysql -u root --skip-column-names -D $DBNAME -e "$SQL" $ARGS \
+		| grep -e PERF -e LOAD | sed -e 's/\t/,/g;'
