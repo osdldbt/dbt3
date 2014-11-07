@@ -8,8 +8,7 @@
 
 AUTOMAKE_OPTIONS = foreign
 
-bin_SCRIPTS = dbt3-pgsql-backup \
-		dbt3-pgsql-create-db \
+bin_SCRIPTS = dbt3-pgsql-create-db \
 		dbt3-pgsql-create-tables \
 		dbt3-pgsql-dbstat \
 		dbt3-pgsql-drop-db \
@@ -19,7 +18,6 @@ bin_SCRIPTS = dbt3-pgsql-backup \
 		dbt3-pgsql-load-data \
 		dbt3-pgsql-load-test \
 		dbt3-pgsql-power-test \
-		dbt3-pgsql-restore \
 		dbt3-pgsql-rf1 \
 		dbt3-pgsql-rf2 \
 		dbt3-pgsql-start-db \

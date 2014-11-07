@@ -115,8 +115,6 @@ elif test "$DATABASE_TO_USE" = "pgsql"; then
 elif test "$DATABASE_TO_USE" = "sapdb"; then
   AC_DEFINE(SAPDB, 1)
 
-  AC_CONFIG_FILES([scripts/sapdb/backup_db.sh],
-      [chmod +x scripts/sapdb/backup_db.sh])
   AC_CONFIG_FILES([scripts/sapdb/build_db.sh],
       [chmod +x scripts/sapdb/build_db.sh])
   AC_CONFIG_FILES([scripts/sapdb/create_db.sh],
@@ -129,8 +127,6 @@ elif test "$DATABASE_TO_USE" = "sapdb"; then
       [chmod +x scripts/sapdb/drop_tables.sh])
   AC_CONFIG_FILES([scripts/sapdb/load_db.sh],
       [chmod +x scripts/sapdb/load_db.sh])
-  AC_CONFIG_FILES([scripts/sapdb/restore_db.sh],
-      [chmod +x scripts/sapdb/restore_db.sh])
   AC_CONFIG_FILES([scripts/sapdb/sapdb_profile],
       [chmod +x scripts/sapdb/sapdb_profile])
   AC_CONFIG_FILES([scripts/sapdb/update_statistics.sh],

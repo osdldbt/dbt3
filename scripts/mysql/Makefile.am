@@ -8,8 +8,7 @@
 
 AUTOMAKE_OPTIONS = foreign
 
-bin_SCRIPTS = dbt3-mysql-backup \
-		dbt3-mysql-create-db \
+bin_SCRIPTS = dbt3-mysql-create-db \
 		dbt3-mysql-create-tables \
 		dbt3-mysql-dbstat \
 		dbt3-mysql-drop-db \
@@ -19,7 +18,6 @@ bin_SCRIPTS = dbt3-mysql-backup \
 		dbt3-mysql-load-data \
 		dbt3-mysql-load-test \
 		dbt3-mysql-power-test \
-		dbt3-mysql-restore \
 		dbt3-mysql-rf1 \
 		dbt3-mysql-rf2 \
 		dbt3-mysql-start-db \
