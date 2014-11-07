@@ -93,10 +93,6 @@ dbt3-mysql-dbstat ${OUTPUT_DIR} 2> /dev/null &
 
 dbt3-mysql-load-data -d ${DBDATA} || exit 1
 
-if [ ${ONLY_LOAD} -eq 0 ]; then
-	dbt3-mysql-create-indexes || exit 1
-fi
-
 dbt3-mysql-time-statistics -e -n "LOAD" || exit 1
 e_time=`date +%s`
 echo "`date +'%Y-%m-%d %H:%M:%S'` Load Test Completed"

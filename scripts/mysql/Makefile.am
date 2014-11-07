@@ -10,7 +10,6 @@ AUTOMAKE_OPTIONS = foreign
 
 bin_SCRIPTS = dbt3-mysql-backup \
 		dbt3-mysql-create-db \
-		dbt3-mysql-create-indexes \
 		dbt3-mysql-create-tables \
 		dbt3-mysql-dbstat \
 		dbt3-mysql-drop-db \
