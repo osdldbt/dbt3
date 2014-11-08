@@ -13,20 +13,14 @@ killall sar sadc pidstat db_stats.sh' INT
 trap 'echo "Test was interrupted. Got TERM signal."; \
 killall sar sadc pidstat db_stats.sh' TERM
 
-if [ "x${DSS_PATH}" = "x" ]; then
-	>&2 echo "Error: DSS_PATH environment variable not set"
-	exit 1
-fi
-
 usage()
 {
-	echo "usage: run_workload.sh [-123aeghoPRuz] [-c comment]"
-	echo "  [-f scale factor] [-l database port] [-n streams]"
+	echo "usage: `basename $0` [-123aeghoPRuz] [-c comment] [-f scale factor] "
+	echo "  [-l database port] [-n streams] [-s seed]"
 	echo "  [-p load test database parameters]"
 	echo "  [-q power test database parameters]"
 	echo "  [-r throughput test database parameters]"
-	echo "  [-s seed]"
-	echo ""
+	echo "options:"
 	echo " 1 - run load test"
 	echo " 2 - run power test"
 	echo " 3 - run throughput test"
@@ -38,12 +32,12 @@ usage()
 	echo " l - database port"
 	echo " n - number of throughput streams"
 	echo " o - output directory"
-	echo " O - enable oprofile"
-	echo " P - enable linux perf"
-	echo " p - database parameters for the load test (pgsql only)"
-	echo " q - database parameters for the power test (pgsql only)"
+	echo " O - enable oprofile (Linux only)"
+	echo " P - enable linux perf (Linux only)"
+	echo " p - database parameters for the load test (PostgreSQL only)"
+	echo " q - database parameters for the power test (PostgreSQL only)"
 	echo " R - materialized view mode"
-	echo " r - database parameters for the throughput test (pgsql only)"
+	echo " r - database parameters for the throughput test (PostgreSQL only)"
 	echo " s - seed"
 	echo " u - use tablespaces"
 	echo " z - do not run refresh streams"
@@ -90,7 +84,7 @@ while getopts "123a:c:ef:ghl:n:Oo:p:Pq:Rr:s:tuz" opt; do
 		COMMENT=${OPTARG}
 		;;
 	e)
-		# PostgreSQL only: EXPLAIN ANALIZE.
+		# PostgreSQL only.
 		TEST_ARGS="$TEST_ARGS -e"
 		;;
 	f)
@@ -149,8 +143,17 @@ while getopts "123a:c:ef:ghl:n:Oo:p:Pq:Rr:s:tuz" opt; do
 		NO_REFRESH_FLAG="-z"
 		NO_REFRESH=1
 		;;
+	\?)
+		usage
+		exit 1
+		;;
 	esac
 done
+
+if [ "x${DSS_PATH}" = "x" ]; then
+	>&2 echo "Error: DSS_PATH environment variable not set"
+	exit 1
+fi
 
 if [ "x${OUTPUT_DIR}" = "x" ]; then
 	>&2 echo "Error: use -o to set output directory"
@@ -206,16 +209,11 @@ else
 	# incomprehensible with duplicate data.
 	#
 	dbt3-${DATABASE}-start-db
-	psql -v ON_ERROR_STOP=1 -X -q -c "TRUNCATE TABLE time_statistics;"
 fi
 
 if [ ${RUN_POWER_TEST} -eq 1 ] || [ ${RUN_THROUGHPUT_TEST} -eq 1 ]; then
 	# Start time of the Performance Test (Power and Throughput).
 	s_time=`date +%s`
-	psql -v ON_ERROR_STOP=1 -X -q << __EOF__ > /dev/null 2>&1
-INSERT INTO time_statistics (task_name, s_time)
-VALUES ('PERF', CURRENT_TIMESTAMP);
-__EOF__
 fi
 
 if [ ${RUN_POWER_TEST} -eq 1 ]; then
@@ -229,7 +227,7 @@ if [ ${RUN_POWER_TEST} -eq 1 ]; then
 			${LINUXPERF_FLAG} \
 			${NO_REFRESH_FLAG}
 	if [ $? -eq 1 ] ; then
-		echo "power_test problem!"
+		echo "power test problem!"
 		exit 1
 	fi
 fi
@@ -246,18 +244,13 @@ if [ ${RUN_THROUGHPUT_TEST} -eq 1 ]; then
 			${LINUXPERF_FLAG} \
 			${NO_REFRESH_FLAG}
 	if [ $? -eq 1 ] ; then
-		echo "throughput_test problem!"
+		echo "throughput test problem!"
 		exit 1
 	fi
 fi
 
 if [ ${RUN_POWER_TEST} -eq 1 ] || [ ${RUN_THROUGHPUT_TEST} -eq 1 ]; then
 	# End time of the Performance Test.
-	psql -v ON_ERROR_STOP=1 -X -q << __EOF__ > /dev/null 2>&1
-UPDATE time_statistics
-SET e_time = current_timestamp
-WHERE task_name = 'PERF';
-__EOF__
 	e_time=`date +%s`
 	diff_time=$(( $e_time - $s_time ))
 	echo "Elapsed time for performance test: $diff_time seconds"
@@ -281,9 +274,7 @@ dbt3-${DATABASE}-get-query-time > ${QTIMECSV} || exit 1
 
 which R > /dev/null 2>&1
 if [ $? -eq 0 ]; then
-	#
 	# Calculate composite score.
-	#
 	echo "Post processing query results... "
 	if [ ${RUN_POWER_TEST} -eq 1 ] || [ ${RUN_THROUGHPUT_TEST} -eq 1 ]; then
     	dbt3-post-process \
@@ -293,15 +284,13 @@ if [ $? -eq 0 ]; then
 		-o ${OUTPUT_DIR}/metrics.txt \
 		${NO_REFRESH_FLAG} \
 		${FLAG_POWER_TEST} ${FLAG_THROUGHPUT_TEST} || exit 1
+	fi
 fi
 
 echo "Generating a report... "
-dbt3-gen-report $OUTPUT_DIR > $OUTPUT_DIR/index.html
-fi
+dbt3-gen-report -i $OUTPUT_DIR
 
-#
 # Stop the database at the end of the test.
-#
 dbt3-${DATABASE}-stop-db
 
 echo "Done!"
