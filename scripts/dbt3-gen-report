@@ -14,17 +14,14 @@ gen_results()
 
 	make_charts $OUTDIR
 
-cat << __EOF__ > $SUBHTMLFILE
+	cat << __EOF__ > $SUBHTMLFILE
 <html>
 <head>
-<title>Database Test 3 $1 Results</title>
+<title>Database Test 3 $1 Details</title>
 </head>
 <body>
 
-<img src="sar-cpu.png" />
-<p>
-</p>
-
+<h1>Operating System</h1>
 <h2>Kernel and Application Profiles</h2>
 <p>
 __EOF__
@@ -42,10 +39,38 @@ __EOF__
 __EOF__
 	fi
 
-cat << __EOF__ >> $SUBHTMLFILE
+	cat << __EOF__ >> $SUBHTMLFILE
 </p>
 
-<h2>Database Information</h2>
+<h2>Processor</h2>
+__EOF__
+
+	for chart in `ls $OUTDIR/sar-cpu*.png`; do
+		chart=`basename $chart`
+		cat << __EOF__ >> $SUBHTMLFILE
+<p>
+$chart<br/>
+<a href="$chart"><img src="$chart" width="50%" /></a>
+</p>
+__EOF__
+	done
+
+	cat << __EOF__ >> $SUBHTMLFILE
+<h2>Block Devices</h2>
+__EOF__
+
+	for chart in `ls $OUTDIR/sar-blockdev-*.png`; do
+		chart=`basename $chart`
+		cat << __EOF__ >> $SUBHTMLFILE
+<p>
+$chart<br/>
+<a href="$chart"><img src="$chart" width="50%" /></a>
+</p>
+__EOF__
+	done
+
+	cat << __EOF__ >> $SUBHTMLFILE
+<h1>Database Information</h1>
 <a href="param.txt">database parameters</a><br />
 <a href="db/">database raw statistics</a><br />
 __EOF__
@@ -58,7 +83,46 @@ __EOF__
 __EOF__
 	fi
 
-cat << __EOF__ >> $SUBHTMLFILE
+	cat << __EOF__ >> $SUBHTMLFILE
+<h2>Database</h2>
+__EOF__
+	for chart in `ls $OUTDIR/db/db-stat-dbt3-*.png`; do
+		chart=`basename $chart`
+		cat << __EOF__ >> $SUBHTMLFILE
+<p>
+$chart<br/>
+<a href="db/$chart"><img src="db/$chart" width="50%" /></a>
+</p>
+__EOF__
+	done
+
+	cat << __EOF__ >> $SUBHTMLFILE
+<h2>Tables</h2>
+__EOF__
+	for chart in `ls $OUTDIR/db/tables/*.png`; do
+		chart=`basename $chart`
+		cat << __EOF__ >> $SUBHTMLFILE
+<p>
+$chart<br/>
+<a href="db/tables/$chart"><img src="db/tables/$chart" width="50%" /></a>
+</p>
+__EOF__
+	done
+
+	cat << __EOF__ >> $SUBHTMLFILE
+<h2>Indexes</h2>
+__EOF__
+	for chart in `ls $OUTDIR/db/indexes/*.png`; do
+		chart=`basename $chart`
+		cat << __EOF__ >> $SUBHTMLFILE
+<p>
+$chart<br/>
+<a href="db/indexes/$chart"><img src="db/indexes/$chart" width="50%" /></a>
+</p>
+__EOF__
+	done
+
+	cat << __EOF__ >> $SUBHTMLFILE
 </body>
 </html>
 __EOF__
@@ -67,6 +131,10 @@ __EOF__
 make_charts()
 {
 	SARDIR=$1
+
+	if [ $FAST -eq 1 ]; then
+		return 0
+	fi
 
 	dbt-plot-sar-cpu $SARDIR/sar-cpu.csv $SARDIR
 	dbt-plot-sar-blockdev $SARDIR/sar-blockdev.csv $SARDIR
@@ -92,9 +160,12 @@ make_charts()
 	fi
 }
 
-while getopts d:i:o: f; do
+# Use this to skip chart generation to help test just the HTML generation.
+FAST=0
+while getopts fd:i:o: f; do
 	case $f in
 		d) DBNAME=$OPTARG;;
+		f) FAST=1;;
 		i) INDIR=$OPTARG;;
 		o) OUTDIR=$OPTARG;;
 		\?) usage; exit 1;;
@@ -142,6 +213,25 @@ else
 	THROUGHPUT="N/A"
 fi
 
+# Generate individual Web pages for each test result directory.
+if [ -d "$INDIR/load" ]; then
+	gen_results "Load Test" "load"
+	LOADLINK="<p><a href="load/index.html">Load Test Details</a></p>"
+fi
+
+POWERDIR="power"
+THROUGHPUTDIR="throughput"
+
+if [ -d "$INDIR/$POWERDIR" ]; then
+	gen_results "Power Test" $POWERDIR
+	POWERLINK="<p><a href="$POWERDIR/index.html">Power Test Details</a></p>"
+fi
+
+if [ -d "$INDIR/$THROUGHPUTDIR" ]; then
+	gen_results "Throughput Test" $THROUGHPUTDIR
+	THRULINK="<p><a href="$THROUGHPUTDIR/index.html">Throughput Test Details</a></p>"
+fi
+
 HTMLFILE=$INDIR/index.html
 
 cat << __EOF__ > $HTMLFILE
@@ -169,17 +259,27 @@ cat << __EOF__ > $HTMLFILE
 
 <h2>Metrics</h2>
 <table border="0">
+
 <tr>
 <td align="right">Composite:</td><td align="right">$COMPOSITE</td>
 </tr>
+
 <tr>
-<td align="right">Load Time:</td><td align="right">$LOAD_MIN Minutes / $LOAD_HOUR Hours</td>
+<td align="right">Load Time:</td>
+<td align="right">$LOAD_MIN Minutes / $LOAD_HOUR Hours</td>
+<td>$LOADLINK</td>
 </tr>
+
 <tr>
-<td align="right">Query Processing Power:</td><td align="right">$POWER</td>
+<td align="right">Query Processing Power:</td>
+<td align="right">$POWER</td>
+<td>$POWERLINK</td>
 </tr>
+
 <tr>
-<td align="right">Throughput Numerical Quantity:</td><td align="right">$THROUGHPUT</td>
+<td align="right">Throughput Numerical Quantity:</td>
+<td align="right">$THROUGHPUT</td>
+<td>$THRULINK</td>
 </tr>
 </table>
 __EOF__
@@ -187,41 +287,15 @@ __EOF__
 if [ -f "$INDIR/q_time.png" ]; then
 	cat << __EOF__ >> $HTMLFILE
 <h2>Query Times</h2>
-<img src="q_time.png" />
 <p>
-<a href="q_time.csv">Text Version of Chart</a>
+(Click to view full size.)<br/>
+<a href="q_time.png"><img src="q_time.png" width="50%" /></a><br/>
+<a href="q_time.csv">CSV Version</a>
 </p>
 __EOF__
 fi
 
-# Generate individual Web pages for each test result directory.
 cat << __EOF__ >> $HTMLFILE
-<h2>Individual Test Results</h2>
-__EOF__
-
-if [ -d "$INDIR/load" ]; then
-	gen_results "Load Test" "load"
-	cat << __EOF__ >> $HTMLFILE
-<p>
-<a href="load/index.html">Load Test</a>
-</p>
-__EOF__
-fi
-
-POWERDIR="power"
-THROUGHPUTDIR="throughput"
-gen_results "Power Test" $POWERDIR
-gen_results "Throughput Test" $THROUGHPUTDIR
-
-cat << __EOF__ >> $HTMLFILE
-<p>
-<a href="$POWERDIR/index.html">Power Test</a>
-</p>
-
-<p>
-<a href="$THROUGHPUTDIR/index.html">Throughput Test</a>
-</p>
-
 </body>
 </html>
 __EOF__
