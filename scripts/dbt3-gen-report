@@ -8,9 +8,9 @@
 
 gen_results()
 {
-	SUBDIR=$2
-	OUTDIR=$INDIR/$SUBDIR
-	SUBHTMLFILE=$OUTDIR/index.html
+	local SUBDIR=$2
+	local OUTDIR=$INDIR/$SUBDIR
+	local SUBHTMLFILE=$OUTDIR/index.html
 
 	make_charts $OUTDIR
 
@@ -21,8 +21,7 @@ gen_results()
 </head>
 <body>
 
-<h1>Operating System</h1>
-<h2>Kernel and Application Profiles</h2>
+<h1>Kernel and Application Profiles</h1>
 <p>
 __EOF__
 
@@ -42,59 +41,69 @@ __EOF__
 	cat << __EOF__ >> $SUBHTMLFILE
 </p>
 
+<h1>Database Details</h1>
+<a href="param.txt">Parameters</a>
+__EOF__
+
+	if [ "$1" != "Load Test" ]; then
+		cat << __EOF__ >> $SUBHTMLFILE
+| <a href="plans">Query Plans</a>
+| <a href="results">Query Results</a>
+__EOF__
+	fi
+
+	cat << __EOF__ >> $SUBHTMLFILE
+<h1>Charts</h1>
+
 <h2>Processor</h2>
 __EOF__
 
-	for chart in `ls $OUTDIR/sar-cpu*.png`; do
-		chart=`basename $chart`
-		cat << __EOF__ >> $SUBHTMLFILE
+	local FILES=`ls $OUTDIR/sar-cpu*.png`
+	if [ -n "$FILES" ]; then
+		for chart in $FILES; do
+			chart=`basename $chart`
+			cat << __EOF__ >> $SUBHTMLFILE
 <p>
 $chart<br/>
 <a href="$chart"><img src="$chart" width="50%" /></a>
 </p>
 __EOF__
-	done
+		done
+	fi
 
 	cat << __EOF__ >> $SUBHTMLFILE
 <h2>Block Devices</h2>
 __EOF__
 
-	for chart in `ls $OUTDIR/sar-blockdev-*.png`; do
-		chart=`basename $chart`
-		cat << __EOF__ >> $SUBHTMLFILE
+	local FILES=`ls $OUTDIR/sar-blockdev-*.png`
+	if [ -n "$FILES" ]; then
+		for chart in $FILES; do
+			chart=`basename $chart`
+			cat << __EOF__ >> $SUBHTMLFILE
 <p>
 $chart<br/>
 <a href="$chart"><img src="$chart" width="50%" /></a>
 </p>
 __EOF__
-	done
-
-	cat << __EOF__ >> $SUBHTMLFILE
-<h1>Database Information</h1>
-<a href="param.txt">database parameters</a><br />
-<a href="db/">database raw statistics</a><br />
-__EOF__
-
-	if [ "$1" != "Load Test" ]; then
-		cat << __EOF__ >> $SUBHTMLFILE
-<a href="db/index.csv">table indexes</a><br />
-<a href="plans">query plans</a><br />
-<a href="results">query results</a><br />
-__EOF__
+		done
 	fi
 
 	cat << __EOF__ >> $SUBHTMLFILE
+
 <h2>Database</h2>
 __EOF__
-	for chart in `ls $OUTDIR/db/db-stat-dbt3-*.png`; do
-		chart=`basename $chart`
-		cat << __EOF__ >> $SUBHTMLFILE
+	local FILES=`ls $OUTDIR/db/db-stat-dbt3-*.png`
+	if [ -n "$FILES" ]; then
+		for chart in $FILES; do
+			chart=`basename $chart`
+			cat << __EOF__ >> $SUBHTMLFILE
 <p>
 $chart<br/>
 <a href="db/$chart"><img src="db/$chart" width="50%" /></a>
 </p>
 __EOF__
-	done
+		done
+	fi
 
 	cat << __EOF__ >> $SUBHTMLFILE
 <h2>Tables</h2>
@@ -112,15 +121,18 @@ __EOF__
 	cat << __EOF__ >> $SUBHTMLFILE
 <h2>Indexes</h2>
 __EOF__
-	for chart in `ls $OUTDIR/db/indexes/*.png`; do
-		chart=`basename $chart`
-		cat << __EOF__ >> $SUBHTMLFILE
+	local FILES=`ls $OUTDIR/db/indexes/*.png`
+	if [ -n "$FILES" ]; then
+		for chart in `ls $OUTDIR/db/indexes/*.png`; do
+			chart=`basename $chart`
+			cat << __EOF__ >> $SUBHTMLFILE
 <p>
 $chart<br/>
 <a href="db/indexes/$chart"><img src="db/indexes/$chart" width="50%" /></a>
 </p>
 __EOF__
-	done
+		done
+	fi
 
 	cat << __EOF__ >> $SUBHTMLFILE
 </body>
@@ -130,41 +142,41 @@ __EOF__
 
 make_charts()
 {
-	SARDIR=$1
+	local SARDIR=$1
 
 	if [ $FAST -eq 1 ]; then
 		return 0
 	fi
 
-	dbt-plot-sar-cpu $SARDIR/sar-cpu.csv $SARDIR
-	dbt-plot-sar-blockdev $SARDIR/sar-blockdev.csv $SARDIR
+	dbt-plot-sar-cpu $SARDIR/sar-cpu.csv $SARDIR 2>> $ERRLOG
+	dbt-plot-sar-blockdev $SARDIR/sar-blockdev.csv $SARDIR 2>> $ERRLOG
 
-	DBDIR=$SARDIR/db
+	local DBDIR=$SARDIR/db
 	if [ "x$DATABASE" = "xpgsql" ]; then
-		dbt-pgsql-plot-database-stats $DBDIR/pg_stat_databases.csv \
-				$DBNAME $DBDIR
+		dbt-pgsql-plot-database-stats $DBDIR/pg_stat_databases.csv $DBDIR \
+				2>> $ERRLOG
 
-		OUTDIR=$DBDIR/tables
+		local OUTDIR=$DBDIR/tables
 		mkdir -p $OUTDIR
 		for table in `cat $DBDIR/table-list.txt`; do
 			dbt-pgsql-plot-table-stats $DBDIR/pg_stat_tables.csv $table \
-					$OUTDIR 2> /dev/null
+					$OUTDIR 2>> $ERRLOG
 		done
 
-		OUTDIR=$DBDIR/indexes
+		local OUTDIR=$DBDIR/indexes
 		mkdir -p $OUTDIR
 		for index in `cat $DBDIR/index-list.txt`; do
 			dbt-pgsql-plot-index-stats $DBDIR/pg_stat_indexes.csv $index \
-					$OUTDIR 2> /dev/null
+					$OUTDIR 2>> $ERRLOG
 		done
 	fi
 }
 
 # Use this to skip chart generation to help test just the HTML generation.
 FAST=0
-while getopts fd:i:o: f; do
+PLOT_OPTS=""
+while getopts fi:o: f; do
 	case $f in
-		d) DBNAME=$OPTARG;;
 		f) FAST=1;;
 		i) INDIR=$OPTARG;;
 		o) OUTDIR=$OPTARG;;
@@ -178,9 +190,11 @@ if [ -z $INDIR ]; then
 	exit 1
 fi
 
-if [ -z $OUTDIR ]; then
+if [ -z "$OUTDIR" ]; then
 	OUTDIR=$INDIR
 fi
+
+ERRLOG="$OUTDIR/gen-report.txt"
 
 OSVER=`grep "^kernel" $INDIR/config.txt | cut -d ' ' -f3-`
 DBVER=`grep "^dbver" $INDIR/config.txt | cut -d " " -f2-`
@@ -213,6 +227,7 @@ else
 	THROUGHPUT="N/A"
 fi
 
+
 # Generate individual Web pages for each test result directory.
 if [ -d "$INDIR/load" ]; then
 	gen_results "Load Test" "load"
@@ -223,11 +238,13 @@ POWERDIR="power"
 THROUGHPUTDIR="throughput"
 
 if [ -d "$INDIR/$POWERDIR" ]; then
+	PLOT_OPTS="$PLOT_OPTS -2"
 	gen_results "Power Test" $POWERDIR
 	POWERLINK="<p><a href="$POWERDIR/index.html">Power Test Details</a></p>"
 fi
 
 if [ -d "$INDIR/$THROUGHPUTDIR" ]; then
+	PLOT_OPTS="$PLOT_OPTS -3"
 	gen_results "Throughput Test" $THROUGHPUTDIR
 	THRULINK="<p><a href="$THROUGHPUTDIR/index.html">Throughput Test Details</a></p>"
 fi
@@ -283,6 +300,10 @@ cat << __EOF__ > $HTMLFILE
 </tr>
 </table>
 __EOF__
+
+# Plot a query results
+dbt3-plot-results -i $INDIR/q_time.csv -o $OUTDIR $PLOT_OPTS 2>> $ERRLOG \
+		|| >&2 echo "Failed to plot query times..."
 
 if [ -f "$INDIR/q_time.png" ]; then
 	cat << __EOF__ >> $HTMLFILE

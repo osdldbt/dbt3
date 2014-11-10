@@ -7,11 +7,12 @@
 #               2003-2006 Jenny Zhang
 #               2005-2014 Mark Wong
 #               2014      2ndQuadrant, Ltd.
+#
 
 make_sar_csv() {
-	FILE=$1
+	local FILE=$1
 
-	DIR=`dirname ${FILE}`
+	local DIR=`dirname ${FILE}`
 
 	${SADF} -P ALL ${FILE} > ${DIR}/sar-cpu.csv
 	${SADF} ${FILE} -- -B > ${DIR}/sar-paging.csv
@@ -35,7 +36,7 @@ while getopts "23i:n:o:s:z" OPT; do
 		PLOT_OPTS="${PLOT_OPTS} -3"
 		;;
 	i)
-		INFILE=${OPTARG}
+		INDIR=${OPTARG}
 		;;
 	n)
 		STREAMS=${OPTARG}
@@ -50,12 +51,13 @@ while getopts "23i:n:o:s:z" OPT; do
 		NO_REFRESH_FLAG="-z"
 		PLOT_OPTS="${PLOT_OPTS} -z"
 		;;
+	\?)
+		exit 1
+		;;
 	esac
 done
 
-#
-# Make sure the outfile is created.
-#
+# Try to make sure the outfile is created.
 echo "" > ${OUTFILE}
 
 which sadf > /dev/null 2>&1
@@ -65,27 +67,25 @@ else
 	SADF=true
 fi
 
-OUTDIR=`dirname ${INFILE}`
-
-if [ -f "${OUTDIR}/load/sar_raw.out" ]; then
-	make_sar_csv ${OUTDIR}/load/sar_raw.out
+if [ -f "$INDIR/load/sar_raw.out" ]; then
+	make_sar_csv $INDIR/load/sar_raw.out
 fi
 
 if [ ${FLAG_POWER_TEST} -eq 1 ]; then
-	POWER=`dbt3-power-score -i ${INFILE} -s ${SCALE_FACTOR} ${NO_REFRESH_FLAG}`
+	POWER=`dbt3-power-score -i ${INDIR} -s ${SCALE_FACTOR} ${NO_REFRESH_FLAG}`
 	echo "power = ${POWER}"  | tee -a ${OUTFILE}
 
-	if [ -f "${OUTDIR}/power/sar_raw.out" ]; then
-		make_sar_csv ${OUTDIR}/power/sar_raw.out
+	if [ -f "$INDIR/power/sar_raw.out" ]; then
+		make_sar_csv $INDIR/power/sar_raw.out
 	fi
 fi
 
 if [ ${FLAG_THROUGHPUT_TEST} -eq 1 ]; then
-	THROUGHPUT=`dbt3-throughput-score -i ${INFILE} -s ${SCALE_FACTOR} -n ${STREAMS}`
+	THROUGHPUT=`dbt3-throughput-score -i ${INDIR} -s ${SCALE_FACTOR} -n ${STREAMS}`
 	echo "throughput = ${THROUGHPUT}" | tee -a ${OUTFILE}
 
-	if [ -f "${OUTDIR}/throughput/sar_raw.out" ]; then
-		make_sar_csv ${OUTDIR}/throughput/sar_raw.out
+	if [ -f "$INDIR/throughput/sar_raw.out" ]; then
+		make_sar_csv $INDIR/throughput/sar_raw.out
 	fi
 fi
 
@@ -93,10 +93,3 @@ if [ ${FLAG_POWER_TEST} -eq 1 ] && [ ${FLAG_THROUGHPUT_TEST} -eq 1 ]; then
 	COMPOSITE=`echo "scale=2; sqrt(${POWER} * ${THROUGHPUT})" | bc -l`
 	echo "composite = ${COMPOSITE}" | tee -a ${OUTFILE}
 fi
-
-# -------------------------------------
-# Plot a result chart with using gnuplot
-# -------------------------------------
-dbt3-plot-results -i ${INFILE} ${NO_REFRESH_FLAG} \
-		-o `dirname ${OUTFILE}` ${PLOT_OPTS} \
-		|| >&2 echo "Failed to plot query times..."
