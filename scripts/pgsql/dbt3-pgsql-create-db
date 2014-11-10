@@ -33,11 +33,13 @@ while getopts "o:p:x:" OPT; do
 		OUTPUT_DIR=${OPTARG}
 		;;
 	p)
-		PARAMETERS=${OPTARG}
-		PARAMOPT="-p ${PARAMETERS}"
+		PARAMOPT="-p \"$OPTARG\""
 		;;
 	x)
 		XLOGPATH=${OPTARG}
+		;;
+	\?)
+		exit 1
 		;;
 	esac
 done
@@ -62,7 +64,7 @@ else
 	fi
 fi
 
-dbt3-pgsql-start-db ${PARAMOPT} || exit 1
+eval dbt3-pgsql-start-db $PARAMOPT
 
 createdb ${PGDATABASE} || exit 1
 #createlang plpgsql ${PGDATABASE}

@@ -15,7 +15,7 @@ NO_REFRESH=0
 
 record_start()
 {
-	NAME=$1
+	local NAME=$1
 
 	psql -v ON_ERROR_STOP=1 -X -q << __EOF__ > /dev/null 2>&1
 INSERT INTO time_statistics (task_name, s_time)
@@ -25,7 +25,7 @@ __EOF__
 
 record_end()
 {
-	NAME=$1
+	local NAME=$1
 
 	psql -v ON_ERROR_STOP=1 -X -q << __EOF__ > /dev/null 2>&1
 UPDATE time_statistics
@@ -46,8 +46,7 @@ while getopts "ef:p:o:s:yYz" opt; do
 			mkdir -p ${RESULTSDIR}
 			;;
 		p)
-			PARAMETERS="${POWER_PARAMETERS} $OPTARG"
-			PARAMETERS_ARG="-p \"${POWER_PARAMETERS} $OPTARG\""
+			PARAMETERS_ARG="-p \"$OPTARG\""
 			;;
 		s) SEED_FILE=$OPTARG
 			;;
@@ -57,8 +56,9 @@ while getopts "ef:p:o:s:yYz" opt; do
 			;;
 		z) NO_REFRESH=1
 			;;
-		?) echo "Usage: $0 -f <SCALE_FACTOR> [-e -p <db_params> -t <tag> -y]"
-			exit ;;
+		\?) echo "Usage: $0 -f <SCALE_FACTOR> [-e -p <db_params> -t <tag> -y]"
+			exit 1
+			;;
 		esac
 done
 
@@ -86,7 +86,7 @@ __EOF__
 done
 
 dbt3-pgsql-stop-db || exit 1
-dbt3-pgsql-start-db -o ${OUTPUT_DIR} ${PARAMETERS_ARG} || exit 1
+eval dbt3-pgsql-start-db -o $OUTPUT_DIR $PARAMETERS_ARG || exit 1
 
 # Start collecting system statistics.
 dbt3-sysstats --outdir $OUTPUT_DIR --sample 60 || exit 1

@@ -11,7 +11,6 @@
 
 GENERATE=0
 ONLY_LOAD=0
-PARAMETERS=""
 SF=0
 USE_OPROFILE=0
 USE_LINUXPERF=0
@@ -33,8 +32,7 @@ while getopts "f:g:lo:p:RtyY:" opt; do
 		mkdir -p $OUTPUT_DIR
 		;;
 	p)
-		PARAMETERS="${LOAD_PARAMETERS} $OPTARG"
-		PARAMETERS_ARG="-p \"${LOAD_PARAMETERS} $OPTARG\""
+		PARAMETERS_ARG="-p \"$OPTARG\""
 		;;
 	R)
 		WORKLOAD="R"
@@ -49,7 +47,7 @@ while getopts "f:g:lo:p:RtyY:" opt; do
 	Y)
 		USE_LINUXPERF=1
 		;;
-	?)
+	\?)
 		echo "Usage: $0 [-o <dir> -p <db_param> -f <scale_factor>]"
 		exit 1
 	esac
@@ -77,12 +75,12 @@ fi
 # Start collecting system statistics.
 dbt3-sysstats --outdir $OUTPUT_DIR --sample 60 || exit 1
 
-dbt3-pgsql-create-db -o ${OUTPUT_DIR} ${PARAMETERS_ARG}
+eval dbt3-pgsql-create-db -o $OUTPUT_DIR $PARAMETERS_ARG
 
 dbt3-pgsql-drop-tables || exit 1
 dbt3-pgsql-create-tables ${TABLESPACE_FLAG} || exit 1
 
-echo "`date` Load Test Starting..."
+echo "Load Test starting at `date`"
 s_time=`date +%s`
 psql -v ON_ERROR_STOP=1 -X -q << __EOF__ > /dev/null 2>&1
 INSERT INTO time_statistics (task_name, s_time)

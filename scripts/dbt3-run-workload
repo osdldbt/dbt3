@@ -9,9 +9,9 @@
 #               2014      2ndQuadrant, Ltd.
 
 trap 'echo "Test was interrupted by Control-C."; \
-killall sar sadc pidstat db_stats.sh' INT
+killall sar sadc pidstat dbt3-pgsql-dbstat' INT
 trap 'echo "Test was interrupted. Got TERM signal."; \
-killall sar sadc pidstat db_stats.sh' TERM
+killall sar sadc pidstat dbt3-pgsql-dbstat' TERM
 
 usage()
 {
@@ -60,7 +60,7 @@ STREAMS=1
 TEST_ARGS=""
 WORKLOAD="H"
 
-while getopts "123a:c:ef:ghl:n:Oo:p:Pq:Rr:s:tuz" opt; do
+while getopts "123a:c:ef:ghn:Oo:p:Pq:Rr:s:tuz" opt; do
 	case $opt in
 	1)
 		RUN_LOAD_TEST=1
@@ -97,9 +97,6 @@ while getopts "123a:c:ef:ghl:n:Oo:p:Pq:Rr:s:tuz" opt; do
 		usage
 		exit 1
 		;;
-	l)
-		DBPORT=$OPTARG
-		;;
 	n)
 		STREAMS=$OPTARG
 		;;
@@ -116,13 +113,13 @@ while getopts "123a:c:ef:ghl:n:Oo:p:Pq:Rr:s:tuz" opt; do
 		;;
 	p)
 		# PostgreSQL only.
-		LOAD_PARAMETERS="${DEFAULT_LOAD_PARAMETERS} $OPTARG"
-		LOAD_PARAMETERS_ARG="-p \"${DEFAULT_LOAD_PARAMETERS} $OPTARG\""
+		LOAD_PARAMETERS="$DEFAULT_LOAD_PARAMETERS $OPTARG"
+		LOAD_PARAMETERS_ARG="-p \"$LOAD_PARAMETERS\""
 		;;
 	q)
 		# PostgreSQL only.
-		POWER_PARAMETERS="${DEFAULT_POWER_PARAMETERS} $OPTARG"
-		POWER_PARAMETERS_ARG="-p \"${DEFAULT_POWER_PARAMETERS} $OPTARG\""
+		POWER_PARAMETERS="$DEFAULT_POWER_PARAMETERS $OPTARG"
+		POWER_PARAMETERS_ARG="-p \"$POWER_PARAMETERS\""
 		;;
 	R)
 		WORKLOAD="R"
@@ -130,8 +127,8 @@ while getopts "123a:c:ef:ghl:n:Oo:p:Pq:Rr:s:tuz" opt; do
 		;;
 	r)
 		# PostgreSQL only.
-		THROUGHPUT_PARAMETERS="${DEFAULT_THROUGHPUT_PARAMETERS} $OPTARG"
-		THROUGHPUT_PARAMETERS_ARG="-p \"${DEFAULT_THROUGHPUT_PARAMETERS} $OPTARG\""
+		THROUGHPUT_PARAMETERS="$DEFAULT_THROUGHPUT_PARAMETERS $OPTARG"
+		THROUGHPUT_PARAMETERS_ARG="-p \"$THROUGHPUT_PARAMETERS\""
 		;;
 	s)
 		SEED=$OPTARG
@@ -162,9 +159,7 @@ fi
 
 echo "SCALE: $SCALE_FACTOR"
 
-#
-# Reset the flags based to make the logic later in the script easier.
-#
+# Reset the flags to make the logic later in the script easier.
 if [ ${RUN_ALL_TESTS} -eq 1 ]; then
 	RUN_LOAD_TEST=1
 	RUN_POWER_TEST=1
@@ -189,11 +184,9 @@ else
 fi
 echo "Using seed: `cat $SEED_FILE`"
 
-#
 # Load Test
-#
 if [ ${RUN_LOAD_TEST} -eq 1 ]; then
-	dbt3-${DATABASE}-load-test \
+	eval dbt3-${DATABASE}-load-test \
 			-o $OUTPUT_DIR/load \
 			${LOAD_PARAMETERS_ARG} \
 			${OPROFILE_FLAG} \
@@ -217,7 +210,7 @@ if [ ${RUN_POWER_TEST} -eq 1 ] || [ ${RUN_THROUGHPUT_TEST} -eq 1 ]; then
 fi
 
 if [ ${RUN_POWER_TEST} -eq 1 ]; then
-	dbt3-${DATABASE}-power-test \
+	eval dbt3-${DATABASE}-power-test \
 			-f ${SCALE_FACTOR} \
 			-o ${OUTPUT_DIR}/power \
 			${POWER_PARAMETERS_ARG}\
@@ -233,7 +226,7 @@ if [ ${RUN_POWER_TEST} -eq 1 ]; then
 fi
 
 if [ ${RUN_THROUGHPUT_TEST} -eq 1 ]; then
-	dbt3-${DATABASE}-throughput-test \
+	eval dbt3-${DATABASE}-throughput-test \
 			-n ${STREAMS} \
 			-f ${SCALE_FACTOR} \
 			-o ${OUTPUT_DIR}/throughput \
@@ -272,25 +265,26 @@ dbt3-get-config $SCALE_FACTOR $STREAMS "$LOAD_PARAMETERS" "$POWER_PARAMETERS" \
 echo "Getting query times... "
 dbt3-${DATABASE}-get-query-time > ${QTIMECSV} || exit 1
 
-which R > /dev/null 2>&1
-if [ $? -eq 0 ]; then
-	# Calculate composite score.
-	echo "Post processing query results... "
-	if [ ${RUN_POWER_TEST} -eq 1 ] || [ ${RUN_THROUGHPUT_TEST} -eq 1 ]; then
-    	dbt3-post-process \
-		-i ${QTIMECSV} \
-		-s ${SCALE_FACTOR} \
-		-n ${STREAMS} \
-		-o ${OUTPUT_DIR}/metrics.txt \
-		${NO_REFRESH_FLAG} \
-		${FLAG_POWER_TEST} ${FLAG_THROUGHPUT_TEST} || exit 1
-	fi
+# Stop the database at the end of the test.
+dbt3-${DATABASE}-stop-db
+
+# Calculate metrics.
+echo "Post processing query results... "
+if [ $RUN_POWER_TEST -eq 1 ] || [ $RUN_THROUGHPUT_TEST -eq 1 ]; then
+	dbt3-post-process \
+			-i $QTIMECSV \
+			-s $SCALE_FACTOR \
+			-n $STREAMS \
+			-o $OUTPUT_DIR/metrics.txt \
+			$NO_REFRESH_FLAG \
+			$FLAG_POWER_TEST \
+			$FLAG_THROUGHPUT_TEST 2> $OUTPUT_DIR/post-process.txt || exit 1
 fi
 
 echo "Generating a report... "
-dbt3-gen-report -i $OUTPUT_DIR
-
-# Stop the database at the end of the test.
-dbt3-${DATABASE}-stop-db
+which R > /dev/null 2>&1
+if [ $? -eq 0 ]; then
+	dbt3-gen-report -i $OUTPUT_DIR
+fi
 
 echo "Done!"

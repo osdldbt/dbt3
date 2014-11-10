@@ -28,8 +28,7 @@ while getopts "ef:n:o:p:s:yYz" opt; do
 	   mkdir -p $OUTPUT_DIR/results
 		;;
 	p)
-		PARAMETERS="${THROUGHPUT_PARAMETERS} $OPTARG"
-		PARAMETERS_ARG="-p \"${THROUGHPUT_PARAMETERS} $OPTARG\""
+		PARAMETERS_ARG="-p \"$OPTARG\""
 		;;
 	s) SEED_FILE=$OPTARG
 		;;
@@ -39,6 +38,8 @@ while getopts "ef:n:o:p:s:yYz" opt; do
 		;;
 	z) NO_REFRESH_FLAG="-z"
 		NO_REFRESH=1
+		;;
+	\?) exit 1
 		;;
 	esac
 done
@@ -64,7 +65,7 @@ if [ ${USE_LINUXPERF} -eq 1 ]; then
 fi
 
 dbt3-pgsql-stop-db || exit 1
-dbt3-pgsql-start-db -o ${OUTPUT_DIR} ${PARAMETERS_ARG} || exit 1
+eval dbt3-pgsql-start-db -o $OUTPUT_DIR $PARAMETERS_ARG || exit 1
 
 s_time=`date +%s`
 psql -v ON_ERROR_STOP=1 -X -q << __EOF__ > /dev/null 2>&1

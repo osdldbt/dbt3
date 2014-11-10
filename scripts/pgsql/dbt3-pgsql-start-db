@@ -7,6 +7,7 @@
 #               2002-2008 Rod Taylor
 #               2014      Mark Wong
 #               2014      2ndQuadrant, Ltd.
+#
 
 if [ -z ${PGDATA} ]; then
 	echo "PGDATA not defined."
@@ -15,12 +16,8 @@ fi
 
 LOGFILE="dbt3.log"
 OUTDIR="."
-USE_PG_AUTOVACUUM=0
-while getopts "afo:p:" OPT; do
+while getopts "fo:p:" OPT; do
 	case ${OPT} in
-	a)
-		USE_PG_AUTOVACUUM=1
-		;;
 	f)
 		rm -f ${PGDATA}/postmaster.pid
 		;;
@@ -29,6 +26,9 @@ while getopts "afo:p:" OPT; do
 		;;
 	p)
 		PARAMETERS="${OPTARG}"
+		;;
+	\?)
+		exit 1
 		;;
 	esac
 done
@@ -45,12 +45,10 @@ fi
 if [ "x${PARAMETERS}" = "x" ]; then
 	pg_ctl -w -D ${PGDATA} -l ${OUTDIR}/${LOGFILE} start
 else
-	pg_ctl -w -D ${PGDATA} -o "${PARAMETERS}" -l ${OUTDIR}/${LOGFILE} start
+	eval pg_ctl -w -D $PGDATA -o \"$PARAMETERS\" -l $OUTDIR/$LOGFILE start
 fi
 
 if [ ! -f "${PGDATA}/postmaster.pid" ]; then
 	echo "database did not start correctly, check database log"
 	exit 1
 fi
-
-exit 0
