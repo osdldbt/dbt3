@@ -59,11 +59,124 @@ __EOF__
 <a href="param.txt">Parameters</a>
 __EOF__
 
-	if [ "$1" != "Load Test" ]; then
-		cat << __EOF__ >> $SUBHTMLFILE
-| <a href="plans">Query Plans</a>
-| <a href="results">Query Results</a>
+	if [ "x$SUBDIR" = "xpower" ]; then
+		if [ -f "$OUTDIR/disaster.csv" ]; then
+			cat << __EOF__ >> $SUBHTMLFILE
+| <a href="disaster.csv">Disaster Report</a>
 __EOF__
+		fi
+
+		cat << __EOF__ >> $SUBHTMLFILE
+<h3>Query Plans</h3>
+__EOF__
+		i=1
+		while [ $i -le 22 ]; do
+			cat << __EOF__ >> $SUBHTMLFILE
+<a href="plans/$i.txt">Q$i</a>
+__EOF__
+			i=$(( $i + 1 ))
+		done
+
+		cat << __EOF__ >> $SUBHTMLFILE
+<h3>Query Results</h3>
+__EOF__
+		i=1
+		while [ $i -le 22 ]; do
+			cat << __EOF__ >> $SUBHTMLFILE
+<a href="results/$i.txt">Q$i</a>
+__EOF__
+			i=$(( $i + 1 ))
+		done
+		if [ -f "$OUTDIR/results/rf1.txt" ]; then
+			cat << __EOF__ >> $SUBHTMLFILE
+<a href="results/rf1.txt">RF1</a>
+__EOF__
+		fi
+		if [ -f "$OUTDIR/results/rf2.txt" ]; then
+			cat << __EOF__ >> $SUBHTMLFILE
+<a href="results/rf2.txt">RF2</a>
+__EOF__
+		fi
+
+	fi
+
+	if [ "x$SUBDIR" = "xthroughput" ]; then
+		local DIRS=`ls -d $OUTDIR/results/*/ 2> /dev/null`
+		cat << __EOF__ >> $SUBHTMLFILE
+<h3>Stream Plans</h3>
+<ol>
+__EOF__
+		for DIR in $DIRS; do
+			local Q=`basename $DIR`
+			cat << __EOF__ >> $SUBHTMLFILE
+<li>
+__EOF__
+
+			i=1
+			while [ $i -le 22 ]; do
+				cat << __EOF__ >> $SUBHTMLFILE
+<a href="plans/$Q/$i.txt">Q$i</a>
+__EOF__
+				i=$(( $i + 1 ))
+			done
+
+			cat << __EOF__ >> $SUBHTMLFILE
+</li>
+__EOF__
+		done
+		cat << __EOF__ >> $SUBHTMLFILE
+</ol>
+__EOF__
+
+		cat << __EOF__ >> $SUBHTMLFILE
+<h3>Stream Results</h3>
+<ol>
+__EOF__
+		for DIR in $DIRS; do
+			local S=`basename $DIR`
+			cat << __EOF__ >> $SUBHTMLFILE
+<li>
+__EOF__
+
+			i=1
+			while [ $i -le 22 ]; do
+				cat << __EOF__ >> $SUBHTMLFILE
+<a href="results/$S/$i.txt">S$i</a>
+__EOF__
+				i=$(( $i + 1 ))
+			done
+			if [ -f "$OUTDIR/results/$S/rf1.txt" ]; then
+				cat << __EOF__ >> $SUBHTMLFILE
+<a href="results/$S/rf1.txt">RF1</a>
+__EOF__
+			fi
+			if [ -f "$OUTDIR/results/$S/rf2.txt" ]; then
+				cat << __EOF__ >> $SUBHTMLFILE
+<a href="results/$S/rf2.txt">RF2</a>
+__EOF__
+			fi
+
+			cat << __EOF__ >> $SUBHTMLFILE
+</li>
+__EOF__
+		done
+		cat << __EOF__ >> $SUBHTMLFILE
+</ol>
+__EOF__
+
+		local FILES=`ls $OUTDIR/results/*/disaster.csv 2> /dev/null`
+		if [ $? -eq 0 ]; then
+			cat << __EOF__ >> $SUBHTMLFILE
+<h3>Stream Disaster Reports</h3>
+__EOF__
+			for FILE in $FILES; do
+				local DIR=`dirname $FILE`
+				local S=`basename $DIR`
+				cat << __EOF__ >> $SUBHTMLFILE
+<a href="results/$S/disaster.csv">S$S</a>
+__EOF__
+			done
+		fi
 	fi
 
 	cat << __EOF__ >> $SUBHTMLFILE

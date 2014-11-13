@@ -16,8 +16,8 @@ refresh_streams()
 		STREAM="PERF.THRUPUT.RFST${stream_num}"
 		RF1TASK="PERF.THRUPUT.RFST${stream_num}.RF1"
 		RF2TASK="PERF.THRUPUT.RFST${stream_num}.RF2"
-		RF1OUT="${OUTPUT_DIR}/results/stream${stream_num}.rf1.txt"
-		RF2OUT="${OUTPUT_DIR}/results/stream${stream_num}.rf2.txt"
+		RF1OUT="${OUTPUT_DIR}/results/${stream_num}/rf1.txt"
+		RF2OUT="${OUTPUT_DIR}/results/${stream_num}/rf2.txt"
 
 		record_start "${STREAM}" || exit 1
 

@@ -37,7 +37,7 @@ fi
 
 SCALE_FACTOR=$1
 stream_num=$2
-EXPLAIN_ANALYZE=$3
+EXPLAIN=$3
 OUTPUT_DIR=$4
 SEED_FILE=$5
 
@@ -57,7 +57,7 @@ fi
 SEED=`cat ${SEED_FILE}`
 SEED=$(( ${SEED} + ${stream_num} ))
 
-if [ $EXPLAIN_ANALYZE -eq 1 ]; then
+if [ $EXPLAIN -eq 1 ]; then
 	EXPLAIN_ARG="-y"
 fi
 
@@ -84,7 +84,7 @@ STREAMTASK="PERF.THRUPUT.QS${stream_num}.ALL"
 record_start "${STREAMTASK}" || exit 1
 i=1
 while [ ${i} -le 22 ]; do
-	Q=`${QGEN} -c -r ${SEED} -p ${stream_num} -s ${SCALE_FACTOR} ${EXPLAIN_ARG} ${i}`
+	Q=`$QGEN -c -r $SEED -p $stream_num -s $SCALE_FACTOR $EXPLAIN_ARG $i`
 	N=`echo ${Q} | sed -n -r 's/.*\(#\)([[:digit:]]+)\..*/\1/p'`
 	TASK="PERF.THRUPUT.QS${stream_num}.Q${N}"
 	record_start "${TASK}" || exit 1
@@ -99,3 +99,14 @@ e_time=`date +%s`
 echo "`date`: end throughput query stream ${stream_num}"
 diff_time=$(( $e_time - $s_time ))
 echo "elapsed time for throughput query stream ${stream_num}: $diff_time sec"
+
+if [ $EXPLAIN -eq 1 ]; then
+	# Generate plan disaster report only if EXPLAIN ANALYZE is used.
+	DISASTERCSV=$RESULTSDIR/disaster.csv
+	i=1
+	while [ $i -le 22 ]; do
+		dbt3-pgsql-plan-disaster $RESULTSDIR/$i.txt >> $DISASTERCSV
+		i=$(( $i + 1 ))
+	done
+	sort -n -t "," -k 2 -r -o $DISASTERCSV $DISASTERCSV
+fi

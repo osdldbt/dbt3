@@ -8,6 +8,7 @@
 #               2004-2014 Mark Wong
 #               2014      2ndQuadrant, Ltd.
 
+EXPLAIN=0
 EXPLAIN_ARG=
 USE_OPROFILE=0
 USE_LINUXPERF=0
@@ -37,26 +38,35 @@ __EOF__
 # process the command line parameters
 while getopts "ef:p:o:s:yYz" opt; do
 	case $opt in
-		e) EXPLAIN_ARG="-y"
+		e)
+			EXPLAIN=1
+			EXPLAIN_ARG="-y"
 			;;
-		f) SCALE_FACTOR=$OPTARG
+		f)
+			SCALE_FACTOR=$OPTARG
 			;;
-		o) OUTPUT_DIR=$OPTARG
+		o)
+			OUTPUT_DIR=$OPTARG
 			RESULTSDIR="${OUTPUT_DIR}/results"
 			mkdir -p ${RESULTSDIR}
 			;;
 		p)
 			PARAMETERS_ARG="-p \"$OPTARG\""
 			;;
-		s) SEED_FILE=$OPTARG
+		s)
+			SEED_FILE=$OPTARG
 			;;
-		y) USE_OPROFILE=1
+		y)
+			USE_OPROFILE=1
 			;;
-		Y) USE_LINUXPERF=1
+		Y)
+			USE_LINUXPERF=1
 			;;
-		z) NO_REFRESH=1
+		z)
+			NO_REFRESH=1
 			;;
-		\?) echo "Usage: $0 -f <SCALE_FACTOR> [-e -p <db_params> -t <tag> -y]"
+		\?)
+			echo "Usage: $0 -f <SCALE_FACTOR> [-e -p <db_params> -t <tag> -y]"
 			exit 1
 			;;
 		esac
@@ -198,4 +208,15 @@ if [ $USE_LINUXPERF -eq 1 ]; then
 		i=$(( $i + 1 ))
 	done > $OUTPUT_DIR/perf/report-output.txt 2>&1
 	wait
+fi
+
+if [ $EXPLAIN -eq 1 ]; then
+	# Generate plan disaster report only if EXPLAIN ANALYZE is used.
+	DISASTERCSV=$OUTPUT_DIR/disaster.csv
+	i=1
+	while [ $i -le 22 ]; do
+		dbt3-pgsql-plan-disaster $RESULTSDIR/$i.txt >> $DISASTERCSV
+		i=$(( $i + 1 ))
+	done
+	sort -n -t "," -k 2 -r -o $DISASTERCSV $DISASTERCSV
 fi

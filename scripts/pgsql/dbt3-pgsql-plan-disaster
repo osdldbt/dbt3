@@ -1,0 +1,34 @@
+#!/bin/bash
+
+FILENAME=$1
+
+Q=`basename $FILENAME | cut -d "." -f 1`
+
+while read line; do
+	while read substring; do
+		rows=( $substring )
+
+		estimated_rows=`echo ${rows[0]} | cut -d "=" -f 2`
+		actual_rows=`echo ${rows[1]} | cut -d "=" -f 2`
+
+		if [ $estimated_rows -gt $actual_rows ]; then
+			larger=$estimated_rows
+			smaller=$actual_rows
+		elif [ $estimated_rows -lt $actual_rows ]; then
+			larger=$actual_rows
+			smaller=$estimated_rows
+		else
+			continue
+		fi
+
+		factor=`echo "scale=1; $larger / $smaller" | bc -l`
+
+		echo "Q$Q,$factor,$line"
+	done < <(echo $line | awk -v pat='rows=[0-9]+' \
+			'{
+				while (match($0, pat)) {
+					printf substr($0, RSTART, RLENGTH) OFS
+					$0=substr($0, RSTART+RLENGTH)
+				} print ""
+			}')
+done < <(grep rows= $FILENAME)

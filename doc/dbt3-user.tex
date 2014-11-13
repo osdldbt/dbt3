@@ -7,31 +7,31 @@
 
 \begin{titlepage}
 
-\begin{figure}[t]
-\centering
-\includegraphics[scale=1]{osdl-logo.png}
-\end{figure}
+  \begin{figure}[t]
+    \centering
+    \includegraphics[scale=1]{osdl-logo.png}
+  \end{figure}
 
-\centering
-\huge
-Open Source Development Labs \\
-Database Test 3 \\
-Decision Support for Ad Hoc Queries \\
-\huge
-User's Guide \\
-\large
-Version 1.10
+  \centering
+  \huge
+  Open Source Development Labs \\
+  Database Test 3 \\
+  Decision Support for Ad Hoc Queries \\
+  \huge
+  User's Guide \\
+  \large
+  Version 1.10
 
-\begin{figure}[b]
-\flushleft
-\normalsize
-Open Source Development Labs, Inc. \\
-12725 SW Millikan Way, Suite 400 \\
-Beaverton, OR 97005 \\
-Phone: (503) 626-2455 \\
-Fax: (503) 626-2436 \\
-Email: info@osdl.org
-\end{figure}
+  \begin{figure}[b]
+    \flushleft
+    \normalsize
+    Open Source Development Labs, Inc. \\
+    12725 SW Millikan Way, Suite 400 \\
+    Beaverton, OR 97005 \\
+    Phone: (503) 626-2455 \\
+    Fax: (503) 626-2436 \\
+    Email: info@osdl.org
+  \end{figure}
 
 \end{titlepage}
 
@@ -66,15 +66,16 @@ workload similar to the TPC-H workload using PostgreSQL, MySQL, and MariaDB.
 
 \subsubsection{Query Templates}
 
-The TPC-H DBGEN tool kit includes the official query syntax for TPC-H
-queries.  The tester can substitute OSDL-DBT-3 queries with TPC-H
-queries and alter the syntax to fit other databases.  A set of query
-syntax for SAP DB, PostgreSQL, MySQL, and MariaDB are included in the kit in the directory
-dbt3/queries.  Some of the queries are modified for database specific syntax.
+the TPC-H DBGEN tool kit includes the official query syntax for TPC-H queries.
+The tester can substitute OSDL-DBT-3 queries with TPC-H queries and alter the
+syntax to fit other databases.  A set of query syntax for SAP DB, PostgreSQL,
+MySQL, and MariaDB are included in the kit in the directory dbt3/queries.  Some
+of the queries are modified for database specific syntax.
 
 \section{Setup}
 
-This section covers the steps of getting and installing the OSDL-DBT-3 test kit source code.
+This section covers the steps of getting and installing the OSDL-DBT-3 test kit
+source code.
 
 \subsection{Getting and Installing the Kit}
 
@@ -82,9 +83,9 @@ This section covers the steps of getting and installing the OSDL-DBT-3 test kit 
 
 In addition to the DBMS software, the following is also required:
 \begin{itemize}
-\item bc \url{http://www.gnu.org/software/bc/bc.html}
-\item R \url{http://www.r-project.org/}
-\item sar, pidstat \url{http://pagesperso-orange.fr/sebastien.godard/}\footnote{While the scripts assume this particular version of \texttt{sar} and \texttt{pidstat}, it is possible to run on non-Linux based operating systems with some modifications to the kit.}
+  \item bc \url{http://www.gnu.org/software/bc/bc.html}
+  \item R \url{http://www.r-project.org/}
+  \item sar, pidstat \url{http://pagesperso-orange.fr/sebastien.godard/}\footnote{While the scripts assume this particular version of \texttt{sar} and \texttt{pidstat}, it is possible to run on non-Linux based operating systems with some modifications to the kit.}
 \end{itemize}
 
 \subsubsection{OSDL-DBT-3 Test Kit Source}
@@ -100,7 +101,10 @@ git clone git://git.code.sf.net/p/osdldbt/dbt3
 
 \subsubsection{Building the kit}
 
-The configure script needs to be run with the specific DBMS to build qgen and dbgen.  These programs were developed to be build for specific databases at compile time.  Otherwise the rest of the scripts installed by the kit do not need to be reinstalled or recreated if a different DBMS is used.
+The configure script needs to be run with the specific DBMS to build qgen and
+dbgen.  These programs were developed to be build for specific databases at
+compile time.  Otherwise the rest of the scripts installed by the kit do not
+need to be reinstalled or recreated if a different DBMS is used.
 
 For MySQL and MariaDB:
 \lstset{language=sh}
@@ -122,79 +126,88 @@ make install
 
 \subsubsection{Sizing the System}
 
-A OpenOffice spreadsheet, \texttt{dbt3\_sizing.sxc}, is provided to aid in sizing the
-database under the respective database directory in \textit{doc} directory of the kit.
+A OpenOffice spreadsheet, \texttt{dbt3\_sizing.sxc}, is provided to aid in
+sizing the database under the respective database directory in \textit{doc}
+directory of the kit.
 
-The parameter Scale Factor can be found under the Performance tab.
-The scale factor can actually be any decimal number (like 1.1 or 50)
-so that if the tester wishes, the tester can create a database whose
-size is not one of the officially permitted scale factors.  This
-might be desirable for development purposes.  Any results should be
-advertised with the scale factor used, since the performance varies
-based on the amount of data required for processing the queries.  The
-database size is defined with reference to scale factor.  For
+The parameter Scale Factor can be found under the Performance tab.  The scale
+factor can actually be any decimal number (like 1.1 or 50) so that if the
+tester wishes, the tester can create a database whose size is not one of the
+officially permitted scale factors.  This might be desirable for development
+purposes.  Any results should be advertised with the scale factor used, since
+the performance varies based on the amount of data required for processing the
+queries.  The database size is defined with reference to scale factor.  For
 example, for scale factor 1, the raw data files' total size is roughly 1 GB.
 
-Note:  This kit does not support scale factors less than 1.  Although
-you can build a database using scale factors less than 1, the query
-generator (qgen) will not generate the proper variable values that
-correspond to scale factors less than 1.
+Note:  This kit does not support scale factors less than 1.  Although you can
+build a database using scale factors less than 1, the query generator (qgen)
+will not generate the proper variable values that correspond to scale factors
+less than 1.
 
-The data displayed under the database size tab report the expected
-size of the database, for the parameters entered, are to be used for
-the physical database layout.  The number to note is the total number
-of 8 KB pages since SAP DB uses those units in most of its
-configuration settings.  Keep in mind that additional space must be
-added to account for auxiliary structures such as indexes, temporary
-tables and 1\% for inserts.
+The data displayed under the database size tab report the expected size of the
+database, for the parameters entered, are to be used for the physical database
+layout.  The number to note is the total number of 8 KB pages since SAP DB uses
+those units in most of its configuration settings.  Keep in mind that
+additional space must be added to account for auxiliary structures such as
+indexes, temporary tables and 1\% for inserts.
 
-The tester needs to allocate space for the flat files generated by
-dbgen used to load the database.  Under the tab database size, one column Flat File Size is provided to calculate the
-space.  Once the database is loaded and backed up, there is no need
-to retain these flat files.  
+The tester needs to allocate space for the flat files generated by dbgen used
+to load the database.  Under the tab database size, one column Flat File Size
+is provided to calculate the space.  Once the database is loaded and backed up,
+there is no need to retain these flat files.
 
 \section{Running the Test Kit}
 
 \subsubsection{Setting OSDL-DBT-3 Environment Variables}
 
-The dbgen, qgen and OSDL-DBT-3 scripts require specific environment variables to be set in order to function properly.
-The following environment variables are required to be set and there are examples provides
-in the examples directory:
+The dbgen, qgen and OSDL-DBT-3 scripts require specific environment variables
+to be set in order to function properly.  The following environment variables
+are required to be set and there are examples provides in the examples
+directory:
+
 \begin{itemize}
-\item \textbf{DSS\_PATH=/tmp/dss\_path} - Absolute path in which to build flat files.
-\item \textbf{DSS\_QUERY=/tmp/dbt3/queries/pgsql} - Absolute path in which to find
-      query templates, this example is for the PostgreSQL templates.
-\item \textbf{DSS\_CONFIG=/tmp/dbt3/src/dbgen} - directory in which to find
-      configuration files.
+  \item \textbf{DSS\_PATH=/tmp/dss\_path} - Absolute path in which to build
+        flat files.
+  \item \textbf{DSS\_QUERY=/tmp/dbt3/queries/pgsql} - Absolute path in which to
+        find query templates, this example is for the PostgreSQL templates.
+  \item \textbf{DSS\_CONFIG=/tmp/dbt3/src/dbgen} - directory in which to find
+        configuration files.
 \end{itemize}
 
-Testers can choose to run all the tests in OSDL-DBT-3 as well as part
-of the tests.  The following section describes how to run all the
-tests in OSDL-DBT-3.
+Testers can choose to run all the tests in OSDL-DBT-3 as well as part of the
+tests.  The following section describes how to run all the tests in OSDL-DBT-3.
 
-Tester may also create several databases so that several scale
-factors can be tested or various implementation strategies compared.
-They will only need to change environment variables to point to the
-correct database as described in Section 2.2 prior to executing the
-test kit scripts.
+Tester may also create several databases so that several scale factors can be
+tested or various implementation strategies compared.  They will only need to
+change environment variables to point to the correct database as described in
+Section 2.2 prior to executing the test kit scripts.
 
-Each DBMS may have additional environment variables that need to be set.  The following sections details the required variables.
+Each DBMS may have additional environment variables that need to be set.  The
+following sections details the required variables.
 
 \subsubsection{MySQL/MariaDB Environment Variables}
 
 \begin{itemize}
-\item \textbf{DBNAME=dbt3} - This is the database name to use.
-\item \textbf{MYDATA=/tmp/mydata} - This defines where to initialize the MySQL data directory
+  \item \textbf{DBNAME=dbt3} - This is the database name to use.
+  \item \textbf{MYDATA=/tmp/mydata} - This defines where to initialize the
+        MySQL data directory
 \end{itemize}
 
 \subsubsection{PostgreSQL Environment Variables}
 
 \begin{itemize}
-\item \textbf{PGDATABASE=dbt3} - This is the database name to use.
-\item \textbf{PGDATA=/tmp/pgdata} - This defines where the PostgreSQL instance will be created.
-\item \textbf{DEFAULT\_LOAD\_PARAMETERS=``-c shared\_buffers=1GB''} - This defines the database parameters to be set for the load test.  The syntax is that same as that used to set parameters from the command line as if using \texttt{pg\_ctl}. (e.g. "-c shared\_buffers=1GB")
-\item \textbf{DEFAULT\_POWER\_PARAMETERS=``''} - This defines the database parameters to set for the power test.
-\item \textbf{DEFAULT\_THROUGHPUT\_PARAMETERS=``''} - This defines the database parameters to be set for the throughput test.
+  \item \textbf{PGDATABASE=dbt3} - This is the database name to use.
+  \item \textbf{PGDATA=/tmp/pgdata} - This defines where the PostgreSQL
+        instance will be created.
+  \item \textbf{DEFAULT\_LOAD\_PARAMETERS=``-c shared\_buffers=1GB''} - This
+        defines the database parameters to be set for the load test.  The
+            syntax is that same as that used to set parameters from the command
+                line as if using \texttt{pg\_ctl}. (e.g. "-c
+                    shared\_buffers=1GB")
+  \item \textbf{DEFAULT\_POWER\_PARAMETERS=``''} - This defines the database
+        parameters to set for the power test.
+  \item \textbf{DEFAULT\_THROUGHPUT\_PARAMETERS=``''} - This defines the
+        database parameters to be set for the throughput test.
 \end{itemize}
 
 \subsection{Quick Start}
@@ -205,25 +218,44 @@ Only one command needs to be issued to run a complete test:
 dbt3-run-workload -a pgsql -f 1 -o /tmp/results
 \end{lstlisting}
 
-This will run the generate the data files for a 1GB scale factor database load, power and throughput test, with 1 stream, against PostgreSQL and record the results of the test in \textit{/tmp/results}.
+This will run the generate the data files for a 1GB scale factor database load,
+power and throughput test, with 1 stream, against PostgreSQL and record the
+results of the test in \textit{/tmp/results}.
 
-The \texttt{dbt3-run-workload} script can be used to run any combination of a load test, power test, and throughput test.  A load tests must be run in order to create the database before a power or throughput tests can be run individually.
+The \texttt{dbt3-run-workload} script can be used to run any combination of a
+load test, power test, and throughput test.  A load tests must be run in order
+to create the database before a power or throughput tests can be run
+individually.
 
 \subsubsection{Addition PostgreSQL execution notes}
 
-There is an addition \textit{-e} flag that can be used for testing PostgreSQL, which will execute the queries in the power and throughput tests using \textbf{EXPLAIN (ANALYZE, BUFFERS)} instead of returning the query results.
+There is an additional \textit{-e} flag that can be used for testing PostgreSQL
+with the \texttt{dbt3-run-workload} script that will execute the queries in the
+power and throughput tests using \textbf{EXPLAIN (ANALYZE, BUFFERS)} thus
+returning actual execution plans instead of the query results.
+
+If the \textit{-e} flag is used, an additional plan disaster report will be
+generating showing which queries grossly misestimated the number of rows
+returned at each node of the plan.
 
 \section{Test Results}
 
-The results directory, as specified when running the \texttt{dbt3-run-workload-scripts} by the \textit{-o} option, will contain the calculated metrics of the test as well as charts of the system and database statistics summarized in the \texttt{index.html} file in the results directory.
+The results directory, as specified when running the
+\texttt{dbt3-run-workload-scripts} by the \textit{-o} option, will contain the
+calculated metrics of the test as well as charts of the system and database
+statistics summarized in the \texttt{index.html} file in the results directory.
 
-The query results chart display the execute time of each query for the power test, and the arithmetic mean of each of the streams in the throughput test.
+The query results chart display the execute time of each query for the power
+test, and the arithmetic mean of each of the streams in the throughput test.
 
 \begin{center}
-\includegraphics[scale=0.5]{q_time.png}
+  \includegraphics[scale=0.5]{q_time.png}
 \end{center}
 
-The links to the load test, power test, and throughput test summaries will have links to processor and disk utilization charts as well as operating system and database parameters used in each test.  The power test and throughput test will also have links to the query plans and query results.
+The links to the load test, power test, and throughput test summaries will have
+links to processor and disk utilization charts as well as operating system and
+database parameters used in each test.  The power test and throughput test will
+also have links to the query plans and query results.
 
 \section{Tips \& Tricks}
 
@@ -254,15 +286,19 @@ sysctl -p
 
 \subsection{QGEN}
 
-The \texttt{qgen} program can be manually run to inspect the SQL statement to that will be executed by the test.
+The \texttt{qgen} program can be manually run to inspect the SQL statement to
+that will be executed by the test.
 
-For example (see \texttt{qgen -h} for option descriptions) to see what the first query to be executed:
+For example (see \texttt{qgen -h} for option descriptions) to see what the
+first query to be executed:
+
 \lstset{language=sh}
 \begin{lstlisting}
 qgen -c -r 0 -p 0 -s 1 5
 \end{lstlisting}
 
 Results in the following query for PostgreSQL.
+
 \lstset{language=sql}
 \begin{lstlisting}
 -- using 0 as a seed to the RNG
