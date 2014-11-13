@@ -60,7 +60,7 @@ STREAMS=1
 TEST_ARGS=""
 WORKLOAD="H"
 
-while getopts "123a:c:ef:ghn:Oo:p:Pq:Rr:s:tuz" opt; do
+while getopts "123a:c:ef:ghn:Oo:p:Pq:Rr:s:tuVz" opt; do
 	case $opt in
 	1)
 		RUN_LOAD_TEST=1
@@ -135,6 +135,9 @@ while getopts "123a:c:ef:ghn:Oo:p:Pq:Rr:s:tuz" opt; do
 		;;
 	u)
 		TABLESPACES_FLAG="-t"
+		;;
+	V)
+		VERT_FLAG="-V"
 		;;
 	z)
 		NO_REFRESH_FLAG="-z"
@@ -249,10 +252,6 @@ if [ ${RUN_POWER_TEST} -eq 1 ] || [ ${RUN_THROUGHPUT_TEST} -eq 1 ]; then
 	echo "Elapsed time for performance test: $diff_time seconds"
 fi
 
-# -------------------------------------------
-# Post-processing
-# -------------------------------------------
-
 # Make sure the database is started, which it might be depending on what parts
 # of the workload are executed.
 dbt3-${DATABASE}-start-db
@@ -281,10 +280,10 @@ if [ $RUN_POWER_TEST -eq 1 ] || [ $RUN_THROUGHPUT_TEST -eq 1 ]; then
 			$FLAG_THROUGHPUT_TEST 2> $OUTPUT_DIR/post-process.txt || exit 1
 fi
 
-echo "Generating a report... "
 which R > /dev/null 2>&1
 if [ $? -eq 0 ]; then
-	dbt3-gen-report -i $OUTPUT_DIR
+	echo "Generating a report... "
+	dbt3-gen-report -i $OUTPUT_DIR $VERT_FLAG
 fi
 
 echo "Done!"

@@ -306,18 +306,18 @@ make_charts()
 # Use this to skip chart generation to help test just the HTML generation.
 FAST=0
 PLOT_OPTS=""
-while getopts fi:o: f; do
+while getopts fi:o:V f; do
 	case $f in
 		f) FAST=1;;
 		i) INDIR=$OPTARG;;
 		o) OUTDIR=$OPTARG;;
-		\?) usage; exit 1;;
+		V) PLOT_OPTS="$PLOT_OPTS -V";;
+		\?) exit 1;;
 	esac
 done
 
 if [ -z $INDIR ]; then
 	echo "Specify dbt3 results directory with -i"
-	usage
 	exit 1
 fi
 
