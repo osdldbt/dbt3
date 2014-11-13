@@ -99,11 +99,13 @@ if [ ${USE_OPROFILE} -eq 1 ]; then
 	clearoprof
 fi
 
-if [ ${USE_LINUXPERF} -eq 1 ]; then
-	perf_start ${OUTPUT_DIR}/perf &
+if [ $USE_LINUXPERF -eq 1 ]; then
+	PERFDIR=$OUTPUT_DIR/perf
+	mkdir -p $PERFDIR
+	PERFCOMMAND="perf record -a -g -s -F 100 -o $PERFDIR/perf.data"
 fi
 
-dbt3-pgsql-load-data || exit 1
+eval $PERFCOMMAND dbt3-pgsql-load-data || exit 1
 
 psql -v ON_ERROR_STOP=1 -X -q << __EOF__ > /dev/null 2>&1
 UPDATE time_statistics
@@ -133,6 +135,12 @@ if [ $USE_OPROFILE -eq 1 ]; then
 	getoprof
 fi
 
-if [ ${USE_LINUXPERF} -eq 1 ]; then
-	perf_collect ${OUTPUT_DIR}/perf
+if [ $USE_LINUXPERF -eq 1 ]; then
+	echo "Generating Linux perf reports for load test..."
+	perf report -i $PERFDIR/perf.data -n > $PERFDIR/perf-report.txt \
+			2>> $OUTPUT_DIR/perf/report-output.txt &
+	perf annotate -l -P -i $PERFDIR/perf.data > $PERFDIR/perf-annotate.txt \
+			2>> $OUTPUT_DIR/perf/report-output.txt &
+	perf script -L -i $PERFDIR/perf.data > $PERFDIR/perf-trace.txt \
+			2>> $OUTPUT_DIR/perf/report-output.txt &
 fi

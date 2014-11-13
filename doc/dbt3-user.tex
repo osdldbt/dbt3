@@ -227,6 +227,31 @@ The links to the load test, power test, and throughput test summaries will have 
 
 \section{Tips \& Tricks}
 
+\subsection{Linux perf tool}
+
+The scripts assume that the kernel address maps are not restricted if the Linux
+perf tool is used.  To make sure they are unrestricted, set the Linux kernel
+parameter to zero by:
+
+\lstset{language=sh}
+\begin{lstlisting}
+echo 0 > /proc/sys/kernel/kptr_restrict
+echo -1 > /proc/sys/kernel/perf_event_paranoid
+\end{lstlisting}
+
+or editing \texttt{/etc/sysctl.conf} with:
+\lstset{language=sh}
+\begin{lstlisting}
+kernel.kptr_restrict = 0
+kernel.perf_event_paranoid = -1
+\end{lstlisting}
+
+then as \textbf{root} run:
+\lstset{language=sh}
+\begin{lstlisting}
+sysctl -p
+\end{lstlisting}
+
 \subsection{QGEN}
 
 The \texttt{qgen} program can be manually run to inspect the SQL statement to that will be executed by the test.

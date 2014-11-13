@@ -25,17 +25,31 @@ gen_results()
 <p>
 __EOF__
 
-	if [ -f "${SUBDIR}/readprofile.txt" ]; then
+	if [ -f "$OUTDIR/readprofile.txt" ]; then
 		cat << __EOF__ >> $SUBHTMLFILE
 <a href="readprofile.txt">readprofile</a><br />
 __EOF__
 	fi
 
-	if [ -d "${SUBDIR}/oprofile" ]; then
+	if [ -d "$OUTDIR/oprofile" ]; then
 		cat << __EOF__ >> $SUBHTMLFILE
 <a href="oprofile/oprofile.txt">oprofile</a><br />
 <a href="oprofile/assembly.txt">annotated assembly</a><br />
 __EOF__
+	fi
+
+	if [ -d "$OUTDIR/perf" ]; then
+		if [ "x$SUBDIR" = "xpower" ]; then
+			cat << __EOF__ >> $SUBHTMLFILE
+[<a href="perf">Linux Perf Data</a> ]
+__EOF__
+		else
+			cat << __EOF__ >> $SUBHTMLFILE
+[Linux perf: <a href="perf/perf-report.txt">report</a> |
+<a href="perf/perf-annotate.txt">annotated source</a> |
+<a href="perf/perf-trace.txt">trace</a>]
+__EOF__
+		fi
 	fi
 
 	cat << __EOF__ >> $SUBHTMLFILE
@@ -58,7 +72,7 @@ __EOF__
 <h2>Processor</h2>
 __EOF__
 
-	local FILES=`ls $OUTDIR/sar-cpu*.png`
+	local FILES=`ls $OUTDIR/sar-cpu*.png 2> /dev/null`
 	if [ -n "$FILES" ]; then
 		for chart in $FILES; do
 			chart=`basename $chart`
@@ -75,7 +89,7 @@ __EOF__
 <h2>Block Devices</h2>
 __EOF__
 
-	local FILES=`ls $OUTDIR/sar-blockdev-*.png`
+	local FILES=`ls $OUTDIR/sar-blockdev-*.png 2> /dev/null`
 	if [ -n "$FILES" ]; then
 		for chart in $FILES; do
 			chart=`basename $chart`
@@ -92,7 +106,7 @@ __EOF__
 
 <h2>Database</h2>
 __EOF__
-	local FILES=`ls $OUTDIR/db/db-stat-dbt3-*.png`
+	local FILES=`ls $OUTDIR/db/db-stat-dbt3-*.png 2> /dev/null`
 	if [ -n "$FILES" ]; then
 		for chart in $FILES; do
 			chart=`basename $chart`
@@ -108,22 +122,26 @@ __EOF__
 	cat << __EOF__ >> $SUBHTMLFILE
 <h2>Tables</h2>
 __EOF__
-	for chart in `ls $OUTDIR/db/tables/*.png`; do
-		chart=`basename $chart`
-		cat << __EOF__ >> $SUBHTMLFILE
+
+	local FILES=`ls $OUTDIR/db/tables/*.png 2> /dev/null`
+	if [ -n "$FILES" ]; then
+		for chart in $FILES; do
+			chart=`basename $chart`
+			cat << __EOF__ >> $SUBHTMLFILE
 <p>
 $chart<br/>
 <a href="db/tables/$chart"><img src="db/tables/$chart" width="50%" /></a>
 </p>
 __EOF__
-	done
+		done
+	fi
 
 	cat << __EOF__ >> $SUBHTMLFILE
 <h2>Indexes</h2>
 __EOF__
-	local FILES=`ls $OUTDIR/db/indexes/*.png`
+	local FILES=`ls $OUTDIR/db/indexes/*.png 2> /dev/null`
 	if [ -n "$FILES" ]; then
-		for chart in `ls $OUTDIR/db/indexes/*.png`; do
+		for chart in $FILES; do
 			chart=`basename $chart`
 			cat << __EOF__ >> $SUBHTMLFILE
 <p>

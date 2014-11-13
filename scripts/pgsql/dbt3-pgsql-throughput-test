@@ -60,8 +60,10 @@ if [ $USE_OPROFILE -eq 1 ]; then
 	clearoprof
 fi
 
-if [ ${USE_LINUXPERF} -eq 1 ]; then
-	perf_start ${OUTPUT_DIR}/perf &
+if [ $USE_LINUXPERF -eq 1 ]; then
+	PERFDIR=$OUTPUT_DIR/perf
+	mkdir -p $PERFDIR
+	PERFCOMMAND="perf record -a -g -s -F 100 -o $PERFDIR/perf.data"
 fi
 
 dbt3-pgsql-stop-db || exit 1
@@ -80,9 +82,9 @@ dbt3-sysstats --outdir $OUTPUT_DIR --sample 60 || exit 1
 dbt3-pgsql-dbstat ${OUTPUT_DIR} &
 
 # Start the streams.
-dbt3-pgsql-throughput-stream-wrapper -f ${scale_factor} \
-		-n ${num_stream} ${TEST_ARGS} -o ${OUTPUT_DIR} \
-		-s ${SEED_FILE} ${NO_REFRESH_FLAG} || exit 1
+eval $PERFCOMMAND dbt3-pgsql-throughput-stream-wrapper -f $scale_factor \
+		-n $num_stream $TEST_ARGS -o $OUTPUT_DIR -s $SEED_FILE \
+		$NO_REFRESH_FLAG || exit 1
 
 # Stop collecting system statistics.
 read SARPID < ${OUTPUT_DIR}/sar.pid
@@ -114,6 +116,12 @@ if [ $USE_OPROFILE -eq 1 ]; then
 	getoprof
 fi
 
-if [ ${USE_LINUXPERF} -eq 1 ]; then
-	perf_collect ${OUTPUT_DIR}/perf
+if [ $USE_LINUXPERF -eq 1 ]; then
+	echo "Generating Linux perf reports for throughput test..."
+	perf report -i $PERFDIR/perf.data -n > $PERFDIR/perf-report.txt \
+			2>> $OUTPUT_DIR/perf/report-output.txt &
+	perf annotate -l -P -i $PERFDIR/perf.data > $PERFDIR/perf-annotate.txt \
+			2>> $OUTPUT_DIR/perf/report-output.txt &
+	perf script -L -i $PERFDIR/perf.data > $PERFDIR/perf-trace.txt \
+			2>> $OUTPUT_DIR/perf/report-output.txt &
 fi
