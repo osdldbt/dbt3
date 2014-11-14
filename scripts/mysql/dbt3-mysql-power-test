@@ -10,11 +10,12 @@
 #
 
 EXPLAIN_ANALYZE=0
-USE_OPROFILE=0
 NO_REFRESH=0
+USE_LINUXPERF=0
+USE_OPROFILE=0
 
 # process the command line parameters
-while getopts "ef:p:o:s:yz" opt; do
+while getopts "ef:p:o:s:yYz" opt; do
 	case $opt in
 		e) EXPLAIN_ANALYZE=1
 			;;
@@ -29,6 +30,8 @@ while getopts "ef:p:o:s:yz" opt; do
 		s) SEED_FILE=$OPTARG
 			;;
 		y) USE_OPROFILE=1
+			;;
+		Y) USE_LINUXPERF=1
 			;;
 		z) NO_REFRESH=1
 			;;
@@ -64,7 +67,7 @@ __EOF__
 done
 
 dbt3-mysql-stop-db
-dbt3-mysql-start-db -o $OUTPUT_DIR
+dbt3-mysql-start-db -o $OUTPUT_DIR || exit 1
 
 # Start collecting system statistics.
 dbt3-sysstats --outdir $OUTPUT_DIR --sample 60 || exit 1
@@ -105,6 +108,11 @@ dbt3-mysql-time-statistics -e -n "PERF.POWER.RF1" || exit 1
 i=1
 while [ $i -le 22 ]
 do
+	if [ $USE_LINUXPERF -eq 1 ]; then
+		PERFDIR=$OUTPUT_DIR/perf/$N
+		mkdir -p $PERFDIR
+		PERFCOMMAND="perf record -a -g -s -F 100 -o $PERFDIR/q$N-perf.data"
+	fi
 	Q=`$QGEN -c -r $SEED -p 0 -s $SCALE_FACTOR $i`
 	N=`echo $Q | sed -n -r 's/.*\(#\)([[:digit:]]+)\..*/\1/p'`
 	TASK="PERF.POWER.Q$N"
@@ -112,7 +120,7 @@ do
 $Q
 __EOF__
 	dbt3-mysql-time-statistics -s -n $TASK || exit 1
-	mysql -u root -D $DBNAME << __EOF__ >> $RESULTSDIR/$N.txt
+	eval $PERFCOMMAND mysql -u root -D $DBNAME << __EOF__ >> $RESULTSDIR/$N.txt
 $Q
 __EOF__
 	dbt3-mysql-time-statistics -e -n $TASK || exit 1
@@ -158,4 +166,19 @@ if [ $USE_OPROFILE -eq 1 ]; then
 	getoprof
 fi
 
-echo "Finishing the power test...";
+if [ $USE_LINUXPERF -eq 1 ]; then
+	echo "Generating Linux perf reports for power test..."
+	i=1
+	while [ $i -le 22 ]; do
+		PERFDIR=$OUTPUT_DIR/perf/$i
+		PERFPREFIX=q$i
+		perf report -i $PERFDIR/$PERFPREFIX-perf.data -n \
+				> $PERFDIR/$PERFPREFIX-perf-report.txt &
+		perf annotate -l -P -i $PERFDIR/$PERFPREFIX-perf.data \
+				> $PERFDIR/$PERFPREFIX-perf-annotate.txt &
+		perf script -L -i $PERFDIR/$PERFPREFIX-perf.data \
+				> $PERFDIR/$PERFPREFIX-perf-trace.txt &
+		i=$(( $i + 1 ))
+	done > $OUTPUT_DIR/perf/report-output.txt 2>&1
+	wait
+fi

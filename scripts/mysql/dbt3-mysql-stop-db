@@ -16,10 +16,15 @@ fi
 HOSTNAME=`hostname`
 PIDFILE=$MYDATA/$HOSTNAME.pid
 
+mysqladmin -s ping > /dev/null 2>&1
+if [ $? -eq 1 ]; then
+	exit 0
+fi
+
 mysqladmin -u root shutdown
 count=0
 while [ 1 ]; do
-	mysqladmin -s ping
+	mysqladmin -s ping > /dev/null 2>&1
 	if [ $? -ne 1 ]; then
 		if [ $count -eq 60 ]; then
 			echo "failed waiting for mysql to stop"

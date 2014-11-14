@@ -8,7 +8,6 @@
 #               2014      2ndQuadrant, Ltd.
 #
 
-engine=`echo $MYSQL_ENGINE | tr 'A-Z' 'a-z' `
 MYSQL="mysql -u root -D $DBNAME -s"
 
 while getopts "be:" OPT; do

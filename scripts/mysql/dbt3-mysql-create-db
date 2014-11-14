@@ -48,7 +48,7 @@ if [ -d $MYDATA -a -d $MYDATA/mysql -a -f $MYDATA/mysql/user.frm ]; then
 
 	# Don't need to initdb, blindly try to drop the dbt3 database in case
 	# it exists.
-	dbt3-mysql-start-db -o $OUTPUT_DIR
+	dbt3-mysql-start-db -o $OUTPUT_DIR || exit 1
 	dbt3-mysql-drop-db
 	dbt3-mysql-stop-db
 else
@@ -58,7 +58,7 @@ else
 	mysql_install_db --basedir=`dirname $BASEDIR`/.. --datadir=${MYDATA}
 fi
 
-dbt3-mysql-start-db -o $OUTPUT_DIR
+dbt3-mysql-start-db -o $OUTPUT_DIR || exit 1
 
-echo -n "Creating database $DBNAME..."
+echo "Creating database $DBNAME..."
 mysqladmin -u root create $DBNAME || exit 1

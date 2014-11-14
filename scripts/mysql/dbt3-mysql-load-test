@@ -9,12 +9,14 @@
 #               2014      2ndQuadrant, Ltd.
 #
 
-PARAMETERS=""
-SF=0
-USE_OPROFILE=0
 GENERATE=0
+PARAMETERS=""
 ONLY_LOAD=0
-while getopts "f:g:lo:p:ty" opt; do
+SF=0
+USE_LINUXPERF=0
+USE_OPROFILE=0
+
+while getopts "f:g:lo:p:tyY" opt; do
 	case $opt in
 	f)
 		SF=$OPTARG
@@ -37,6 +39,9 @@ while getopts "f:g:lo:p:ty" opt; do
 		;;
 	y)
 		USE_OPROFILE=1
+		;;
+	Y)
+		USE_LINUXPERF=1
 		;;
 	?)
 		echo "Usage: $0 [-o <dir> -p <db_param> -f <scale_factor>]"
@@ -70,22 +75,28 @@ if [ $USE_OPROFILE -eq 1 ]; then
 	clearoprof
 fi
 
-# Start collecting system statistics.
-dbt3-sysstats --outdir $OUTPUT_DIR --sample 60 || exit 1
-
-dbt3-mysql-create-db -o ${OUTPUT_DIR} ${PARAMETERS}
+dbt3-mysql-create-db -o ${OUTPUT_DIR} ${PARAMETERS} || exit 1
 	
 dbt3-mysql-drop-tables
 dbt3-mysql-create-tables || exit 1
+
+# Start collecting system statistics.
+dbt3-sysstats --outdir $OUTPUT_DIR --sample 60 || exit 1
+
+# Collect database statistics
+dbt3-mysql-dbstat ${OUTPUT_DIR} 2> /dev/null &
 
 echo "`date +'%Y-%m-%d %H:%M:%S'` Starting Load Test..."
 s_time=`date +%s`
 dbt3-mysql-time-statistics -s -n "LOAD" || exit 1
 
-# Collect database statistics
-dbt3-mysql-dbstat ${OUTPUT_DIR} 2> /dev/null &
+if [ $USE_LINUXPERF -eq 1 ]; then
+	PERFDIR=$OUTPUT_DIR/perf
+	mkdir -p $PERFDIR
+	PERFCOMMAND="perf record -a -g -s -F 100 -o $PERFDIR/perf.data"
+fi
 
-dbt3-mysql-load-data || exit 1
+eval $PERFCOMMAND dbt3-mysql-load-data || exit 1
 
 dbt3-mysql-time-statistics -e -n "LOAD" || exit 1
 e_time=`date +%s`
@@ -110,4 +121,14 @@ fi
 if [ $USE_OPROFILE -eq 1 ]; then
 	profname='Load_Test'
 	getoprof
+fi
+
+if [ $USE_LINUXPERF -eq 1 ]; then
+	echo "Generating Linux perf reports for load test..."
+	perf report -i $PERFDIR/perf.data -n > $PERFDIR/perf-report.txt \
+			2>> $OUTPUT_DIR/perf/report-output.txt &
+	perf annotate -l -P -i $PERFDIR/perf.data > $PERFDIR/perf-annotate.txt \
+			2>> $OUTPUT_DIR/perf/report-output.txt &
+	perf script -L -i $PERFDIR/perf.data > $PERFDIR/perf-trace.txt \
+			2>> $OUTPUT_DIR/perf/report-output.txt &
 fi

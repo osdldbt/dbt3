@@ -38,16 +38,16 @@ while getopts "fo:p:s:" OPT; do
 	esac
 done
 
-if [ -f "$PIDFILE" ]; then
-	echo "MySQL pid file '$PIDFILE' already exists."
-	exit 0
-fi
-nohup mysqld_safe ${DEFAULTS_FILE_ARG} --datadir=$MYDATA \
-		--log-error=${OUTDIR}/${LOGFILE} > /dev/null 2>&1 &
+# The location of the log file needs to be an absolute path, otherwise it's
+# relative to $MYDATA.
+LOGPATH=`readlink -f $OUTDIR`
+
+mysqld_safe $DEFAULTS_FILE_ARG --datadir=$MYDATA \
+		--log-error=$LOGPATH/$LOGFILE > /dev/null 2>&1 &
 
 count=0
 while [ 1 ]; do
-	mysqladmin -s ping > /dev/null
+	mysqladmin -s ping > /dev/null 2>&1
 	if [ $? -eq 1 ]; then
 		if [ $count -eq 60 ]; then
 			echo "failed waiting for mysql to start"

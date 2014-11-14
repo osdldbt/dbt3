@@ -9,12 +9,12 @@
 #               2014      2ndQuadrant, Ltd.
 #
 
+NO_REFRESH_FLAG=
+TEST_ARGS=
+USE_LINUXPERF=0
 USE_OPROFILE=0
 
-TEST_ARGS=
-NO_REFRESH_FLAG=
-
-while getopts "ef:n:o:p:s:yz" opt; do
+while getopts "ef:n:o:p:s:yYz" opt; do
 	case $opt in
 	e) TEST_ARGS="$TEST_ARGS -e"
 		;;
@@ -31,7 +31,11 @@ while getopts "ef:n:o:p:s:yz" opt; do
 		;;
 	y) USE_OPROFILE=1
 		;;
+	Y) USE_LINUXPERF=1
+		;;
 	z) NO_REFRESH_FLAG="-z"
+		;;
+	\?) exit 1
 		;;
 	esac
 done
@@ -52,8 +56,14 @@ if [ $USE_OPROFILE -eq 1 ]; then
 	clearoprof
 fi
 
+if [ $USE_LINUXPERF -eq 1 ]; then
+	PERFDIR=$OUTPUT_DIR/perf
+	mkdir -p $PERFDIR
+	PERFCOMMAND="perf record -a -g -s -F 100 -o $PERFDIR/perf.data"
+fi
+
 dbt3-mysql-stop-db
-dbt3-mysql-start-db -o $OUTPUT_DIR
+dbt3-mysql-start-db -o $OUTPUT_DIR || exit 1
 
 s_time=`date +%s`
 dbt3-mysql-time-statistics -s -n "PERF.THRUPUT" || exit 1
@@ -66,8 +76,8 @@ dbt3-mysql-dbstat $OUTPUT_DIR 2> /dev/null &
 
 # Start the streams.
 
-dbt3-mysql-throughput-stream-wrapper -f $scale_factor -n $num_stream \
-		$TEST_ARGS -o $OUTPUT_DIR -s $SEED_FILE $NO_REFRESH_FLAG
+eval $PERFCOMMAND dbt3-mysql-throughput-stream-wrapper -f $scale_factor \
+		-n $num_stream $TEST_ARGS -o $OUTPUT_DIR -s $SEED_FILE $NO_REFRESH_FLAG
 if [ $? -eq 1 ] ; then
   echo "dbt3-throughput-stream-wrapper problem"
   exit 1
@@ -98,4 +108,14 @@ fi
 if [ $USE_OPROFILE -eq 1 ]; then
 	profname="Throughput_Test"
 	getoprof
+fi
+
+if [ $USE_LINUXPERF -eq 1 ]; then
+	echo "Generating Linux perf reports for throughput test..."
+	perf report -i $PERFDIR/perf.data -n > $PERFDIR/perf-report.txt \
+			2>> $OUTPUT_DIR/perf/report-output.txt &
+	perf annotate -l -P -i $PERFDIR/perf.data > $PERFDIR/perf-annotate.txt \
+			2>> $OUTPUT_DIR/perf/report-output.txt &
+	perf script -L -i $PERFDIR/perf.data > $PERFDIR/perf-trace.txt \
+			2>> $OUTPUT_DIR/perf/report-output.txt &
 fi
