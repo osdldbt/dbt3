@@ -15,3 +15,5 @@ mkdir -p $DBOUTPUT_DIR
 # put db info into the readme.txt file
 mysql --version >> $OUTPUT_DIR/readme.txt
 echo "Database statistics taken at $SAMPLE_LENGTH second intervals, $ITERATIONS times." >> $OUTPUT_DIR/readme.txt
+
+mysqladmin variables > $OUTPUT_DIR/param.txt
