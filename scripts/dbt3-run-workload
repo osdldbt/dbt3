@@ -9,9 +9,9 @@
 #               2014      2ndQuadrant, Ltd.
 
 trap 'echo "Test was interrupted by Control-C."; \
-killall sar sadc pidstat dbt3-pgsql-dbstat' INT
+killall sar sadc pidstat dbt3-$DATABASE-dbstat' INT
 trap 'echo "Test was interrupted. Got TERM signal."; \
-killall sar sadc pidstat dbt3-pgsql-dbstat' TERM
+killall sar sadc pidstat dbt3-$DATABASE-dbstat' TERM
 
 usage()
 {

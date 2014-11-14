@@ -15,19 +15,15 @@
 SQL="SELECT task_name, s_time, e_time, (e_time-s_time) AS diff_time, unix_timestamp(e_time) - unix_timestamp(s_time) AS seconds FROM time_statistics"
 ARGS=
 OUTDIR=.
-while getopts "ho:" opt; do
+while getopts "h" opt; do
 	case $opt in
 		h)
 			ARGS="-H"
 			SQL="SELECT task_name AS Task, s_time AS Start_Time, e_time AS End_Time, (e_time-s_time) AS Elapsed_Time FROM time_statistics;"
 			;;
-		o)
-			OUTDIR=$OPTARG
-			ARGS="-o $OUTDIR/q_time.out"
-			;;
 	esac
 done
 
-
-mysql -u root --skip-column-names -D $DBNAME -e "$SQL" $ARGS \
-		| grep -e PERF -e LOAD | sed -e 's/\t/,/g;'
+# Convert output to CSV format on the fly.
+mysql -u root -D $DBNAME -e "$SQL" $ARGS | sed -e 's/\t/,/g;'
+sleep 2

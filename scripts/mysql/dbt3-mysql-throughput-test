@@ -8,7 +8,7 @@
 #               2004-2014 Mark Wong
 #               2014      2ndQuadrant, Ltd.
 #
-set -x
+
 USE_OPROFILE=0
 
 TEST_ARGS=
@@ -36,7 +36,7 @@ while getopts "ef:n:o:p:s:yz" opt; do
 	esac
 done
 
-SEED=`cat $SEED_FILE`
+read SEED < $SEED_FILE
 echo "Seed : $SEED" > $OUTPUT_DIR/readme.txt
 
 RUNDIR=$OUTPUT_DIR/run
@@ -52,7 +52,8 @@ if [ $USE_OPROFILE -eq 1 ]; then
 	clearoprof
 fi
 
-dbt3-mysql-start-db -p "$PARAMETERS"
+dbt3-mysql-stop-db
+dbt3-mysql-start-db -o $OUTPUT_DIR
 
 s_time=`date +%s`
 dbt3-mysql-time-statistics -s -n "PERF.THRUPUT" || exit 1
@@ -87,7 +88,7 @@ diff_time=$(( $e_time - $s_time ))
 echo "Stream: Elapsed time for Throughput Test : $diff_time seconds"
 
 # Stop the database after the test.
-#stop_db.sh || exit 1
+dbt3-mysql-stop-db
 
 if [ -f /proc/profile ]; then
 	profname="Throughput_Test"

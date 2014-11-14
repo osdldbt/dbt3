@@ -39,34 +39,36 @@ do
 	i=$(( $i + 1 ))
 done
 
-if [ ${NO_REFRESH} -eq 0 ]; then
-	# Start the refresh stream.  The throughput tests runs a streams
-	# consecutively per throughput streams, also consecutively.
-	stream_num=1
-	while [ $stream_num -le $num_stream ]
-	do
-		STREAM="PERF.THRUPUT.RFST$stream_num"
-		RF1TASK="PERF.THRUPUT.RFST$stream_num.RF1"
-		RF2TASK="PERF.THRUPUT.RFST$stream_num.RF2"
-		RF1OUT="$OUTPUT_DIR/results/stream$stream_num.rf1.txt"
-		RF2OUT="$OUTPUT_DIR/results/stream$stream_num.rf2.txt"
+# Start the refresh stream.  The throughput tests runs a streams consecutively
+# per throughput streams, also consecutively.
+stream_num=1
+while [ $stream_num -le $num_stream ]
+do
+	STREAM="PERF.THRUPUT.RFST$stream_num"
+	RF1TASK="PERF.THRUPUT.RFST$stream_num.RF1"
+	RF2TASK="PERF.THRUPUT.RFST$stream_num.RF2"
+	RF1OUT="$OUTPUT_DIR/results/stream$stream_num.rf1.txt"
+	RF2OUT="$OUTPUT_DIR/results/stream$stream_num.rf2.txt"
 
-		dbt3-mysql-time-statistics -s -n $STREAM
+	dbt3-mysql-time-statistics -s -n $STREAM
 
+	dbt3-mysql-time-statistics -s -n $RF1TASK
+	if [ $NO_REFRESH -eq 0 ]; then
 		echo "`date`: Throughput Stream $stream_num : Starting Refresh Stream 1..."
 		s_time_rf1=`date +%s`
-		dbt3-mysql-time-statistics -s -n $RF1TASK
 		dbt3-mysql-rf1 $scale_factor > $RF1OUT 2>&1
 		DATASET=$?
 		if [ $DATASET -lt 1 ]; then
 			exit 1
 		fi
-		dbt3-mysql-time-statistics -e -n $RF1TASK
 		e_time_rf1=`date +%s`
 		echo "`date`: Throughput Stream $stream_num : Refresh Stream 1 completed."
 		diff_time_rf1=$(( $e_time_rf1 - $s_time_rf1 ))
 		echo "Throughput Stream $stream_num : Elapsed time for Refresh Stream 1 : $diff_time_rf1 seconds"
+	fi
+	dbt3-mysql-time-statistics -e -n $RF1TASK
 
+	if [ $NO_REFRESH -eq 0 ]; then
 		echo "`date`: Throughput Stream $stream_num : Starting Refresh Stream 2..."
 		s_time_rf2=`date +%s`
 		dbt3-mysql-time-statistics -s -n $RF2TASK
@@ -75,16 +77,16 @@ if [ ${NO_REFRESH} -eq 0 ]; then
 			echo "run_rf2 problem"
 			exit 1
 		fi
-		dbt3-mysql-time-statistics -e -n $RF2TASK
 		e_time_rf2=`date +%s`
 		echo "`date`: Throughput Stream $stream_num : Refresh Stream 2 completed."
 		diff_time_rf2=$(( $e_time_rf2 - $s_time_rf2 ))
 		echo "Throughput Stream $stream_num : Elapsed time for Refresh Stream 2 : $diff_time_rf2 seconds"
+	fi
+	dbt3-mysql-time-statistics -e -n $RF2TASK
 
-		dbt3-mysql-time-statistics -e -n $STREAM
+	dbt3-mysql-time-statistics -e -n $STREAM
 
-        	stream_num=$(( $stream_num + 1 ))
-	done
-fi
+	stream_num=$(( $stream_num + 1 ))
+done
 
 wait

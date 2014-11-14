@@ -156,7 +156,7 @@ to load the database.  Under the tab database size, one column Flat File Size
 is provided to calculate the space.  Once the database is loaded and backed up,
 there is no need to retain these flat files.
 
-\section{Running the Test Kit}
+\section{Using the Test Kit}
 
 \subsubsection{Setting OSDL-DBT-3 Environment Variables}
 
@@ -171,7 +171,7 @@ directory:
   \item \textbf{DSS\_QUERY=/tmp/dbt3/queries/pgsql} - Absolute path in which to
         find query templates, this example is for the PostgreSQL templates.
   \item \textbf{DSS\_CONFIG=/tmp/dbt3/src/dbgen} - directory in which to find
-        configuration files.
+        DBGEN configuration files.
 \end{itemize}
 
 Testers can choose to run all the tests in OSDL-DBT-3 as well as part of the
@@ -283,6 +283,13 @@ then as \textbf{root} run:
 \begin{lstlisting}
 sysctl -p
 \end{lstlisting}
+
+\subsection{MySQL/MariaDB Options}
+
+When using \texttt{mysqladmin} to start the database, options will be loaded
+from one of these locations, if they exist: \texttt{/etc/my.cnf},
+\texttt{/etc/mysql/my.cnf}, or  \texttt{~/.my.cnf}.  The environment variable
+\textbf{MYSQL\_HOME} can also be used to specify where a my.cnf file exists.
 
 \subsection{QGEN}
 
