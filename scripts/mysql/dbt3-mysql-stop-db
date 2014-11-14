@@ -16,14 +16,18 @@ fi
 HOSTNAME=`hostname`
 PIDFILE=$MYDATA/$HOSTNAME.pid
 
-if [ ! -f "$PIDFILE" ]; then
-	echo "MySQL pid file '$PIDFILE' does not exist."
-	echo "MySQL was not stopped, if it was running."
-	exit 0
-fi
-read MYSQL_PID < $PIDFILE
-kill ${MYSQL_PID} || exit 1
-sleep 10
-echo "MySQL stopped successfully (by kill)."
-
-exit 0
+mysqladmin -u root shutdown
+count=0
+while [ 1 ]; do
+	mysqladmin -s ping
+	if [ $? -ne 1 ]; then
+		if [ $count -eq 60 ]; then
+			echo "failed waiting for mysql to stop"
+			exit 1
+		fi
+		sleep 1
+		count=$(( $count + 1 ))
+		continue
+	fi
+	break
+done

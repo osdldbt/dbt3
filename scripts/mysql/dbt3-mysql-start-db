@@ -32,6 +32,9 @@ while getopts "fo:p:s:" OPT; do
 		DEFAULTS_FILE=${OPTARG}
 		DEFAULTS_FILE_ARG="--defaults-file=${DEFAULTS_FILE}"
 		;;
+	\0)
+		exit 1
+		;;
 	esac
 done
 
@@ -41,4 +44,18 @@ if [ -f "$PIDFILE" ]; then
 fi
 nohup mysqld_safe ${DEFAULTS_FILE_ARG} --datadir=$MYDATA \
 		--log-error=${OUTDIR}/${LOGFILE} > /dev/null 2>&1 &
-sleep 10
+
+count=0
+while [ 1 ]; do
+	mysqladmin -s ping > /dev/null
+	if [ $? -eq 1 ]; then
+		if [ $count -eq 60 ]; then
+			echo "failed waiting for mysql to start"
+			exit 1
+		fi
+		sleep 1
+		count=$(( $count + 1 ))
+		continue
+	fi
+	break
+done
