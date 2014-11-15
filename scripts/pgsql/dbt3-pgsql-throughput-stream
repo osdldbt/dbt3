@@ -54,7 +54,7 @@ if [ ! -f $SEED_FILE ]; then
 	echo "modifying this file"
 	$SRCDIR/scripts/init_seed.sh > $SEED_FILE
 fi
-SEED=`cat ${SEED_FILE}`
+read SEED < $SEED_FILE
 SEED=$(( ${SEED} + ${stream_num} ))
 
 if [ $EXPLAIN -eq 1 ]; then

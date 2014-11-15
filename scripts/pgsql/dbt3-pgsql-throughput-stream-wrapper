@@ -9,46 +9,6 @@
 #               2014      2ndQuadrant, Ltd.
 #
 
-refresh_streams()
-{
-	stream_num=1
-	while [ $stream_num -le $num_stream ]; do
-		STREAM="PERF.THRUPUT.RFST${stream_num}"
-		RF1TASK="PERF.THRUPUT.RFST${stream_num}.RF1"
-		RF2TASK="PERF.THRUPUT.RFST${stream_num}.RF2"
-		RF1OUT="${OUTPUT_DIR}/results/${stream_num}/rf1.txt"
-		RF2OUT="${OUTPUT_DIR}/results/${stream_num}/rf2.txt"
-
-		record_start "${STREAM}" || exit 1
-
-		echo "`date`: Throughput Stream ${stream_num}: Starting RF 1..."
-		s_time_rf1=`date +%s`
-		record_start "${RF1TASK}" || exit 1
-		dbt3-pgsql-rf1 ${scale_factor} > ${RF1OUT} 2>&1
-		DATASET=$?
-		if [ ${DATASET} -lt 1 ]; then
-			exit 1
-		fi
-		record_end "${RF1TASK}" || exit 1
-		e_time_rf1=`date +%s`
-		diff_time_rf1=$(( $e_time_rf1 - $s_time_rf1 ))
-		echo "Throughput Stream $stream_num: Elapsed time for Refresh Stream 1: $diff_time_rf1 seconds"
-
-		echo "`date`: Throughput Stream ${stream_num}: Starting RF 2..."
-		s_time_rf2=`date +%s`
-		record_start "${RF2TASK}" || exit 1
-		dbt3-pgsql-rf2 ${DATASET} > ${RF2OUT} 2>&1 || exit 1
-		record_end "${RF2TASK}" || exit 1
-		e_time_rf2=`date +%s`
-		diff_time_rf2=$(( $e_time_rf2 - $s_time_rf2 ))
-		echo "Throughput Steam $stream_num: Elapsed time for RF 2: $diff_time_rf2 seconds"
-
-		record_end "${STREAM}" || exit 1
-
-		stream_num=$(( $stream_num + 1 ))
-	done
-}
-
 record_start()
 {
 	NAME=$1
@@ -101,9 +61,45 @@ do
 	i=$(( $i + 1 ))
 done
 
-if [ ${NO_REFRESH} -eq 0 ]; then
-	# Run the refresh steams in parallel with the throughput test queries.
-	refresh_streams &
-fi
+stream_num=1
+while [ $stream_num -le $num_stream ]; do
+	STREAM="PERF.THRUPUT.RFST$stream_num"
+	RF1TASK="PERF.THRUPUT.RFST$stream_num.RF1"
+	RF2TASK="PERF.THRUPUT.RFST$stream_num.RF2"
+	RF1OUT="$OUTPUT_DIR/results/$stream_num/rf1.txt"
+	RF2OUT="$OUTPUT_DIR/results/$stream_num/rf2.txt"
+
+	record_start "$STREAM" || exit 1
+
+	record_start "$RF1TASK" || exit 1
+	if [ $NO_REFRESH -eq 0 ]; then
+		echo "`date`: Throughput Stream $stream_num: Starting RF 1..."
+		s_time_rf1=`date +%s`
+		dbt3-pgsql-rf1 $scale_factor > $RF1OUT 2>&1
+		DATASET=$?
+		if [ $DATASET -lt 1 ]; then
+			exit 1
+		fi
+		e_time_rf1=`date +%s`
+		diff_time_rf1=$(( $e_time_rf1 - $s_time_rf1 ))
+		echo "Throughput Stream $stream_num: Elapsed time for Refresh Stream 1: $diff_time_rf1 seconds"
+	fi
+	record_end "$RF1TASK" || exit 1
+
+	echo "`date`: Throughput Stream $stream_num: Starting RF 2..."
+	s_time_rf2=`date +%s`
+	record_start "$RF2TASK" || exit 1
+	if [ $NO_REFRESH -eq 0 ]; then
+		dbt3-pgsql-rf2 $DATASET > $RF2OUT 2>&1 || exit 1
+		e_time_rf2=`date +%s`
+		diff_time_rf2=$(( $e_time_rf2 - $s_time_rf2 ))
+		echo "Throughput Steam $stream_num: Elapsed time for RF 2: $diff_time_rf2 seconds"
+	fi
+	record_end "$RF2TASK" || exit 1
+
+	record_end "$STREAM" || exit 1
+
+	stream_num=$(( $stream_num + 1 ))
+done
 
 wait

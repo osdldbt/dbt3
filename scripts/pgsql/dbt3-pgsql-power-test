@@ -75,7 +75,7 @@ done
 PSQL="psql -v ON_ERROR_STOP=1 -X -e"
 
 # Generate queries for the Power test.
-SEED=`cat $SEED_FILE`
+read SEED < $SEED_FILE
 echo "Seed : $SEED" > $OUTPUT_DIR/readme.txt
 
 # Get the EXPLAIN plans for only the SELECT statements.
@@ -117,22 +117,22 @@ INSERT INTO time_statistics (task_name, s_time)
 VALUES ('PERF.POWER', CURRENT_TIMESTAMP);
 __EOF__
 
-if [ ${NO_REFRESH} -eq 0 ]; then
-	# Refresh Stream 1
+# Refresh Stream 1
+TASK="PERF.POWER.RF1"
+record_start "$TASK" || exit 1
+if [ $NO_REFRESH -eq 0 ]; then
 	echo "`date`: Power Test : Starting Refresh Stream 1" 
 	s_time=`date +%s`
-	TASK="PERF.POWER.RF1"
-	record_start "${TASK}" || exit 1
-	dbt3-pgsql-rf1 ${SCALE_FACTOR} > ${RESULTSDIR}/rf1.txt 2>&1
+	dbt3-pgsql-rf1 $SCALE_FACTOR > $RESULTSDIR/rf1.txt 2>&1
 	DATASET=$?
-	if [ ${DATASET} -lt 1 ]; then
+	if [ $DATASET -lt 1 ]; then
 		exit 1
 	fi
-	record_end "${TASK}" || exit 1
 	e_time=`date +%s`
 	echo "`date`: Power Test : Refresh Stream 1 completed." 
 	diff_time=$(( $e_time - $s_time ))
 fi
+record_end "$TASK" || exit 1
 
 # Execute the queries.
 i=1
@@ -154,18 +154,18 @@ __EOF__
 	i=$(( ${i} + 1 ))
 done
 
-if [ ${NO_REFRESH} -eq 0 ]; then
+TASK="PERF.POWER.RF2"
+record_start "$TASK" || exit 1
+if [ $NO_REFRESH -eq 0 ]; then
 	# Refresh Stream 2
 	echo "`date`: Power Test : Starting Refresh Stream 2" 
 	s_time=`date +%s`
-	TASK="PERF.POWER.RF2"
-	record_start "${TASK}" || exit 1
-	dbt3-pgsql-rf2 ${DATASET} > ${RESULTSDIR}/rf2.txt 2>&1 || exit 1
-	record_end "${TASK}" || exit 1
+	dbt3-pgsql-rf2 $DATASET > $RESULTSDIR/rf2.txt 2>&1 || exit 1
 	e_time=`date +%s`
 	echo "`date`: Power Test : Refresh Stream 2 completed." 
 	diff_time=$(( $e_time - $s_time ))
 fi
+record_end "$TASK" || exit 1
 
 record_end ""PERF.POWER"" || exit 1
 e_time_power=`date +%s`

@@ -44,7 +44,7 @@ while getopts "ef:n:o:p:s:yYz" opt; do
 	esac
 done
 
-SEED=`cat $SEED_FILE`
+read SEED < $SEED_FILE
 echo "Seed : $SEED" > $OUTPUT_DIR/readme.txt
 
 RUNDIR=$OUTPUT_DIR/run
