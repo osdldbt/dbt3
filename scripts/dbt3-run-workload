@@ -106,7 +106,6 @@ while getopts "123a:c:ef:ghn:Oo:p:Pq:Rr:s:tuVz" opt; do
 	o)
 		OUTPUT_DIR="${OPTARG}"
 		mkdir -p $OUTPUT_DIR
-		QTIMECSV="${OUTPUT_DIR}/q_time.csv"
 		;;
 	P)
 		LINUXPERF_FLAG="-Y"
@@ -262,7 +261,7 @@ dbt3-get-config $SCALE_FACTOR $STREAMS "$LOAD_PARAMETERS" "$POWER_PARAMETERS" \
 "$THROUGHPUT_PARAMETERS" $OUTPUT_DIR || exit 1
 
 echo "Getting query times... "
-dbt3-${DATABASE}-get-query-time > ${QTIMECSV} || exit 1
+dbt3-$DATABASE-get-query-time > $OUTPUT_DIR/q_time.csv || exit 1
 
 # Stop the database at the end of the test.
 dbt3-${DATABASE}-stop-db
@@ -271,7 +270,7 @@ dbt3-${DATABASE}-stop-db
 echo "Post processing query results... "
 if [ $RUN_POWER_TEST -eq 1 ] || [ $RUN_THROUGHPUT_TEST -eq 1 ]; then
 	dbt3-post-process \
-			-i $QTIMECSV \
+			-i $OUTPUT_DIR \
 			-s $SCALE_FACTOR \
 			-n $STREAMS \
 			-o $OUTPUT_DIR/metrics.txt \

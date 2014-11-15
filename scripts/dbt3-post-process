@@ -36,7 +36,8 @@ while getopts "23i:n:o:s:z" OPT; do
 		PLOT_OPTS="${PLOT_OPTS} -3"
 		;;
 	i)
-		INDIR=${OPTARG}
+		INDIR=$OPTARG
+		QTIME=$INDIR/q_time.csv
 		;;
 	n)
 		STREAMS=${OPTARG}
@@ -72,8 +73,8 @@ if [ -f "$INDIR/load/sar_raw.out" ]; then
 fi
 
 if [ ${FLAG_POWER_TEST} -eq 1 ]; then
-	POWER=`dbt3-power-score -i ${INDIR} -s ${SCALE_FACTOR} ${NO_REFRESH_FLAG}`
-	echo "power = ${POWER}"  | tee -a ${OUTFILE}
+	POWER=`dbt3-power-score -i $QTIME -s $SCALE_FACTOR $NO_REFRESH_FLAG`
+	echo "power = $POWER"  | tee -a $OUTFILE
 
 	if [ -f "$INDIR/power/sar_raw.out" ]; then
 		make_sar_csv $INDIR/power/sar_raw.out
@@ -81,8 +82,8 @@ if [ ${FLAG_POWER_TEST} -eq 1 ]; then
 fi
 
 if [ ${FLAG_THROUGHPUT_TEST} -eq 1 ]; then
-	THROUGHPUT=`dbt3-throughput-score -i ${INDIR} -s ${SCALE_FACTOR} -n ${STREAMS}`
-	echo "throughput = ${THROUGHPUT}" | tee -a ${OUTFILE}
+	THROUGHPUT=`dbt3-throughput-score -i $QTIME -s $SCALE_FACTOR -n $STREAMS`
+	echo "throughput = $THROUGHPUT" | tee -a $OUTFILE
 
 	if [ -f "$INDIR/throughput/sar_raw.out" ]; then
 		make_sar_csv $INDIR/throughput/sar_raw.out
