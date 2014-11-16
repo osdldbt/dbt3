@@ -28,10 +28,17 @@ select
 from
 	customer,
 	orders,
-	lineitem,
-        temp_lineitems:s
+	lineitem
 where
-	o_orderkey = t_orderkey
+	o_orderkey in (
+		select
+			l_orderkey
+		from
+			lineitem
+		group by
+			l_orderkey having
+				sum(l_quantity) > :1
+	)
 	and c_custkey = o_custkey
 	and o_orderkey = l_orderkey
 group by
@@ -44,7 +51,5 @@ order by
 	o_totalprice desc,
 	o_orderdate
 :n 100;
-
-drop table temp_lineitems:s; 
 
 :e

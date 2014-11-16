@@ -5,27 +5,39 @@
 :b
 :o
 :x
-select 
-  avg(c_acctbal) 
-from 
-  customer 
-where c_acctbal > 0.00
-      and substr(c_phone,1,2) in 
-      (':1', ':2', ':3', ':4', ':5', ':6', ':7')
-into @avgacctbal; 
-:x
 select
-	substr(c_phone, 1, 2) as cntrycode,
+	cntrycode,
 	count(*) as numcust,
 	sum(c_acctbal) as totacctbal
 from
-	customer
-left join orders on o_custkey = c_custkey 
-where
-	substr(c_phone, 1, 2) in
-	(':1', ':2', ':3', ':4', ':5', ':6', ':7')
-	and c_acctbal > @avgacctbal 
-	and o_custkey is null 
+	(
+		select
+			substr(c_phone from 1 for 2) as cntrycode,
+			c_acctbal
+		from
+			customer
+		where
+			substr(c_phone from 1 for 2) in
+				(':1', ':2', ':3', ':4', ':5', ':6', ':7')
+			and c_acctbal > (
+				select
+					avg(c_acctbal)
+				from
+					customer
+				where
+					c_acctbal > 0.00
+					and substr(c_phone from 1 for 2) in
+						(':1', ':2', ':3', ':4', ':5', ':6', ':7')
+			)
+			and not exists (
+				select
+					*
+				from
+					orders
+				where
+					o_custkey = c_custkey
+			)
+	) as custsale
 group by
 	cntrycode
 order by
