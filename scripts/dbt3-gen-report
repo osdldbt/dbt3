@@ -358,6 +358,9 @@ else
 	THROUGHPUT="N/A"
 fi
 
+LOADPARAMS=`grep "^load_parameters" $INDIR/config.txt | cut -d " " -f2-`
+POWERPARAMS=`grep "^power_parameters" $INDIR/config.txt | cut -d " " -f2-`
+THRUPARAMS=`grep "^throughput_parameters" $INDIR/config.txt | cut -d " " -f2-`
 
 # Generate individual Web pages for each test result directory.
 if [ -d "$INDIR/load" ]; then
@@ -409,6 +412,12 @@ cat << __EOF__ > $HTMLFILE
 <table border="0">
 
 <tr>
+<th></th>
+<th></th>
+<th>Runtime Parameters</th>
+</tr>
+
+<tr>
 <td align="right">Composite:</td><td align="right">$COMPOSITE</td>
 </tr>
 
@@ -416,18 +425,21 @@ cat << __EOF__ > $HTMLFILE
 <td align="right">Load Time:</td>
 <td align="right">$LOAD_MIN Minutes / $LOAD_HOUR Hours</td>
 <td>$LOADLINK</td>
+<td>$LOADPARAMS</td>
 </tr>
 
 <tr>
 <td align="right">Query Processing Power:</td>
 <td align="right">$POWER</td>
 <td>$POWERLINK</td>
+<td>$POWERPARAMS</td>
 </tr>
 
 <tr>
 <td align="right">Throughput Numerical Quantity:</td>
 <td align="right">$THROUGHPUT</td>
 <td>$THRULINK</td>
+<td>$THRUPARAMS</td>
 </tr>
 </table>
 __EOF__
