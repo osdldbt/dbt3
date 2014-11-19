@@ -40,8 +40,33 @@ __EOF__
 
 	if [ -d "$OUTDIR/perf" ]; then
 		if [ "x$SUBDIR" = "xpower" ]; then
+			PERFFILE=$OUTDIR/perf/index.html
 			cat << __EOF__ >> $SUBHTMLFILE
-[<a href="perf">Linux Perf Data</a> ]
+[<a href="perf/index.html">Linux Perf Data</a> ]
+__EOF__
+
+			cat << __EOF__ > $PERFFILE
+<html>
+<head>
+<title>Database Test 3 Power Test Perf Details</title>
+</head>
+<body>
+<h1>Query</h1>
+<ol>
+__EOF__
+			for i in `seq 1 22`; do
+				cat << __EOF__ >> $PERFFILE
+  <li>
+    <a href="$i/q$i-perf-report.txt">report</a> |
+    <a href="$i/q$i-perf-annotate.txt">annotated source</a> |
+    <a href="$i/q$i-perf-trace.txt">trace</a>
+  </li>
+__EOF__
+			done
+			cat << __EOF__ >> $PERFFILE
+</ol>
+</body>
+</html>
 __EOF__
 		else
 			cat << __EOF__ >> $SUBHTMLFILE
