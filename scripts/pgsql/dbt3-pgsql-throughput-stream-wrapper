@@ -30,11 +30,10 @@ WHERE task_name = '${NAME}';
 __EOF__
 }
 
-EXPLAIN_ANALYZE=0
 NO_REFRESH=0
-while getopts "ef:n:o:s:z" opt; do
+while getopts "ef:n:o:s:Yz" opt; do
 	case $opt in
-	e) EXPLAIN_ANALYZE=1
+	e) EXPLAIN_ARG="-y"
 		;;
 	f) scale_factor=$OPTARG
 		;;
@@ -43,6 +42,8 @@ while getopts "ef:n:o:s:z" opt; do
 	o) OUTPUT_DIR=$OPTARG
 		;;
 	s) SEED_FILE=$OPTARG
+		;;
+	Y) LINUXPERF_ARG="-Y"
 		;;
 	z) NO_REFRESH=1
 		;;
@@ -55,8 +56,13 @@ RUNDIR=$OUTPUT_DIR/run
 i=1
 while [ $i -le $num_stream ] 
 do
-	dbt3-pgsql-throughput-stream ${scale_factor} ${i} ${EXPLAIN_ANALYZE} \
-			${OUTPUT_DIR} ${SEED_FILE} > ${RUNDIR}/thruput_qs${i} 2>&1 &
+	dbt3-pgsql-throughput-stream \
+			-f ${scale_factor} \
+			-t ${i} \
+			${EXPLAIN_ARG} \
+			${LINUXPERF_ARG} \
+			-o ${OUTPUT_DIR} \
+			-s ${SEED_FILE} > ${RUNDIR}/thruput_qs${i} 2>&1 &
 	
 	i=$(( $i + 1 ))
 done
@@ -68,6 +74,9 @@ while [ $stream_num -le $num_stream ]; do
 	RF2TASK="PERF.THRUPUT.RFST$stream_num.RF2"
 	RF1OUT="$OUTPUT_DIR/results/$stream_num/rf1.txt"
 	RF2OUT="$OUTPUT_DIR/results/$stream_num/rf2.txt"
+
+	# Directories may not be created before the query is executed.
+	mkdir -p $OUTPUT_DIR/results/$stream_num
 
 	record_start "$STREAM" || exit 1
 

@@ -35,6 +35,7 @@ while getopts "ef:n:o:p:s:yYz" opt; do
 	y) USE_OPROFILE=1
 		;;
 	Y) USE_LINUXPERF=1
+		LINUXPERF_FLAG="-Y"
 		;;
 	z) NO_REFRESH_FLAG="-z"
 		NO_REFRESH=1
@@ -84,7 +85,7 @@ dbt3-pgsql-dbstat ${OUTPUT_DIR} &
 # Start the streams.
 eval $PERFCOMMAND dbt3-pgsql-throughput-stream-wrapper -f $scale_factor \
 		-n $num_stream $TEST_ARGS -o $OUTPUT_DIR -s $SEED_FILE \
-		$NO_REFRESH_FLAG || exit 1
+		$NO_REFRESH_FLAG $LINUXPERF_FLAG || exit 1
 
 # Stop collecting system statistics.
 read SARPID < ${OUTPUT_DIR}/sar.pid
@@ -124,4 +125,22 @@ if [ $USE_LINUXPERF -eq 1 ]; then
 			2>> $OUTPUT_DIR/perf/report-output.txt &
 	perf script -L -i $PERFDIR/perf.data > $PERFDIR/perf-trace.txt \
 			2>> $OUTPUT_DIR/perf/report-output.txt &
+
+	i=1
+	while [ $i -le $num_stream ]; do
+		j=1
+		while [ $j -le 22 ]; do
+			PERFDIR=$OUTPUT_DIR/results/$i/perf/$j
+			PERFPREFIX=q$j
+			perf report -i $PERFDIR/$PERFPREFIX-perf.data -n \
+					> $PERFDIR/$PERFPREFIX-perf-report.txt &
+			perf annotate -l -P -i $PERFDIR/$PERFPREFIX-perf.data \
+					> $PERFDIR/$PERFPREFIX-perf-annotate.txt &
+			perf script -L -i $PERFDIR/$PERFPREFIX-perf.data \
+					> $PERFDIR/$PERFPREFIX-perf-trace.txt &
+			j=$(( $j + 1 ))
+		done
+		i=$(( $i + 1 ))
+	done > $OUTPUT_DIR/perf/perf-output.txt 2>&1
+	wait
 fi

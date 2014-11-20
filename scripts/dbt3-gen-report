@@ -5,6 +5,37 @@
 #
 # Copyright (C) 2005-2014 Mark Wong
 #               2014      2ndQuadrant, Ltd.
+#
+
+write_perf_page()
+{
+	local FILE=$1
+	local DESC=$2
+
+	cat << __EOF__ > $FILE
+<html>
+<head>
+<title>Database Test 3 $DESC Perf Details</title>
+</head>
+<body>
+<h1>$DESC Query</h1>
+<ol>
+__EOF__
+	for i in `seq 1 22`; do
+		cat << __EOF__ >> $FILE
+  <li>
+    <a href="$i/q$i-perf-report.txt">report</a> |
+    <a href="$i/q$i-perf-annotate.txt">annotated source</a> |
+    <a href="$i/q$i-perf-trace.txt">trace</a>
+  </li>
+__EOF__
+	done
+	cat << __EOF__ >> $FILE
+</ol>
+</body>
+</html>
+__EOF__
+}
 
 gen_results()
 {
@@ -44,30 +75,7 @@ __EOF__
 			cat << __EOF__ >> $SUBHTMLFILE
 [<a href="perf/index.html">Linux Perf Data</a> ]
 __EOF__
-
-			cat << __EOF__ > $PERFFILE
-<html>
-<head>
-<title>Database Test 3 Power Test Perf Details</title>
-</head>
-<body>
-<h1>Query</h1>
-<ol>
-__EOF__
-			for i in `seq 1 22`; do
-				cat << __EOF__ >> $PERFFILE
-  <li>
-    <a href="$i/q$i-perf-report.txt">report</a> |
-    <a href="$i/q$i-perf-annotate.txt">annotated source</a> |
-    <a href="$i/q$i-perf-trace.txt">trace</a>
-  </li>
-__EOF__
-			done
-			cat << __EOF__ >> $PERFFILE
-</ol>
-</body>
-</html>
-__EOF__
+		write_perf_page $PERFFILE "Power Test"
 		else
 			cat << __EOF__ >> $SUBHTMLFILE
 [Linux perf: <a href="perf/perf-report.txt">report</a> |
@@ -127,6 +135,7 @@ __EOF__
 
 	if [ "x$SUBDIR" = "xthroughput" ]; then
 		local DIRS=`ls -d $OUTDIR/results/*/ 2> /dev/null`
+
 		cat << __EOF__ >> $SUBHTMLFILE
 <h3>Stream Plans</h3>
 <ol>
@@ -166,7 +175,7 @@ __EOF__
 			i=1
 			while [ $i -le 22 ]; do
 				cat << __EOF__ >> $SUBHTMLFILE
-<a href="results/$S/$i.txt">S$i</a>
+<a href="results/$S/$i.txt">Q$i</a>
 __EOF__
 				i=$(( $i + 1 ))
 			done
@@ -188,6 +197,26 @@ __EOF__
 		cat << __EOF__ >> $SUBHTMLFILE
 </ol>
 __EOF__
+
+		# Just check the first stream to see if perf data exists since there
+		# should always be at least 1 stream.
+		if [ -d $OUTDIR/results/1/perf ]; then
+			local DIRS=`ls -d $OUTDIR/results/* 2> /dev/null`
+
+			cat << __EOF__ >> $SUBHTMLFILE
+<h3>Stream Linux Perf Reports</h3>
+__EOF__
+
+			for DIR in $DIRS; do
+				S=`basename $DIR`
+				local PERFFILE=$OUTDIR/results/$S/perf/index.html
+
+				write_perf_page $PERFFILE "Throughput Test Stream $S"
+				cat << __EOF__ >> $SUBHTMLFILE
+<a href="results/1/perf/index.html">P$S</a> 
+__EOF__
+			done
+		fi
 
 		local FILES=`ls $OUTDIR/results/*/disaster.csv 2> /dev/null`
 		if [ $? -eq 0 ]; then
