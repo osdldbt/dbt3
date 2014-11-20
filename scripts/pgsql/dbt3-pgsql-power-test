@@ -137,13 +137,13 @@ record_end "$TASK" || exit 1
 # Execute the queries.
 i=1
 while [ ${i} -le 22 ]; do
+	Q=`${QGEN} -c -r ${SEED} -p 0 -s ${SCALE_FACTOR} ${EXPLAIN_ARG} ${i}`
+	N=`echo ${Q} | sed -n -r 's/.*\(#\)([[:digit:]]+)\..*/\1/p'`
 	if [ $USE_LINUXPERF -eq 1 ]; then
 		PERFDIR=$OUTPUT_DIR/perf/$N
 		mkdir -p $PERFDIR
 		PERFCOMMAND="perf record -a -g -s -F 100 -o $PERFDIR/q$N-perf.data"
 	fi
-	Q=`${QGEN} -c -r ${SEED} -p 0 -s ${SCALE_FACTOR} ${EXPLAIN_ARG} ${i}`
-	N=`echo ${Q} | sed -n -r 's/.*\(#\)([[:digit:]]+)\..*/\1/p'`
 	TASK="PERF.POWER.Q${N}"
 	record_start "${TASK}" || exit 1
 	eval $PERFCOMMAND $PSQL << __EOF__ \
