@@ -11,6 +11,10 @@ while read line; do
 		estimated_rows=`echo ${rows[0]} | cut -d "=" -f 2`
 		actual_rows=`echo ${rows[1]} | cut -d "=" -f 2`
 
+		if [ -z "$estimated_rows" ] || [ -z "$actual_rows" ]; then
+			continue
+		fi
+
 		if [ $estimated_rows -gt $actual_rows ]; then
 			larger=$estimated_rows
 			smaller=$actual_rows
@@ -18,6 +22,10 @@ while read line; do
 			larger=$actual_rows
 			smaller=$estimated_rows
 		else
+			continue
+		fi
+
+		if [ $smaller -eq 0 ]; then
 			continue
 		fi
 
