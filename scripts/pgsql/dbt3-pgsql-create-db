@@ -64,7 +64,7 @@ else
 	fi
 fi
 
-eval dbt3-pgsql-start-db $PARAMOPT
+eval dbt3-pgsql-start-db -o $OUTPUT_DIR $PARAMOPT
 
 createdb ${PGDATABASE} || exit 1
 #createlang plpgsql ${PGDATABASE}

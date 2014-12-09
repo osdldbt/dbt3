@@ -52,3 +52,6 @@ if [ ! -f "${PGDATA}/postmaster.pid" ]; then
 	echo "database did not start correctly, check database log"
 	exit 1
 fi
+
+# PostgreSQL does not give read permissions to everyone by default.
+chmod +r $OUTDIR/$LOGFILE
