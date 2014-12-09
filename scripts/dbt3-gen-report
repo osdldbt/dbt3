@@ -91,6 +91,8 @@ __EOF__
 </p>
 
 <h2>Database Details</h2>
+<a href="dbt3.log">Log</a>
+|
 <a href="param.txt">Parameters</a>
 __EOF__
 
