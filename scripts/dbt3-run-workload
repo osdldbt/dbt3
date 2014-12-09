@@ -220,7 +220,7 @@ else
 	# be cleared out.  Otherwise the data collection will be
 	# incomprehensible with duplicate data.
 	#
-	dbt3-${DATABASE}-start-db
+	dbt3-${DATABASE}-start-db -o $OUTPUT_DIR
 fi
 
 if [ ${RUN_POWER_TEST} -eq 1 ] || [ ${RUN_THROUGHPUT_TEST} -eq 1 ]; then
@@ -270,7 +270,7 @@ fi
 
 # Make sure the database is started, which it might be depending on what parts
 # of the workload are executed.
-dbt3-${DATABASE}-start-db
+dbt3-${DATABASE}-start-db -o $OUTPUT_DIR
 
 # Get system details.
 echo "Getting system configuration... "
