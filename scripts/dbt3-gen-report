@@ -18,7 +18,8 @@ write_perf_page()
 <title>Database Test 3 $DESC Perf Details</title>
 </head>
 <body>
-<h1>$DESC Query</h1>
+<h1>Database Test 3 $DESC Perf Details</h1>
+<h2>$DESC Query</h2>
 <ol>
 __EOF__
 	for i in `seq 1 22`; do
@@ -52,7 +53,8 @@ gen_results()
 </head>
 <body>
 
-<h1>Kernel and Application Profiles</h1>
+<h1>Database Test 3 $1 Details</h1>
+<h2>Kernel and Application Profiles</h2>
 <p>
 __EOF__
 
@@ -88,7 +90,7 @@ __EOF__
 	cat << __EOF__ >> $SUBHTMLFILE
 </p>
 
-<h1>Database Details</h1>
+<h2>Database Details</h2>
 <a href="param.txt">Parameters</a>
 __EOF__
 
@@ -234,9 +236,9 @@ __EOF__
 	fi
 
 	cat << __EOF__ >> $SUBHTMLFILE
-<h1>Charts</h1>
+<h2>Charts</h2>
 
-<h2>Processor</h2>
+<h3>Processor</h3>
 __EOF__
 
 	local FILES=`ls $OUTDIR/sar-cpu*.png 2> /dev/null`
@@ -246,14 +248,14 @@ __EOF__
 			cat << __EOF__ >> $SUBHTMLFILE
 <p>
 $chart<br/>
-<a href="$chart"><img src="$chart" width="50%" /></a>
+<a href="$chart"><img src="$chart" width="100%" /></a>
 </p>
 __EOF__
 		done
 	fi
 
 	cat << __EOF__ >> $SUBHTMLFILE
-<h2>Block Devices</h2>
+<h3>Block Devices</h3>
 __EOF__
 
 	local FILES=`ls $OUTDIR/sar-blockdev-*.png 2> /dev/null`
@@ -263,7 +265,7 @@ __EOF__
 			cat << __EOF__ >> $SUBHTMLFILE
 <p>
 $chart<br/>
-<a href="$chart"><img src="$chart" width="50%" /></a>
+<a href="$chart"><img src="$chart" width="100%" /></a>
 </p>
 __EOF__
 		done
@@ -271,7 +273,7 @@ __EOF__
 
 	cat << __EOF__ >> $SUBHTMLFILE
 
-<h2>Database</h2>
+<h3>Database</h3>
 __EOF__
 	local FILES=`ls $OUTDIR/db/db-stat-dbt3-*.png 2> /dev/null`
 	if [ -n "$FILES" ]; then
@@ -280,14 +282,14 @@ __EOF__
 			cat << __EOF__ >> $SUBHTMLFILE
 <p>
 $chart<br/>
-<a href="db/$chart"><img src="db/$chart" width="50%" /></a>
+<a href="db/$chart"><img src="db/$chart" width="100%" /></a>
 </p>
 __EOF__
 		done
 	fi
 
 	cat << __EOF__ >> $SUBHTMLFILE
-<h2>Tables</h2>
+<h3>Tables</h3>
 __EOF__
 
 	local FILES=`ls $OUTDIR/db/tables/*.png 2> /dev/null`
@@ -297,14 +299,14 @@ __EOF__
 			cat << __EOF__ >> $SUBHTMLFILE
 <p>
 $chart<br/>
-<a href="db/tables/$chart"><img src="db/tables/$chart" width="50%" /></a>
+<a href="db/tables/$chart"><img src="db/tables/$chart" width="100%" /></a>
 </p>
 __EOF__
 		done
 	fi
 
 	cat << __EOF__ >> $SUBHTMLFILE
-<h2>Indexes</h2>
+<h3>Indexes</h3>
 __EOF__
 	local FILES=`ls $OUTDIR/db/indexes/*.png 2> /dev/null`
 	if [ -n "$FILES" ]; then
@@ -313,7 +315,7 @@ __EOF__
 			cat << __EOF__ >> $SUBHTMLFILE
 <p>
 $chart<br/>
-<a href="db/indexes/$chart"><img src="db/indexes/$chart" width="50%" /></a>
+<a href="db/indexes/$chart"><img src="db/indexes/$chart" width="100%" /></a>
 </p>
 __EOF__
 		done
@@ -507,7 +509,7 @@ if [ -f "$INDIR/q_time.png" ]; then
 <h2>Query Times</h2>
 <p>
 (Click to view full size.)<br/>
-<a href="q_time.png"><img src="q_time.png" width="50%" /></a><br/>
+<a href="q_time.png"><img src="q_time.png" width="100%" /></a><br/>
 <a href="q_time.csv">CSV Version</a>
 </p>
 __EOF__
