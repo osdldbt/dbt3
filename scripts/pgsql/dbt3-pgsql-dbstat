@@ -68,7 +68,8 @@ ${PSQL} -c "SELECT version();" >> $OUTPUT_DIR/readme.txt
 pg_config --configure >> ${OUTPUT_DIR}/readme.txt
 
 # save the database parameters
-${PSQL} -c "SHOW ALL" > $OUTPUT_DIR/param.txt
+$PSQL -c "SELECT name, setting, source FROM pg_settings ORDER BY lower(name);" \
+		-o $OUTPUT_DIR/param.txt
 
 # record tables
 ${PSQL} -c "SELECT tablename "`
