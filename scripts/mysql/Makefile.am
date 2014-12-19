@@ -21,7 +21,4 @@ bin_SCRIPTS = dbt3-mysql-create-db \
 		dbt3-mysql-rf2 \
 		dbt3-mysql-start-db \
 		dbt3-mysql-stop-db \
-		dbt3-mysql-throughput-stream \
-		dbt3-mysql-throughput-stream-wrapper \
-		dbt3-mysql-throughput-test \
 		dbt3-mysql-time-statistics

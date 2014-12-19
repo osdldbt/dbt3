@@ -16,8 +16,10 @@ TEST_ARGS=
 NO_REFRESH=0
 NO_REFRESH_FLAG=
 
-while getopts "ef:n:o:p:s:yYz" opt; do
+while getopts "a:ef:n:o:p:s:yYz" opt; do
 	case $opt in
+	a) DATABASE=$OPTARG
+		;;
 	e) TEST_ARGS="$TEST_ARGS -e"
 		;;
 	f) scale_factor=$OPTARG
@@ -45,6 +47,18 @@ while getopts "ef:n:o:p:s:yYz" opt; do
 	esac
 done
 
+if [ "x$DATABASE" = "x" ]; then
+	echo "Specify database management system with -a flag"
+	exit 1
+fi
+
+which gzip > /dev/null 2>&1
+if [ $? -eq 0 ]; then
+	GZIP=gzip
+else
+	GZIP=true
+fi
+
 read SEED < $SEED_FILE
 echo "Seed : $SEED" > $OUTPUT_DIR/readme.txt
 
@@ -67,23 +81,19 @@ if [ $USE_LINUXPERF -eq 1 ]; then
 	PERFCOMMAND="perf record -a -g -s -F 100 -o $PERFDIR/perf.data"
 fi
 
-dbt3-pgsql-stop-db || exit 1
-eval dbt3-pgsql-start-db -o $OUTPUT_DIR $PARAMETERS_ARG || exit 1
+dbt3-$DATABASE-stop-db || exit 1
+eval dbt3-$DATABASE-start-db -o $OUTPUT_DIR $PARAMETERS_ARG || exit 1
 
-s_time=`date +%s`
-psql -v ON_ERROR_STOP=1 -X -q << __EOF__ > /dev/null 2>&1
-INSERT INTO time_statistics (task_name, s_time)
-VALUES ('PERF.THRUPUT', CURRENT_TIMESTAMP);
-__EOF__
+dbt3-$DATABASE-time-statistics -s -n PERF.THRUPUT || exit 1
 
 # Start collecting system statistics. 
 dbt3-sysstats --outdir $OUTPUT_DIR --sample 60 || exit 1
 
 # Start collecting database statistics.
-dbt3-pgsql-dbstat ${OUTPUT_DIR} &
+dbt3-$DATABASE-dbstat ${OUTPUT_DIR} &
 
 # Start the streams.
-eval $PERFCOMMAND dbt3-pgsql-throughput-stream-wrapper -f $scale_factor \
+eval $PERFCOMMAND dbt3-throughput-stream-wrapper -f $scale_factor \
 		-n $num_stream $TEST_ARGS -o $OUTPUT_DIR -s $SEED_FILE \
 		$NO_REFRESH_FLAG $LINUXPERF_FLAG || exit 1
 
@@ -95,17 +105,10 @@ kill ${PIDSTATPID}
 read DBSTATPID < ${OUTPUT_DIR}/dbstat.pid
 kill ${DBSTATPID}
 
-psql -v ON_ERROR_STOP=1 -X -q << __EOF__ > /dev/null 2>&1
-UPDATE time_statistics
-SET e_time = current_timestamp
-WHERE task_name = 'PERF.THRUPUT';
-__EOF__
-e_time=`date +%s`
-diff_time=$(( $e_time - $s_time ))
-echo "Elapsed time for Throughput Test : $diff_time seconds"
+dbt3-$DATABASE-time-statistics -e -n PERF.THRUPUT || exit 1
 
 # Stop the database after the test.
-dbt3-pgsql-stop-db || exit 1
+dbt3-$DATABASE-stop-db || exit 1
 
 if [ -f /proc/profile ]; then
 	profname="Throughput_Test"
@@ -119,12 +122,15 @@ fi
 
 if [ $USE_LINUXPERF -eq 1 ]; then
 	echo "Generating Linux perf reports for throughput test..."
-	perf report -i $PERFDIR/perf.data -n > $PERFDIR/perf-report.txt \
-			2>> $OUTPUT_DIR/perf/report-output.txt &
-	perf annotate -l -P -i $PERFDIR/perf.data > $PERFDIR/perf-annotate.txt \
-			2>> $OUTPUT_DIR/perf/report-output.txt &
-	perf script -L -i $PERFDIR/perf.data > $PERFDIR/perf-trace.txt \
-			2>> $OUTPUT_DIR/perf/report-output.txt &
+	(perf report -i $PERFDIR/perf.data -n > $PERFDIR/perf-report.txt \
+			2>> $OUTPUT_DIR/perf/report-output.txt && \
+			$GZIP $PERFDIR/perf-report.txt) &
+	(perf annotate -l -P -i $PERFDIR/perf.data > $PERFDIR/perf-annotate.txt \
+			2>> $OUTPUT_DIR/perf/report-output.txt && \
+			$GZIP $PERFDIR/perf-annotate.txt) &
+	(perf script -L -i $PERFDIR/perf.data > $PERFDIR/perf-trace.txt \
+			2>> $OUTPUT_DIR/perf/report-output.txt && \
+			$GZIP $PERFDIR/perf-trace.txt) &
 
 	i=1
 	while [ $i -le $num_stream ]; do
@@ -132,12 +138,15 @@ if [ $USE_LINUXPERF -eq 1 ]; then
 		while [ $j -le 22 ]; do
 			PERFDIR=$OUTPUT_DIR/results/$i/perf/$j
 			PERFPREFIX=q$j
-			perf report -i $PERFDIR/$PERFPREFIX-perf.data -n \
-					> $PERFDIR/$PERFPREFIX-perf-report.txt &
-			perf annotate -l -P -i $PERFDIR/$PERFPREFIX-perf.data \
-					> $PERFDIR/$PERFPREFIX-perf-annotate.txt &
-			perf script -L -i $PERFDIR/$PERFPREFIX-perf.data \
-					> $PERFDIR/$PERFPREFIX-perf-trace.txt &
+			(perf report -i $PERFDIR/$PERFPREFIX-perf.data -n \
+					> $PERFDIR/$PERFPREFIX-perf-report.txt && \
+					$GZIP $PERFDIR/$PERFPREFIX-perf-report.txt) &
+			(perf annotate -l -P -i $PERFDIR/$PERFPREFIX-perf.data \
+					> $PERFDIR/$PERFPREFIX-perf-annotate.txt && \
+					$GZIP $PERFDIR/$PERFPREFIX-perf-annotate.txt) &
+			(perf script -L -i $PERFDIR/$PERFPREFIX-perf.data \
+					> $PERFDIR/$PERFPREFIX-perf-trace.txt && \
+					$GZIP $PERFDIR/$PERFPREFIX-perf-trace.txt) &
 			j=$(( $j + 1 ))
 		done
 		i=$(( $i + 1 ))

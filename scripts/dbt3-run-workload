@@ -246,7 +246,7 @@ if [ ${RUN_POWER_TEST} -eq 1 ]; then
 fi
 
 if [ ${RUN_THROUGHPUT_TEST} -eq 1 ]; then
-	eval dbt3-${DATABASE}-throughput-test \
+	eval dbt3-throughput-test \
 			-n ${STREAMS} \
 			-f ${SCALE_FACTOR} \
 			-o ${OUTPUT_DIR}/throughput \

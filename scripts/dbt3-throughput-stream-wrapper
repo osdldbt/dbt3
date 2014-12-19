@@ -9,30 +9,11 @@
 #               2014      2ndQuadrant, Ltd.
 #
 
-record_start()
-{
-	NAME=$1
-
-	psql -v ON_ERROR_STOP=1 -X -q << __EOF__ > /dev/null 2>&1
-INSERT INTO time_statistics (task_name, s_time)
-VALUES ('${NAME}', CURRENT_TIMESTAMP);
-__EOF__
-}
-
-record_end()
-{
-	NAME=$1
-
-	psql -v ON_ERROR_STOP=1 -X -q << __EOF__ > /dev/null 2>&1
-UPDATE time_statistics
-SET e_time = current_timestamp
-WHERE task_name = '${NAME}';
-__EOF__
-}
-
 NO_REFRESH=0
-while getopts "ef:n:o:s:Yz" opt; do
+while getopts "a:ef:n:o:s:Yz" opt; do
 	case $opt in
+	a) DATABASE=$OPTARG
+		;;
 	e) EXPLAIN_ARG="-y"
 		;;
 	f) scale_factor=$OPTARG
@@ -47,8 +28,15 @@ while getopts "ef:n:o:s:Yz" opt; do
 		;;
 	z) NO_REFRESH=1
 		;;
+	\?) exit 1
+		;;
 	esac
 done
+
+if [ "x$DATABASE" = "x" ]; then
+	echo "Specify database management system with -a flag"
+	exit 1
+fi
 
 RUNDIR=$OUTPUT_DIR/run
 
@@ -56,7 +44,7 @@ RUNDIR=$OUTPUT_DIR/run
 i=1
 while [ $i -le $num_stream ] 
 do
-	dbt3-pgsql-throughput-stream \
+	dbt3-throughput-stream \
 			-f ${scale_factor} \
 			-t ${i} \
 			${EXPLAIN_ARG} \
@@ -78,13 +66,13 @@ while [ $stream_num -le $num_stream ]; do
 	# Directories may not be created before the query is executed.
 	mkdir -p $OUTPUT_DIR/results/$stream_num
 
-	record_start "$STREAM" || exit 1
+	dbt3-$DATABASE-time-statistics -s -n $STREAM || exit 1
 
-	record_start "$RF1TASK" || exit 1
+	dbt3-$DATABASE-time-statistics -s -n $RF1TASK || exit 1
 	if [ $NO_REFRESH -eq 0 ]; then
 		echo "`date`: Throughput Stream $stream_num: Starting RF 1..."
 		s_time_rf1=`date +%s`
-		dbt3-pgsql-rf1 $scale_factor > $RF1OUT 2>&1
+		dbt3-$DATABASE-rf1 $scale_factor > $RF1OUT 2>&1
 		DATASET=$?
 		if [ $DATASET -lt 1 ]; then
 			exit 1
@@ -93,20 +81,20 @@ while [ $stream_num -le $num_stream ]; do
 		diff_time_rf1=$(( $e_time_rf1 - $s_time_rf1 ))
 		echo "Throughput Stream $stream_num: Elapsed time for Refresh Stream 1: $diff_time_rf1 seconds"
 	fi
-	record_end "$RF1TASK" || exit 1
+	dbt3-$DATABASE-time-statistics -e -n $RF1TASK || exit 1
 
 	echo "`date`: Throughput Stream $stream_num: Starting RF 2..."
 	s_time_rf2=`date +%s`
-	record_start "$RF2TASK" || exit 1
+	dbt3-$DATABASE-time-statistics -s -n $RF2TASK || exit 1
 	if [ $NO_REFRESH -eq 0 ]; then
-		dbt3-pgsql-rf2 $DATASET > $RF2OUT 2>&1 || exit 1
+		dbt3-$DATABASE-rf2 $DATASET > $RF2OUT 2>&1 || exit 1
 		e_time_rf2=`date +%s`
 		diff_time_rf2=$(( $e_time_rf2 - $s_time_rf2 ))
 		echo "Throughput Steam $stream_num: Elapsed time for RF 2: $diff_time_rf2 seconds"
 	fi
-	record_end "$RF2TASK" || exit 1
+	dbt3-$DATABASE-time-statistics -e -n $RF2TASK || exit 1
 
-	record_end "$STREAM" || exit 1
+	dbt3-$DATABASE-time-statistics -e -n $STREAM || exit 1
 
 	stream_num=$(( $stream_num + 1 ))
 done
