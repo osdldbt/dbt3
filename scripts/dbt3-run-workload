@@ -229,7 +229,8 @@ if [ ${RUN_POWER_TEST} -eq 1 ] || [ ${RUN_THROUGHPUT_TEST} -eq 1 ]; then
 fi
 
 if [ ${RUN_POWER_TEST} -eq 1 ]; then
-	eval dbt3-${DATABASE}-power-test \
+	eval dbt3-power-test \
+			-a $DATABASE \
 			-f ${SCALE_FACTOR} \
 			-o ${OUTPUT_DIR}/power \
 			${POWER_PARAMETERS_ARG}\

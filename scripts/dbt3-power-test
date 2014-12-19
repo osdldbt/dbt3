@@ -14,30 +14,17 @@ USE_OPROFILE=0
 USE_LINUXPERF=0
 NO_REFRESH=0
 
-record_start()
+usage()
 {
-	local NAME=$1
-
-	psql -v ON_ERROR_STOP=1 -X -q << __EOF__ > /dev/null 2>&1
-INSERT INTO time_statistics (task_name, s_time)
-VALUES ('${NAME}', CURRENT_TIMESTAMP);
-__EOF__
-}
-
-record_end()
-{
-	local NAME=$1
-
-	psql -v ON_ERROR_STOP=1 -X -q << __EOF__ > /dev/null 2>&1
-UPDATE time_statistics
-SET e_time = current_timestamp
-WHERE task_name = '${NAME}';
-__EOF__
+	echo "Usage: $0 -f <SCALE_FACTOR> [-e -p <db_params> -t <tag> -y]"
 }
 
 # process the command line parameters
-while getopts "ef:p:o:s:yYz" opt; do
+while getopts "a:ef:p:o:s:yYz" opt; do
 	case $opt in
+		a)
+			DATABASE=$OPTARG
+			;;
 		e)
 			EXPLAIN=1
 			EXPLAIN_ARG="-y"
@@ -66,13 +53,33 @@ while getopts "ef:p:o:s:yYz" opt; do
 			NO_REFRESH=1
 			;;
 		\?)
-			echo "Usage: $0 -f <SCALE_FACTOR> [-e -p <db_params> -t <tag> -y]"
+			usage
 			exit 1
 			;;
 		esac
 done
 
-PSQL="psql -v ON_ERROR_STOP=1 -X -e"
+if [ "x$DATABASE" = "x" ]; then
+	echo "Specify database management system with -a flag"
+	usage
+	exit 1
+fi
+
+if [ $DATABASE = "pgsql" ]; then
+	DBCMD="psql -v ON_ERROR_STOP=1 -X -e"
+elif [ $DATABASE = "mysql" ]; then
+	DBCMD="mysql -u root -D $DBNAME"
+else
+	echo "Unsupported database system"
+	exit 1
+fi
+
+which gzip > /dev/null 2>&1
+if [ $? -eq 0 ]; then
+	GZIP=gzip
+else
+	GZIP=true
+fi
 
 # Generate queries for the Power test.
 read SEED < $SEED_FILE
@@ -86,20 +93,20 @@ while [ ${i} -le 22 ]; do
 	# Remember the query planned is in the order determined by the seed.
 	Q=`${QGEN} -c -r ${SEED} -p 0 -s ${SCALE_FACTOR} -x ${i}`
 	N=`echo ${Q} | sed -n -r 's/.*\(#\)([[:digit:]]+)\..*/\1/p'`
-	${PSQL} << __EOF__ > ${PLANDIR}/${N}.txt
+	$DBCMD << __EOF__ > ${PLANDIR}/${N}.txt
 ${Q}
 __EOF__
 	i=$(( ${i} + 1 ))
 done
 
-dbt3-pgsql-stop-db || exit 1
-eval dbt3-pgsql-start-db -o $OUTPUT_DIR $PARAMETERS_ARG || exit 1
+dbt3-$DATABASE-stop-db || exit 1
+eval dbt3-$DATABASE-start-db -o $OUTPUT_DIR $PARAMETERS_ARG || exit 1
 
 # Start collecting system statistics.
 dbt3-sysstats --outdir $OUTPUT_DIR --sample 60 || exit 1
 
 # Collect database statistics
-dbt3-pgsql-dbstat ${OUTPUT_DIR} &
+dbt3-$DATABASE-dbstat ${OUTPUT_DIR} &
 
 # Clear the read profile counters.
 if [ -f /proc/profile ]; then
@@ -112,18 +119,15 @@ if [ $USE_OPROFILE -eq 1 ]; then
 fi
 
 s_time_power=`date +%s`
-psql -v ON_ERROR_STOP=1 -X -q << __EOF__ > /dev/null 2>&1
-INSERT INTO time_statistics (task_name, s_time)
-VALUES ('PERF.POWER', CURRENT_TIMESTAMP);
-__EOF__
+dbt3-$DATABASE-time-statistics -s -n PERF.POWER || exit 1
 
 # Refresh Stream 1
 TASK="PERF.POWER.RF1"
-record_start "$TASK" || exit 1
+dbt3-$DATABASE-time-statistics -s -n $TASK || exit 1
 if [ $NO_REFRESH -eq 0 ]; then
 	echo "`date`: Power Test : Starting Refresh Stream 1" 
 	s_time=`date +%s`
-	dbt3-pgsql-rf1 $SCALE_FACTOR > $RESULTSDIR/rf1.txt 2>&1
+	dbt3-$DATABASE-rf1 $SCALE_FACTOR > $RESULTSDIR/rf1.txt 2>&1
 	DATASET=$?
 	if [ $DATASET -lt 1 ]; then
 		exit 1
@@ -132,7 +136,7 @@ if [ $NO_REFRESH -eq 0 ]; then
 	echo "`date`: Power Test : Refresh Stream 1 completed." 
 	diff_time=$(( $e_time - $s_time ))
 fi
-record_end "$TASK" || exit 1
+dbt3-$DATABASE-time-statistics -e -n $TASK || exit 1
 
 # Execute the queries.
 i=1
@@ -145,29 +149,29 @@ while [ ${i} -le 22 ]; do
 		PERFCOMMAND="perf record -a -g -s -F 100 -o $PERFDIR/q$N-perf.data"
 	fi
 	TASK="PERF.POWER.Q${N}"
-	record_start "${TASK}" || exit 1
-	eval $PERFCOMMAND $PSQL << __EOF__ \
+	dbt3-$DATABASE-time-statistics -s -n $TASK || exit 1
+	eval $PERFCOMMAND $DBCMD << __EOF__ \
 			> $RESULTSDIR/$N.txt 2>> $OUTPUT_DIR/power.txt
 ${Q}
 __EOF__
-	record_end "${TASK}" || exit 1
+	dbt3-$DATABASE-time-statistics -e -n $TASK || exit 1
 	i=$(( ${i} + 1 ))
 done
 
 TASK="PERF.POWER.RF2"
-record_start "$TASK" || exit 1
+dbt3-$DATABASE-time-statistics -s -n $TASK || exit 1
 if [ $NO_REFRESH -eq 0 ]; then
 	# Refresh Stream 2
 	echo "`date`: Power Test : Starting Refresh Stream 2" 
 	s_time=`date +%s`
-	dbt3-pgsql-rf2 $DATASET > $RESULTSDIR/rf2.txt 2>&1 || exit 1
+	dbt3-$DATABASE-rf2 $DATASET > $RESULTSDIR/rf2.txt 2>&1 || exit 1
 	e_time=`date +%s`
 	echo "`date`: Power Test : Refresh Stream 2 completed." 
 	diff_time=$(( $e_time - $s_time ))
 fi
-record_end "$TASK" || exit 1
+dbt3-$DATABASE-time-statistics -e -n $TASK || exit 1
 
-record_end ""PERF.POWER"" || exit 1
+dbt3-$DATABASE-time-statistics -e -n PERF.POWER || exit 1
 e_time_power=`date +%s`
 echo "`date`: Power Test completed."
 diff_time=$(( $e_time_power - $s_time_power ))
@@ -181,7 +185,7 @@ kill ${PIDSTATPID}
 read DBSTATPID < ${OUTPUT_DIR}/dbstat.pid
 kill ${DBSTATPID}
 
-dbt3-pgsql-stop-db || exit 1
+dbt3-$DATABASE-stop-db || exit 1
 
 if [ -f /proc/profile ]; then
 	profname="Power_Test"
@@ -199,12 +203,15 @@ if [ $USE_LINUXPERF -eq 1 ]; then
 	while [ $i -le 22 ]; do
 		PERFDIR=$OUTPUT_DIR/perf/$i
 		PERFPREFIX=q$i
-		perf report -i $PERFDIR/$PERFPREFIX-perf.data -n \
-				> $PERFDIR/$PERFPREFIX-perf-report.txt &
-		perf annotate -l -P -i $PERFDIR/$PERFPREFIX-perf.data \
-				> $PERFDIR/$PERFPREFIX-perf-annotate.txt &
-		perf script -L -i $PERFDIR/$PERFPREFIX-perf.data \
-				> $PERFDIR/$PERFPREFIX-perf-trace.txt &
+		(perf report -i $PERFDIR/$PERFPREFIX-perf.data -n \
+				> $PERFDIR/$PERFPREFIX-perf-report.txt && \
+				$GZIP $PERFDIR/$PERFPREFIX-perf-report.txt) &
+		(perf annotate -l -P -i $PERFDIR/$PERFPREFIX-perf.data \
+				> $PERFDIR/$PERFPREFIX-perf-annotate.txt \
+				&& $GZIP $PERFDIR/$PERFPREFIX-perf-annotate.txt) &
+		(perf script -L -i $PERFDIR/$PERFPREFIX-perf.data \
+				> $PERFDIR/$PERFPREFIX-perf-trace.txt \
+				&& $GZIP $PERFDIR/$PERFPREFIX-perf-trace.txt) &
 		i=$(( $i + 1 ))
 	done > $OUTPUT_DIR/perf/report-output.txt 2>&1
 	wait
@@ -215,7 +222,7 @@ if [ $EXPLAIN -eq 1 ]; then
 	DISASTERCSV=$OUTPUT_DIR/disaster.csv
 	i=1
 	while [ $i -le 22 ]; do
-		dbt3-pgsql-plan-disaster $RESULTSDIR/$i.txt >> $DISASTERCSV
+		dbt3-$DATABASE-plan-disaster $RESULTSDIR/$i.txt >> $DISASTERCSV
 		i=$(( $i + 1 ))
 	done
 	sort -n -t "," -k 2 -r -o $DISASTERCSV $DISASTERCSV

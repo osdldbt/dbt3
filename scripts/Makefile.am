@@ -17,6 +17,7 @@ bin_SCRIPTS = dbt3-compare-results \
 		dbt3-plot-results \
 		dbt3-post-process \
 		dbt3-power-score \
+		dbt3-power-test \
 		dbt3-run-workload \
 		dbt3-sysstats \
 		dbt3-throughput-score

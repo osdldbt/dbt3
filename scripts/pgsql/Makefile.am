@@ -18,11 +18,11 @@ bin_SCRIPTS = dbt3-pgsql-create-db \
 		dbt3-pgsql-load-data \
 		dbt3-pgsql-load-test \
 		dbt3-pgsql-plan-disaster \
-		dbt3-pgsql-power-test \
 		dbt3-pgsql-rf1 \
 		dbt3-pgsql-rf2 \
 		dbt3-pgsql-start-db \
 		dbt3-pgsql-stop-db \
 		dbt3-pgsql-throughput-stream \
 		dbt3-pgsql-throughput-stream-wrapper \
-		dbt3-pgsql-throughput-test
+		dbt3-pgsql-throughput-test \
+		dbt3-pgsql-time-statistics

@@ -25,9 +25,9 @@ __EOF__
 	for i in `seq 1 22`; do
 		cat << __EOF__ >> $FILE
   <li>
-    <a href="$i/q$i-perf-report.txt">report</a> |
-    <a href="$i/q$i-perf-annotate.txt">annotated source</a> |
-    <a href="$i/q$i-perf-trace.txt">trace</a>
+    <a href="$i/q$i-perf-report.txt.gz">report</a> |
+    <a href="$i/q$i-perf-annotate.txt.gz">annotated source</a> |
+    <a href="$i/q$i-perf-trace.txt.gz">trace</a>
   </li>
 __EOF__
 	done
@@ -80,9 +80,9 @@ __EOF__
 		write_perf_page $PERFFILE "Power Test"
 		else
 			cat << __EOF__ >> $SUBHTMLFILE
-[Linux perf: <a href="perf/perf-report.txt">report</a> |
-<a href="perf/perf-annotate.txt">annotated source</a> |
-<a href="perf/perf-trace.txt">trace</a>]
+[Linux perf: <a href="perf/perf-report.txt.gz">report</a> |
+<a href="perf/perf-annotate.txt.gz">annotated source</a> |
+<a href="perf/perf-trace.txt.gz">trace</a>]
 __EOF__
 		fi
 	fi
