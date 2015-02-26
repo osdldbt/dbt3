@@ -34,16 +34,16 @@ done
 
 PSQL="psql -v ON_ERROR_STOP=1 -X -q"
 
-if [ $cmd_clear == 1 ]; then
+if [ $cmd_clear -eq 1 ]; then
     SQL="DELETE FROM time_statistics"
 fi;
 
-if [ $cmd_start == 1 ]; then
+if [ $cmd_start -eq 1 ]; then
     SQL="INSERT INTO time_statistics (task_name, s_time) 
          VALUES ('$NAME', CURRENT_TIMESTAMP)"
 fi;
 
-if [ $cmd_end == 1 ]; then
+if [ $cmd_end -eq 1 ]; then
     SQL="UPDATE time_statistics SET e_time = CURRENT_TIMESTAMP WHERE task_name = '$NAME'"
 fi;
 
