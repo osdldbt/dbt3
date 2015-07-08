@@ -55,24 +55,6 @@ EXTRA_DIST = \
              queries/mysql/7.sql \
              queries/mysql/8.sql \
              queries/mysql/9.sql \
-	     queries/mysql/ddl \
-             queries/mysql/ddl/part.sql \
-             queries/mysql/ddl/region.sql \
-             queries/mysql/ddl/customer.sql \
-             queries/mysql/ddl/orders.sql \
-             queries/mysql/ddl/partsupp.sql \
-             queries/mysql/ddl/nation.sql \
-             queries/mysql/ddl/supplier.sql \
-             queries/mysql/ddl/lineitem.sql \
-             queries/mysql/ddl/nitro \
-             queries/mysql/ddl/nitro/part.sql \
-             queries/mysql/ddl/nitro/region.sql \
-             queries/mysql/ddl/nitro/customer.sql \
-             queries/mysql/ddl/nitro/orders.sql \
-             queries/mysql/ddl/nitro/partsupp.sql \
-             queries/mysql/ddl/nitro/nation.sql \
-             queries/mysql/ddl/nitro/supplier.sql \
-             queries/mysql/ddl/nitro/lineitem.sql \
              queries/sapdb/1.sql \
              queries/sapdb/10.sql \
              queries/sapdb/11.sql \
@@ -98,9 +80,4 @@ EXTRA_DIST = \
              queries/sapdb/6.sql \
              queries/sapdb/7.sql \
              queries/sapdb/8.sql \
-             queries/sapdb/9.sql \
-             scripts/init_seed.sh \
-             scripts/vmplot.sh \
-             scripts/mysql/get_power.pl \
-             scripts/mysql/get-throughput \
-             scripts/mysql/graph_query_time.pl
+             queries/sapdb/9.sql

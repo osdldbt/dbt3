@@ -8,7 +8,7 @@
 
 AUTOMAKE_OPTIONS = foreign
 
-bin_SCRIPTS = dbt3-pgsql-create-db \
+dist_bin_SCRIPTS = dbt3-pgsql-create-db \
 		dbt3-pgsql-create-tables \
 		dbt3-pgsql-dbstat \
 		dbt3-pgsql-drop-db \
