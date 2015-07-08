@@ -115,6 +115,10 @@ while getopts "123a:c:ef:ghn:Oo:p:Pq:Rr:s:tuVz" opt; do
 		;;
 	o)
 		OUTPUT_DIR="${OPTARG}"
+		if [ -d "$OUTPUT_DIR" ]; then
+			echo "The directory \"$OUTPUT_DIR\" already exists, specify a different location."
+			exit 1
+		fi
 		mkdir -p $OUTPUT_DIR
 		;;
 	P)
