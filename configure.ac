@@ -134,7 +134,6 @@ elif test "$DATABASE_TO_USE" = "sapdb"; then
 fi
 
 AC_CONFIG_FILES([Makefile])
-AC_CONFIG_FILES([doc/Makefile])
 AC_CONFIG_FILES([scripts/Makefile])
 AC_CONFIG_FILES([scripts/mysql/Makefile])
 AC_CONFIG_FILES([scripts/pgsql/Makefile])

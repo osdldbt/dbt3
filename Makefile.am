@@ -7,19 +7,10 @@
 
 AUTOMAKE_OPTIONS = foreign
 
-SUBDIRS = doc scripts src
+SUBDIRS = scripts src
 
 EXTRA_DIST = \
-             doc/Makefile \
-             doc/dbt3-architecture.sxw \
-             doc/dbt3-implement.sxw \
-             doc/dbt3-tpch.sxw \
-             doc/dbt3-user.tex \
-             doc/dbt3-user.pdf \
-             doc/pgsql/dbt3-sizing-pg.sxc \
-             doc/pgsql/dbt3-user-manual-pg.sxw \
-             doc/sapdb/dbt3-sizing.sxc \
-             doc/sapdb/dbt3-user-manual.sxw \
+             doc/dbt3-user-guide.txt \
              queries/pgsql/1.sql \
              queries/pgsql/10.sql \
              queries/pgsql/11.sql \

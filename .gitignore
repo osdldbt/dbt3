@@ -11,12 +11,11 @@ aclocal.m4
 autom4te.cache/
 configure
 depcomp
-doc/Makefile.in
 install-sh
 missing
 src/Makefile.in
 src/dbgen/Makefile.in
-doc/Makefile
+doc/dbt3-user-guide.html
 scripts/dbt3_profile
 scripts/pgsql/db_stats.sh
 scripts/pgsql/pgsql_profile
