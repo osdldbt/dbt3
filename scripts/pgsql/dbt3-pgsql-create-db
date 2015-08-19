@@ -50,6 +50,9 @@ dbt3-pgsql-stop-db
 echo "Creating database..."
 if [ -d ${PGDATA} ]; then
 	echo "PGData directory '${PGDATA}' already exists, skipping initdb..."
+	# Clear time statistics on repeated run otherwise results are
+	# indecipherable.
+	dbt3-$DATABASE-time-statistics -c
 else
 	# initialize database cluster
 	echo "initializing database cluster..."

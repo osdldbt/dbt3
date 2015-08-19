@@ -225,6 +225,7 @@ else
 	# incomprehensible with duplicate data.
 	#
 	dbt3-${DATABASE}-start-db -o $OUTPUT_DIR
+	dbt3-$DATABASE-time-statistics -c
 fi
 
 if [ ${RUN_POWER_TEST} -eq 1 ] || [ ${RUN_THROUGHPUT_TEST} -eq 1 ]; then
