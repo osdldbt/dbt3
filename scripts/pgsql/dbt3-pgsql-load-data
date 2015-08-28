@@ -13,9 +13,21 @@ load_table()
 	table=${1}
 	file=${table}.tbl
 
-	${PSQL} << __EOF__
-COPY ${table} FROM '${DSS_PATH}/${file}' USING DELIMITERS '|';
+	if [ $CHUNKS -eq 1 ] || [ "$table" = "nation" ] || \
+			[ "$table" = "region" ]; then
+		$PSQL << __EOF__
+COPY $table FROM '$DSS_PATH/$file' USING DELIMITERS '|';
 __EOF__
+	else
+		i=1
+		while [ $i -le $CHUNKS ]; do
+			$PSQL << __EOF__ &
+COPY $table FROM '$DSS_PATH/$file.$i' USING DELIMITERS '|';
+__EOF__
+			i=$(( $i + 1 ))
+		done
+		wait
+	fi
 }
 
 supplier()
@@ -35,7 +47,7 @@ ON supplier (s_nationkey, s_suppkey);" &
 
 	wait
 
-	${PSQL} -c "ANALYZE supplier;"
+	${PSQL} -c "VACUUM ANALYZE supplier;"
 }
 
 part()
@@ -60,7 +72,7 @@ ON part(p_name);" &
 
 	wait
 
-	${PSQL} -c "ANALYZE part;"
+	${PSQL} -c "VACUUM ANALYZE part;"
 }
 
 partsupp()
@@ -77,7 +89,7 @@ ON partsupp (ps_suppkey) ${TS_I_PS_SUPPKEY};" &
 
 	wait
 
-	${PSQL} -c "ANALYZE partsupp;"
+	${PSQL} -c "VACUUM ANALYZE partsupp;"
 }
 
 customer()
@@ -103,7 +115,7 @@ ON customer (c_mktsegment, c_custkey);" &
 
 	wait
 
-	${PSQL} -c "ANALYZE customer;"
+	${PSQL} -c "VACUUM ANALYZE customer;"
 }
 
 orders()
@@ -122,7 +134,7 @@ ON orders (o_orderkey, o_orderdate);" &
 
 	wait
 
-	${PSQL} -c "ANALYZE orders;"
+	${PSQL} -c "VACUUM ANALYZE orders;"
 }
 
 lineitem()
@@ -160,7 +172,7 @@ ON lineitem (l_orderkey, l_linenumber, l_shipdate);" &
 
 	wait
 
-	${PSQL} -c "ANALYZE lineitem;"
+	${PSQL} -c "VACUUM ANALYZE lineitem;"
 }
 
 nation()
@@ -173,7 +185,7 @@ ADD CONSTRAINT pk_nation PRIMARY KEY (n_nationkey) ${TS_PK_NATION};" &
 
 	wait
 
-	${PSQL} -c "ANALYZE nation;"
+	${PSQL} -c "VACUUM ANALYZE nation;"
 }
 
 region()
@@ -186,12 +198,16 @@ ADD CONSTRAINT pk_region PRIMARY KEY (r_regionkey) ${TS_PK_REGION};" &
 
 	wait
 
-	${PSQL} -c "ANALYZE region;"
+	${PSQL} -c "VACUUM ANALYZE region;"
 }
 
+CHUNKS=1
 USE_TABLESPACES=0
-while getopts "t" OPT; do
+while getopts "C:t" OPT; do
 	case ${OPT} in
+	C)
+		CHUNKS=$OPTARG
+		;;
 	t)
 		USE_TABLESPACES=1
 		;;

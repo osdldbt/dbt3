@@ -26,6 +26,7 @@ usage()
 	echo " 3 - run throughput test"
 	echo " a - dbms under test (mysql, pgsql, sapdb)"
 	echo " c - comment about the test"
+	echo " C - Number of chunks for parallel data loads"
 	echo " e - EXPLAIN ANALYZE (PostgreSQL only)"
 	echo " g - generate flat files"
 	echo " h - this help message"
@@ -43,6 +44,7 @@ usage()
 	echo " z - do not run refresh streams"
 }
 
+CHUNKS=1
 DATABASE=""
 COMMENT=""
 FLAG_POWER_TEST=""
@@ -70,7 +72,7 @@ if [ -n "$DEFAULT_THROUGHPUT_PARAMETERS" ]; then
 	THROUGHPUT_PARAMETERS="$DEFAULT_THROUGHPUT_PARAMETERS"
 fi
 
-while getopts "123a:c:ef:ghn:Oo:p:Pq:Rr:s:tuVz" opt; do
+while getopts "123a:c:C:ef:ghn:Oo:p:Pq:Rr:s:tuVz" opt; do
 	case $opt in
 	1)
 		RUN_LOAD_TEST=1
@@ -92,6 +94,9 @@ while getopts "123a:c:ef:ghn:Oo:p:Pq:Rr:s:tuVz" opt; do
 		;;
 	c)
 		COMMENT=${OPTARG}
+		;;
+	C)
+		CHUNKS=$OPTARG
 		;;
 	e)
 		# PostgreSQL only.
@@ -216,6 +221,7 @@ if [ ${RUN_LOAD_TEST} -eq 1 ]; then
 			${LINUXPERF_FLAG} \
 			-f $SCALE_FACTOR \
 			-g $GENERATE \
+			-C $CHUNKS \
 			${WORKLOAD_ARG} \
 			${TABLESPACES_FLAG} || exit 1
 else

@@ -9,6 +9,7 @@
 #               2014      2ndQuadrant, Ltd.
 #
 
+CHUNKS=1
 GENERATE=0
 ONLY_LOAD=0
 SF=0
@@ -16,8 +17,11 @@ USE_OPROFILE=0
 USE_LINUXPERF=0
 WORKLOAD="H"
 
-while getopts "f:g:lo:p:RtyY:" opt; do
+while getopts "C:f:g:lo:p:RtyY:" opt; do
 	case $opt in
+	C)
+		CHUNKS="$OPTARG"
+		;;
 	f)
 		SF=$OPTARG
 		;;
@@ -56,18 +60,36 @@ done
 mkdir -p ${DSS_PATH} || exit 1
 
 # Check to see if we have the files. If we don't have them - create them. 
-have_all_files=0
+have_all_files=1
 for f in customer lineitem nation orders partsupp part region supplier; do
-    if ! test -f $DSS_PATH/$f.tbl ; then
-        have_all_files=1
-    fi
+	if [ $CHUNKS -eq 1 ] || [ "$f" = "nation" ] || [ "$f" = "region" ]; then
+		if ! test -f $DSS_PATH/$f.tbl ; then
+			have_all_files=0
+		fi
+	else
+		i=1
+		while [ $i -le $CHUNKS ]; do
+			if ! test -f $DSS_PATH/$f.tbl.$i ; then
+				have_all_files=0
+			fi
+			i=$(( $i + 1 ))
+		done
+	fi
 done
 
-if [ $GENERATE -ne 0 -o $have_all_files -eq 1 ]; then
+if [ $GENERATE -ne 0 ] || [ $have_all_files -eq 0 ]; then
 	echo "`date` Generating data for scale factor $SF..."
 	# DBGEN reads DSS_PATH env var to determine where to put the files
-	${DBGEN} -s $SF || exit 1
-	chmod a+r ${DSS_PATH}/*.tbl
+	if [ $CHUNKS -eq 1 ]; then
+		$DBGEN -s $SF || exit 1
+	else
+		i=1
+		while [ $i -le $CHUNKS ]; do
+			yes no | $DBGEN -s $SF -C $CHUNKS -S $i &
+			i=$(( $i + 1 ))
+		done
+	fi
+	wait
 else
 	echo "Creating the database using existing data files."
 fi
@@ -105,7 +127,7 @@ if [ $USE_LINUXPERF -eq 1 ]; then
 	PERFCOMMAND="perf record -a -g -s -F 100 -o $PERFDIR/perf.data"
 fi
 
-eval $PERFCOMMAND dbt3-pgsql-load-data || exit 1
+eval $PERFCOMMAND dbt3-pgsql-load-data -C $CHUNKS || exit 1
 
 psql -v ON_ERROR_STOP=1 -X -q << __EOF__ > /dev/null 2>&1
 UPDATE time_statistics
