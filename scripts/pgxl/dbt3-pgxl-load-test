@@ -1,0 +1,172 @@
+#!/bin/sh
+#
+# This file is released under the terms of the Artistic License.
+# Please see the file LICENSE, included in this package, for details.
+#
+# Copyright (C) 2002-2006 Open Source Development Labs, Inc.
+#               2002-2006 Jenny Zhang
+#               2005-2015 Mark Wong
+#               2015      2ndQuadrant, Ltd.
+#
+
+GENERATE=0
+ONLY_LOAD=0
+OUTPUT_DIR="."
+SF=0
+USE_OPROFILE=0
+USE_LINUXPERF=0
+
+while getopts "f:g:lo:p:yY:" opt; do
+	case $opt in
+	f)
+		SF=$OPTARG
+		;;
+	g)
+		GENERATE=$OPTARG
+		;;
+	l)
+		ONLY_LOAD=1
+		;;
+	o)
+		OUTPUT_DIR=$OPTARG
+		mkdir -p $OUTPUT_DIR
+		for HOSTNAME in $HOSTNAMES; do
+			ssh $HOSTNAME "mkdir -p $OUTPUT_DIR"
+		done
+		;;
+	p)
+		PARAMETERS_ARG="-p \"$OPTARG\""
+		;;
+	y)
+		USE_OPROFILE=1
+		;;
+	Y)
+		USE_LINUXPERF=1
+		;;
+	\?)
+		echo "Usage: $0 [-o <dir> -p <db_param> -f <scale_factor>]"
+		exit 1
+	esac
+done
+
+for HOSTNAME in $HOSTNAMES; do
+	NODES=$(( $NODES + 1 ))
+done
+DATANODES=$(( $NODES * $DNPN ))
+
+mkdir -p $DSS_PATH || exit 1
+
+# Check to see if we have the files. If we don't have them - create them. 
+have_all_files=0
+for f in customer lineitem nation orders partsupp part region supplier; do
+    if ! test -f $DSS_PATH/$f.tbl ; then
+        have_all_files=1
+    fi
+done
+
+if [ $GENERATE -ne 0 -o $have_all_files -eq 1 ]; then
+	echo "`date` Generating data for scale factor $SF..."
+	# DBGEN reads DSS_PATH env var to determine where to put the files
+	i=1
+	while [ $i -le $DATANODES ]; do
+		yes no | $DBGEN -s $SF -C $DATANODES -S $i &
+		i=$(( $i + 1 ))
+	done
+	wait
+else
+	echo "Creating the database using existing data files."
+fi
+
+# Start collecting system statistics.
+dbt3-sysstats --outdir $OUTPUT_DIR --sample 60 --mpp 1 || exit 1
+
+eval dbt3-pgxl-create-db -o $OUTPUT_DIR $PARAMETERS_ARG
+
+dbt3-pgsql-drop-tables || exit 1
+dbt3-pgxl-create-tables || exit 1
+
+echo "Load Test starting at `date`"
+s_time=`date +%s`
+psql -v ON_ERROR_STOP=1 -X -q << __EOF__ > /dev/null 2>&1
+INSERT INTO time_statistics (task_name, s_time)
+VALUES ('LOAD', CURRENT_TIMESTAMP);
+__EOF__
+
+# Collect database statistics
+dbt3-pgxl-dbstat $OUTPUT_DIR 2> /dev/null &
+
+# Initialize profile counters.
+if [ -f /proc/profile ]; then
+	clearprof
+fi
+
+if [ $USE_OPROFILE -eq 1 ]; then
+	clearoprof
+fi
+
+if [ $USE_LINUXPERF -eq 1 ]; then
+	PERFDIR=$OUTPUT_DIR/perf
+	mkdir -p $PERFDIR
+	for HOSTNAME in $GTMHOST $HOSTNAMES; do
+		ssh $HOSTNAME << __EOF__ &
+mkdir -p $PERFDIR
+perf record -a -g -s -F 100 -o $PERFDIR/perf-$HOSTNAME.data
+__EOF__
+	done
+fi
+
+dbt3-pgxl-load-data || exit 1
+
+psql -v ON_ERROR_STOP=1 -X -q << __EOF__ > /dev/null 2>&1
+UPDATE time_statistics
+SET e_time = current_timestamp
+WHERE task_name = 'LOAD';
+__EOF__
+e_time=`date +%s`
+diff_time=`expr $e_time - $s_time`
+echo "Elapsed time for Load Test : $diff_time seconds"
+
+# Stop collecting system statistics.
+read SARPIDS < $OUTPUT_DIR/sar.pid
+for SARPID in $SARPIDS; do
+	kill $SARPID
+done
+read PIDSTATPIDS < $OUTPUT_DIR/pidstat.pid
+for PIDSTATPID in $PIDSTATPIDS; do
+	kill $PIDSTATPID
+done
+read DBSTATPID < ${OUTPUT_DIR}/dbstat.pid
+kill $DBSTATPID
+
+# Brute force.
+for HOSTNAME in $GTMHOST $HOSTNAMES; do
+	ssh $HOSTNAME "killall -9 sar sadc perf pidstat"
+done
+
+# Collect profile data.
+if [ -f /proc/profile ]; then
+	profname='Load_Test'
+	getprof
+fi
+
+if [ $USE_OPROFILE -eq 1 ]; then
+	profname='Load_Test'
+	getoprof
+fi
+
+if [ $USE_LINUXPERF -eq 1 ]; then
+	echo "Generating Linux perf reports for load test..."
+	for HOSTNAME in $GTMHOST $HOSTNAMES; do
+		ssh $HOSTNAME << __EOF__ &
+perf report -i $PERFDIR/perf-$HOSTNAME.data -n \
+		> $PERFDIR/perf-report-$HOSTNAME.txt \
+		2>> $OUTPUT_DIR/perf/report-output-$HOSTNAME.txt &
+perf annotate -l -P -i $PERFDIR/perf-$HOSTNAME.data \
+		> $PERFDIR/perf-annotate-$HOSTNAME.txt \
+		2>> $OUTPUT_DIR/perf/report-output-$HOSTNAME.txt &
+perf script -L -i $PERFDIR/perf-$HOSTNAME.data \
+		> $PERFDIR/perf-trace-$HOSTNAME.txt \
+		2>> $OUTPUT_DIR/perf/report-output-$HOSTNAME.txt &
+__EOF__
+	done
+fi

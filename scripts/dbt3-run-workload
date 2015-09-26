@@ -26,7 +26,6 @@ usage()
 	echo " 3 - run throughput test"
 	echo " a - dbms under test (mysql, pgsql, sapdb)"
 	echo " c - comment about the test"
-	echo " C - Number of chunks for parallel data loads"
 	echo " e - EXPLAIN ANALYZE (PostgreSQL only)"
 	echo " g - generate flat files"
 	echo " h - this help message"
@@ -44,7 +43,6 @@ usage()
 	echo " z - do not run refresh streams"
 }
 
-CHUNKS=1
 DATABASE=""
 COMMENT=""
 FLAG_POWER_TEST=""
@@ -55,6 +53,7 @@ RUN_LOAD_TEST=0
 RUN_POWER_TEST=0
 RUN_THROUGHPUT_TEST=0
 NO_REFRESH=0
+NODES=0
 OUTPUT_DIR=""
 SCALE_FACTOR=1
 SEED=0
@@ -72,7 +71,7 @@ if [ -n "$DEFAULT_THROUGHPUT_PARAMETERS" ]; then
 	THROUGHPUT_PARAMETERS="$DEFAULT_THROUGHPUT_PARAMETERS"
 fi
 
-while getopts "123a:c:C:ef:ghn:Oo:p:Pq:Rr:s:tuVz" opt; do
+while getopts "123a:c:ef:ghn:Oo:p:Pq:Rr:s:tuVz" opt; do
 	case $opt in
 	1)
 		RUN_LOAD_TEST=1
@@ -94,9 +93,6 @@ while getopts "123a:c:C:ef:ghn:Oo:p:Pq:Rr:s:tuVz" opt; do
 		;;
 	c)
 		COMMENT=${OPTARG}
-		;;
-	C)
-		CHUNKS=$OPTARG
 		;;
 	e)
 		# PostgreSQL only.
@@ -125,6 +121,10 @@ while getopts "123a:c:C:ef:ghn:Oo:p:Pq:Rr:s:tuVz" opt; do
 			exit 1
 		fi
 		mkdir -p $OUTPUT_DIR
+		for HOSTNAME in $HOSTNAMES; do
+			ssh $HOSTNAME "mkdir -p $OUTPUT_DIR"
+			NODES=$(( $NODES + 1 ))
+		done
 		;;
 	P)
 		LINUXPERF_FLAG="-Y"
@@ -175,6 +175,12 @@ if [ "x${OUTPUT_DIR}" = "x" ]; then
 	exit 1
 fi
 
+if [ "x$DATABASE" = "xpgxl" ]; then
+	TAG="pgsql"
+else
+	TAG=$DATABASE
+fi
+
 if [ -n "$LOAD_PARAMETERS" ]; then
 	LOAD_PARAMETERS_ARG="-p \"$LOAD_PARAMETERS\""
 fi
@@ -221,7 +227,6 @@ if [ ${RUN_LOAD_TEST} -eq 1 ]; then
 			${LINUXPERF_FLAG} \
 			-f $SCALE_FACTOR \
 			-g $GENERATE \
-			-C $CHUNKS \
 			${WORKLOAD_ARG} \
 			${TABLESPACES_FLAG} || exit 1
 else
@@ -231,7 +236,7 @@ else
 	# incomprehensible with duplicate data.
 	#
 	dbt3-${DATABASE}-start-db -o $OUTPUT_DIR
-	dbt3-$DATABASE-time-statistics -c
+	dbt3-$TAG-time-statistics -c
 fi
 
 if [ ${RUN_POWER_TEST} -eq 1 ] || [ ${RUN_THROUGHPUT_TEST} -eq 1 ]; then
@@ -288,15 +293,21 @@ dbt3-${DATABASE}-start-db -o $OUTPUT_DIR
 echo "Getting system configuration... "
 dbt3-get-config $SCALE_FACTOR $STREAMS "$LOAD_PARAMETERS" "$POWER_PARAMETERS" \
 "$THROUGHPUT_PARAMETERS" $OUTPUT_DIR || exit 1
+echo "dbms: $DATABASE" >> $OUTPUT_DIR/config.txt
+echo "datanodes: $NODES" >> $OUTPUT_DIR/config.txt
 
 echo "Getting query times... "
-dbt3-$DATABASE-get-query-time > $OUTPUT_DIR/q_time.csv || exit 1
+dbt3-$TAG-get-query-time > $OUTPUT_DIR/q_time.csv || exit 1
 
 # Stop the database at the end of the test.
 dbt3-${DATABASE}-stop-db
 
 # Calculate metrics.
 echo "Post processing query results... "
+for HOSTNAME in $HOSTNAMES; do
+	rsync -av $HOSTNAME:$OUTPUT_DIR/ $OUTPUT_DIR/ &
+done
+wait
 if [ $RUN_POWER_TEST -eq 1 ] || [ $RUN_THROUGHPUT_TEST -eq 1 ]; then
 	dbt3-post-process \
 			-i $OUTPUT_DIR \
@@ -311,7 +322,7 @@ fi
 which R > /dev/null 2>&1
 if [ $? -eq 0 ]; then
 	echo "Generating a report... "
-	dbt3-gen-report -i $OUTPUT_DIR $VERT_FLAG
+	dbt3-generate-report -i $OUTPUT_DIR $VERT_FLAG
 fi
 
 echo "Done!"

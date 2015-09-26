@@ -23,7 +23,7 @@ s_time=`date +%s`
 
 ${PSQL} << __EOF__
 BEGIN;
-CREATE TEMPORARY TABLE tmp_orderkey$set_num (orderkey numeric(10));
+CREATE TEMPORARY TABLE tmp_orderkey$set_num (orderkey integer);
 COPY tmp_orderkey$set_num
 FROM '${DSS_PATH}/delete.$set_num' USING DELIMITERS '|';
 CREATE INDEX

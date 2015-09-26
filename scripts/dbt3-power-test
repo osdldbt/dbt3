@@ -5,14 +5,15 @@
 #
 # Copyright (C) 2003-2006 Open Source Development Labs, Inc.
 #               2003-2006 Jenny Zhang
-#               2004-2014 Mark Wong
-#               2014      2ndQuadrant, Ltd.
+#               2004-2015 Mark Wong
+#               2015      2ndQuadrant, Ltd.
 
 EXPLAIN=0
 EXPLAIN_ARG=
 USE_OPROFILE=0
 USE_LINUXPERF=0
 NO_REFRESH=0
+MPP=0
 
 usage()
 {
@@ -20,10 +21,13 @@ usage()
 }
 
 # process the command line parameters
-while getopts "a:ef:p:o:s:yYz" opt; do
+while getopts "a:ef:o:p:s:yYz" opt; do
 	case $opt in
 		a)
 			DATABASE=$OPTARG
+			if [ "x$DATABASE" = "xpgxl" ]; then
+				MPP=1
+			fi
 			;;
 		e)
 			EXPLAIN=1
@@ -36,6 +40,9 @@ while getopts "a:ef:p:o:s:yYz" opt; do
 			OUTPUT_DIR=$OPTARG
 			RESULTSDIR="${OUTPUT_DIR}/results"
 			mkdir -p ${RESULTSDIR}
+			for HOSTNAME in $HOSTNAMES; do
+				ssh $HOSTNAME "mkdir -p $RESULTSDIR"
+			done
 			;;
 		p)
 			PARAMETERS_ARG="-p \"$OPTARG\""
@@ -65,13 +72,19 @@ if [ "x$DATABASE" = "x" ]; then
 	exit 1
 fi
 
-if [ $DATABASE = "pgsql" ]; then
+if [ $DATABASE = "pgsql" ] || [ $DATABASE = "pgxl" ]; then
 	DBCMD="psql -v ON_ERROR_STOP=1 -X -e"
 elif [ $DATABASE = "mysql" ]; then
 	DBCMD="mysql -u root -D $DBNAME"
 else
 	echo "Unsupported database system"
 	exit 1
+fi
+
+if [ "x$DATABASE" = "xpgxl" ]; then
+	TAG="pgsql"
+else
+	TAG=$DATABASE
 fi
 
 which gzip > /dev/null 2>&1
@@ -103,7 +116,7 @@ dbt3-$DATABASE-stop-db || exit 1
 eval dbt3-$DATABASE-start-db -o $OUTPUT_DIR $PARAMETERS_ARG || exit 1
 
 # Start collecting system statistics.
-dbt3-sysstats --outdir $OUTPUT_DIR --sample 60 || exit 1
+dbt3-sysstats --outdir $OUTPUT_DIR --sample 60 --mpp $MPP || exit 1
 
 # Collect database statistics
 dbt3-$DATABASE-dbstat ${OUTPUT_DIR} &
@@ -119,15 +132,15 @@ if [ $USE_OPROFILE -eq 1 ]; then
 fi
 
 s_time_power=`date +%s`
-dbt3-$DATABASE-time-statistics -s -n PERF.POWER || exit 1
+dbt3-$TAG-time-statistics -s -n PERF.POWER || exit 1
 
 # Refresh Stream 1
 TASK="PERF.POWER.RF1"
-dbt3-$DATABASE-time-statistics -s -n $TASK || exit 1
+dbt3-$TAG-time-statistics -s -n $TASK || exit 1
 if [ $NO_REFRESH -eq 0 ]; then
 	echo "`date`: Power Test : Starting Refresh Stream 1" 
 	s_time=`date +%s`
-	dbt3-$DATABASE-rf1 $SCALE_FACTOR > $RESULTSDIR/rf1.txt 2>&1
+	dbt3-$TAG-rf1 $SCALE_FACTOR > $RESULTSDIR/rf1.txt 2>&1
 	DATASET=$?
 	if [ $DATASET -lt 1 ]; then
 		exit 1
@@ -136,7 +149,7 @@ if [ $NO_REFRESH -eq 0 ]; then
 	echo "`date`: Power Test : Refresh Stream 1 completed." 
 	diff_time=$(( $e_time - $s_time ))
 fi
-dbt3-$DATABASE-time-statistics -e -n $TASK || exit 1
+dbt3-$TAG-time-statistics -e -n $TASK || exit 1
 
 # Execute the queries.
 i=1
@@ -145,45 +158,79 @@ while [ ${i} -le 22 ]; do
 	N=`echo ${Q} | sed -n -r 's/.*\(#\)([[:digit:]]+)\..*/\1/p'`
 	if [ $USE_LINUXPERF -eq 1 ]; then
 		PERFDIR=$OUTPUT_DIR/perf/$N
-		mkdir -p $PERFDIR
-		PERFCOMMAND="perf record -a -g -s -F 100 -o $PERFDIR/q$N-perf.data"
+		if [ $MPP -eq 0 ]; then
+			mkdir -p $PERFDIR
+			PERFCOMMAND="perf record -a -g -s -F 100 -o $PERFDIR/q$N-perf.data"
+		else
+			for HOSTNAME in $GTMHOST $HOSTNAMES; do
+				ssh $HOSTNAME << __EOF__ &
+mkdir -p $PERFDIR
+perf record -a -g -s -F 100 -o $PERFDIR/perf-$HOSTNAME-q$N.data
+__EOF__
+			done
+			fi
 	fi
 	TASK="PERF.POWER.Q${N}"
-	dbt3-$DATABASE-time-statistics -s -n $TASK || exit 1
-	eval $PERFCOMMAND $DBCMD << __EOF__ \
-			> $RESULTSDIR/$N.txt 2>> $OUTPUT_DIR/power.txt
+	dbt3-$TAG-time-statistics -s -n $TASK || exit 1
+	if [ $MPP -eq 0 ]; then
+		eval $PERFCOMMAND $DBCMD << __EOF__ \
+				> $RESULTSDIR/$N.txt 2>> $OUTPUT_DIR/power.txt
 ${Q}
 __EOF__
-	dbt3-$DATABASE-time-statistics -e -n $TASK || exit 1
+	else
+		$DBCMD << __EOF__ > $RESULTSDIR/$N.txt 2>> $OUTPUT_DIR/power.txt
+${Q}
+__EOF__
+	fi
+
+	dbt3-$TAG-time-statistics -e -n $TASK || exit 1
+	if [ $MPP -eq 1 ] && [ $USE_LINUXPERF -eq 1 ]; then
+		# Brute force.
+		for HOSTNAME in $GTMHOST $HOSTNAMES; do
+			ssh $HOSTNAME "killall -9 perf"
+		done
+	fi
+
 	i=$(( ${i} + 1 ))
 done
 
 TASK="PERF.POWER.RF2"
-dbt3-$DATABASE-time-statistics -s -n $TASK || exit 1
+dbt3-$TAG-time-statistics -s -n $TASK || exit 1
 if [ $NO_REFRESH -eq 0 ]; then
 	# Refresh Stream 2
 	echo "`date`: Power Test : Starting Refresh Stream 2" 
 	s_time=`date +%s`
-	dbt3-$DATABASE-rf2 $DATASET > $RESULTSDIR/rf2.txt 2>&1 || exit 1
+	dbt3-$TAG-rf2 $DATASET > $RESULTSDIR/rf2.txt 2>&1 || exit 1
 	e_time=`date +%s`
 	echo "`date`: Power Test : Refresh Stream 2 completed." 
 	diff_time=$(( $e_time - $s_time ))
 fi
-dbt3-$DATABASE-time-statistics -e -n $TASK || exit 1
+dbt3-$TAG-time-statistics -e -n $TASK || exit 1
 
-dbt3-$DATABASE-time-statistics -e -n PERF.POWER || exit 1
+dbt3-$TAG-time-statistics -e -n PERF.POWER || exit 1
 e_time_power=`date +%s`
 echo "`date`: Power Test completed."
 diff_time=$(( $e_time_power - $s_time_power ))
 echo "Elapsed time for Power Test : $diff_time seconds"
 
 # Stop collecting system statistics.
-read SARPID < ${OUTPUT_DIR}/sar.pid
-kill ${SARPID}
-read PIDSTATPID < ${OUTPUT_DIR}/pidstat.pid
-kill ${PIDSTATPID}
+read SARPIDS < $OUTPUT_DIR/sar.pid
+for SARPID in $SARPIDS; do
+	kill $SARPID
+done
+read PIDSTATPIDS < $OUTPUT_DIR/pidstat.pid
+for PIDSTATPID in $PIDSTATPIDS; do
+	kill $PIDSTATPID
+done
 read DBSTATPID < ${OUTPUT_DIR}/dbstat.pid
 kill ${DBSTATPID}
+
+# Brute force.
+if [ $MPP -eq 1 ]; then
+	for HOSTNAME in $GTMHOST $HOSTNAMES; do
+		ssh $HOSTNAME "killall -9 sar sadc pidstat"
+	done
+fi
 
 dbt3-$DATABASE-stop-db || exit 1
 
@@ -199,22 +246,41 @@ fi
 
 if [ $USE_LINUXPERF -eq 1 ]; then
 	echo "Generating Linux perf reports for power test..."
-	i=1
-	while [ $i -le 22 ]; do
-		PERFDIR=$OUTPUT_DIR/perf/$i
-		PERFPREFIX=q$i
-		(perf report -i $PERFDIR/$PERFPREFIX-perf.data -n \
-				> $PERFDIR/$PERFPREFIX-perf-report.txt && \
-				$GZIP $PERFDIR/$PERFPREFIX-perf-report.txt) &
-		(perf annotate -l -P -i $PERFDIR/$PERFPREFIX-perf.data \
-				> $PERFDIR/$PERFPREFIX-perf-annotate.txt \
-				&& $GZIP $PERFDIR/$PERFPREFIX-perf-annotate.txt) &
-		(perf script -L -i $PERFDIR/$PERFPREFIX-perf.data \
-				> $PERFDIR/$PERFPREFIX-perf-trace.txt \
-				&& $GZIP $PERFDIR/$PERFPREFIX-perf-trace.txt) &
-		i=$(( $i + 1 ))
-	done > $OUTPUT_DIR/perf/report-output.txt 2>&1
+	if [ $MPP -eq 0 ]; then
+		i=1
+		while [ $i -le 22 ]; do
+			PERFDIR=$OUTPUT_DIR/perf/$i
+			PERFPREFIX=q$i
+			(perf report -i $PERFDIR/$PERFPREFIX-perf.data -n \
+					> $PERFDIR/$PERFPREFIX-perf-report.txt && \
+					$GZIP $PERFDIR/$PERFPREFIX-perf-report.txt) &
+			(perf annotate -l -P -i $PERFDIR/$PERFPREFIX-perf.data \
+					> $PERFDIR/$PERFPREFIX-perf-annotate.txt \
+					&& $GZIP $PERFDIR/$PERFPREFIX-perf-annotate.txt) &
+			(perf script -L -i $PERFDIR/$PERFPREFIX-perf.data \
+					> $PERFDIR/$PERFPREFIX-perf-trace.txt \
+					&& $GZIP $PERFDIR/$PERFPREFIX-perf-trace.txt) &
+			i=$(( $i + 1 ))
+		done > $OUTPUT_DIR/perf/report-output.txt 2>&1
+	else
+		for HOSTNAME in $GTMHOST $HOSTNAMES; do
+			i=1
+			while [ $i -le 22 ]; do
+				PERFDIR=$OUTPUT_DIR/perf/$i
+				PERFPREFIX=q$i
+				ssh $HOSTNAME << __EOF__ &
+perf report -i $PERFDIR/perf-$HOSTNAME-$PERFPREFIX.data -n \
+		> $PERFDIR/perf-report-$HOSTNAME-$PERFPREFIX.txt
+perf annotate -l -P -i $PERFDIR/perf-$HOSTNAME-$PERFPREFIX.data \
+		> $PERFDIR/perf-annotate-$HOSTNAME-$PERFPREFIX.txt
+perf script -L -i $PERFDIR/perf-$HOSTNAME-$PERFPREFIX.data \
+		> $PERFDIR/perf-trace-$HOSTNAME-$PERFPREFIX.txt
+__EOF__
+				i=$(( $i + 1 ))
+			done > $OUTPUT_DIR/perf/report-output.txt 2>&1
+		done
 	wait
+	fi
 fi
 
 if [ $EXPLAIN -eq 1 ]; then
@@ -222,7 +288,7 @@ if [ $EXPLAIN -eq 1 ]; then
 	DISASTERCSV=$OUTPUT_DIR/disaster.csv
 	i=1
 	while [ $i -le 22 ]; do
-		dbt3-$DATABASE-plan-disaster $RESULTSDIR/$i.txt >> $DISASTERCSV
+		dbt3-$TAG-plan-disaster $RESULTSDIR/$i.txt >> $DISASTERCSV
 		i=$(( $i + 1 ))
 	done
 	sort -n -t "," -k 2 -r -o $DISASTERCSV $DISASTERCSV

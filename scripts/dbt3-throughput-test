@@ -5,20 +5,23 @@
 #
 # Copyright (C) 2003-2006 Open Source Development Labs, Inc.
 #               2003-2006 Jenny Zhang
-#               2004-2014 Mark Wong
-#               2014      2ndQuadrant, Ltd.
+#               2004-2015 Mark Wong
+#               2015      2ndQuadrant, Ltd.
 #
 
-USE_OPROFILE=0
-USE_LINUXPERF=0
-
-TEST_ARGS=
+MPP=0
 NO_REFRESH=0
 NO_REFRESH_FLAG=
+TEST_ARGS=
+USE_OPROFILE=0
+USE_LINUXPERF=0
 
 while getopts "a:ef:n:o:p:s:yYz" opt; do
 	case $opt in
 	a) DATABASE=$OPTARG
+		if [ "x$DATABASE" = "xpgxl" ]; then
+			MPP=1
+		fi
 		;;
 	e) TEST_ARGS="$TEST_ARGS -e"
 		;;
@@ -27,7 +30,10 @@ while getopts "a:ef:n:o:p:s:yYz" opt; do
 	n) num_stream=$OPTARG
 		;;
 	o) OUTPUT_DIR=$OPTARG
-	   mkdir -p $OUTPUT_DIR/results
+		mkdir -p $OUTPUT_DIR/results
+		for HOSTNAME in $HOSTNAMES; do
+			ssh $HOSTNAME "mkdir -p $OUTPUT_DIR/results"
+		done
 		;;
 	p)
 		PARAMETERS_ARG="-p \"$OPTARG\""
@@ -50,6 +56,12 @@ done
 if [ "x$DATABASE" = "x" ]; then
 	echo "Specify database management system with -a flag"
 	exit 1
+fi
+
+if [ "x$DATABASE" = "xpgxl" ]; then
+	TAG="pgsql"
+else
+	TAG=$DATABASE
 fi
 
 which gzip > /dev/null 2>&1
@@ -75,16 +87,16 @@ if [ $USE_OPROFILE -eq 1 ]; then
 	clearoprof
 fi
 
-if [ $USE_LINUXPERF -eq 1 ]; then
+if [ $MPP -eq 0 ] && [ $USE_LINUXPERF -eq 1 ]; then
 	PERFDIR=$OUTPUT_DIR/perf
 	mkdir -p $PERFDIR
 	PERFCOMMAND="perf record -a -g -s -F 100 -o $PERFDIR/perf.data"
 fi
 
-dbt3-$DATABASE-stop-db || exit 1
+dbt3-$DATABASE-stop-db
 eval dbt3-$DATABASE-start-db -o $OUTPUT_DIR $PARAMETERS_ARG || exit 1
 
-dbt3-$DATABASE-time-statistics -s -n PERF.THRUPUT || exit 1
+dbt3-$TAG-time-statistics -s -n PERF.THRUPUT || exit 1
 
 # Start collecting system statistics. 
 dbt3-sysstats --outdir $OUTPUT_DIR --sample 60 || exit 1
@@ -98,17 +110,21 @@ eval $PERFCOMMAND dbt3-throughput-stream-wrapper -f $scale_factor \
 		$NO_REFRESH_FLAG $LINUXPERF_FLAG || exit 1
 
 # Stop collecting system statistics.
-read SARPID < ${OUTPUT_DIR}/sar.pid
-kill ${SARPID}
-read PIDSTATPID < ${OUTPUT_DIR}/pidstat.pid
-kill ${PIDSTATPID}
+read SARPIDS < $OUTPUT_DIR/sar.pid
+for SARPID in $SARPIDS; do
+	kill $SARPID
+done
+read PIDSTATPIDS < $OUTPUT_DIR/pidstat.pid
+for PIDSTATPID in $PIDSTATPIDS; do
+	kill $PIDSTATPID
+done
 read DBSTATPID < ${OUTPUT_DIR}/dbstat.pid
 kill ${DBSTATPID}
 
-dbt3-$DATABASE-time-statistics -e -n PERF.THRUPUT || exit 1
+dbt3-$TAG-time-statistics -e -n PERF.THRUPUT || exit 1
 
 # Stop the database after the test.
-dbt3-$DATABASE-stop-db || exit 1
+dbt3-$DATABASE-stop-db
 
 if [ -f /proc/profile ]; then
 	profname="Throughput_Test"
@@ -120,7 +136,7 @@ if [ $USE_OPROFILE -eq 1 ]; then
 	getoprof
 fi
 
-if [ $USE_LINUXPERF -eq 1 ]; then
+if [ $MPP -eq 0 ] && [ $USE_LINUXPERF -eq 1 ]; then
 	echo "Generating Linux perf reports for throughput test..."
 	(perf report -i $PERFDIR/perf.data -n > $PERFDIR/perf-report.txt \
 			2>> $OUTPUT_DIR/perf/report-output.txt && \

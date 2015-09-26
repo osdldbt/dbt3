@@ -20,6 +20,7 @@ make_sar_csv() {
 	${SADF} ${FILE} -- -R > ${DIR}/sar-mem1.csv
 	${SADF} ${FILE} -- -r > ${DIR}/sar-mem2.csv
 	${SADF} ${FILE} -- -W > ${DIR}/sar-swap.csv
+	$SADF $FILE -- -n DEV > $DIR/sar-net.csv
 }
 
 PLOT_OPTS=""
@@ -64,30 +65,31 @@ echo "" > ${OUTFILE}
 which sadf > /dev/null 2>&1
 if [ $? -eq 0 ]; then
 	SADF="sadf -d -U"
+	$SADF 1 1 > /dev/null 2>&1
+	if [ $? -ne 0 ]; then
+		SADF="sadf -D"
+		$SADF 1 1 > /dev/null 2>&1
+		if [ $? -ne 0 ]; then
+			echo "WARNING: Was not able to determine proper sadf flags"
+			SADF="true"
+		fi
+	fi
 else
 	SADF=true
 fi
 
-if [ -f "$INDIR/load/sar_raw.out" ]; then
-	make_sar_csv $INDIR/load/sar_raw.out
-fi
+for SARFILE in `find $INDIR -name sar_raw.out`; do
+	make_sar_csv $SARFILE
+done
 
 if [ ${FLAG_POWER_TEST} -eq 1 ]; then
 	POWER=`dbt3-power-score -i $QTIME -s $SCALE_FACTOR $NO_REFRESH_FLAG`
 	echo "power = $POWER"  | tee -a $OUTFILE
-
-	if [ -f "$INDIR/power/sar_raw.out" ]; then
-		make_sar_csv $INDIR/power/sar_raw.out
-	fi
 fi
 
 if [ ${FLAG_THROUGHPUT_TEST} -eq 1 ]; then
 	THROUGHPUT=`dbt3-throughput-score -i $QTIME -s $SCALE_FACTOR -n $STREAMS`
 	echo "throughput = $THROUGHPUT" | tee -a $OUTFILE
-
-	if [ -f "$INDIR/throughput/sar_raw.out" ]; then
-		make_sar_csv $INDIR/throughput/sar_raw.out
-	fi
 fi
 
 if [ ${FLAG_POWER_TEST} -eq 1 ] && [ ${FLAG_THROUGHPUT_TEST} -eq 1 ]; then

@@ -8,11 +8,11 @@
 
 AUTOMAKE_OPTIONS = foreign
 
-SUBDIRS = mysql pgsql sapdb
+SUBDIRS = mysql pgsql pgxl sapdb
 
 dist_bin_SCRIPTS = dbt3-compare-results \
 		dbt3-composite-score \
-		dbt3-gen-report \
+		dbt3-generate-report \
 		dbt3-get-config \
 		dbt3-plot-results \
 		dbt3-post-process \

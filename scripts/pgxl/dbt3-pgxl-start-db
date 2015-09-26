@@ -1,0 +1,65 @@
+#!/bin/sh
+#
+# This file is released under the terms of the Artistic License.
+# Please see the file LICENSE, included in this package, for details.
+#
+# Copyright (C) 2002-2008 Open Source Development Labs, Inc.
+#               2002-2008 Rod Taylor
+#               2015      Mark Wong
+#               2015      2ndQuadrant, Ltd.
+#
+
+if [ -z ${PGDATA} ]; then
+	echo "PGDATA not defined."
+	exit 1
+fi
+
+LOGFILE="dbt3.log"
+OUTDIR="."
+NODES=1
+PARAMETERS="-c listen_addresses='*'"
+while getopts "f:o:p:" OPT; do
+	case $OPT in
+	f)
+		rm -f $PGDATA/postmaster.pid
+		;;
+	o)
+		OUTDIR=$OPTARG
+		;;
+	p)
+		PARAMETERS="$PARAMETERS $OPTARG"
+		;;
+	\?)
+		exit 1
+		;;
+	esac
+done
+
+gtm_ctl -D $GTMDATA -Z gtm -l $OUTDIR/gtm.log start
+
+i=1
+for HOSTNAME in $HOSTNAMES; do
+	ssh $HOSTNAME "gtm_ctl -Z gtm_proxy -D $GTMPROXYDATA$i -o \"-s $GTMHOST -t 6666\" -l $OUTDIR/gtm_proxy_$i.log start" \
+			|| exit 1
+	i=$(( $i + 1 ))
+done
+
+i=1
+for HOSTNAME in $HOSTNAMES; do
+	j=1
+	while [ $j -le $DNPN ]; do
+		PORT=$(( $DNBP + $j ))
+		POOLERPORT=$(( $DNBPP + $j ))
+		ssh $HOSTNAME << __EOF__
+pg_ctl -Z datanode -w -D $DATANODEDATA$i.$j -l $OUTDIR/datanode_$i_$j.log -o "-p $PORT -c pooler_port=$POOLERPORT $PARAMETERS" start
+__EOF__
+		if [ $? -ne 0 ]; then
+			exit 1
+		fi
+		j=$(( $j + 1 ))
+	done
+	i=$(( $i + 1 ))
+done
+
+pg_ctl -Z coordinator -w -D $COORDINATORDATA -l $OUTDIR/coordinator.log \
+		-o "-c pooler_port=35432 $PARAMETERS" start

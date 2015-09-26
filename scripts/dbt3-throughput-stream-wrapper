@@ -38,6 +38,12 @@ if [ "x$DATABASE" = "x" ]; then
 	exit 1
 fi
 
+if [ "x$DATABASE" = "xpgxl" ]; then
+	TAG="pgsql"
+else
+	TAG=$DATABASE
+fi
+
 RUNDIR=$OUTPUT_DIR/run
 
 # Start each stream.
@@ -66,13 +72,13 @@ while [ $stream_num -le $num_stream ]; do
 	# Directories may not be created before the query is executed.
 	mkdir -p $OUTPUT_DIR/results/$stream_num
 
-	dbt3-$DATABASE-time-statistics -s -n $STREAM || exit 1
+	dbt3-$TAG-time-statistics -s -n $STREAM || exit 1
 
-	dbt3-$DATABASE-time-statistics -s -n $RF1TASK || exit 1
+	dbt3-$TAG-time-statistics -s -n $RF1TASK || exit 1
 	if [ $NO_REFRESH -eq 0 ]; then
 		echo "`date`: Throughput Stream $stream_num: Starting RF 1..."
 		s_time_rf1=`date +%s`
-		dbt3-$DATABASE-rf1 $scale_factor > $RF1OUT 2>&1
+		dbt3-$TAG-rf1 $scale_factor > $RF1OUT 2>&1
 		DATASET=$?
 		if [ $DATASET -lt 1 ]; then
 			exit 1
@@ -81,20 +87,20 @@ while [ $stream_num -le $num_stream ]; do
 		diff_time_rf1=$(( $e_time_rf1 - $s_time_rf1 ))
 		echo "Throughput Stream $stream_num: Elapsed time for Refresh Stream 1: $diff_time_rf1 seconds"
 	fi
-	dbt3-$DATABASE-time-statistics -e -n $RF1TASK || exit 1
+	dbt3-$TAG-time-statistics -e -n $RF1TASK || exit 1
 
 	echo "`date`: Throughput Stream $stream_num: Starting RF 2..."
 	s_time_rf2=`date +%s`
-	dbt3-$DATABASE-time-statistics -s -n $RF2TASK || exit 1
+	dbt3-$TAG-time-statistics -s -n $RF2TASK || exit 1
 	if [ $NO_REFRESH -eq 0 ]; then
-		dbt3-$DATABASE-rf2 $DATASET > $RF2OUT 2>&1 || exit 1
+		dbt3-$TAG-rf2 $DATASET > $RF2OUT 2>&1 || exit 1
 		e_time_rf2=`date +%s`
 		diff_time_rf2=$(( $e_time_rf2 - $s_time_rf2 ))
 		echo "Throughput Steam $stream_num: Elapsed time for RF 2: $diff_time_rf2 seconds"
 	fi
-	dbt3-$DATABASE-time-statistics -e -n $RF2TASK || exit 1
+	dbt3-$TAG-time-statistics -e -n $RF2TASK || exit 1
 
-	dbt3-$DATABASE-time-statistics -e -n $STREAM || exit 1
+	dbt3-$TAG-time-statistics -e -n $STREAM || exit 1
 
 	stream_num=$(( $stream_num + 1 ))
 done

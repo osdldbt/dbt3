@@ -13,6 +13,10 @@ SUBDIRS = scripts src
 
 EXTRA_DIST = \
 		doc/dbt3-user-guide.txt \
+		examples/mysql/dbt3_mysql_profile \
+		examples/mysql/my.cnf \
+		examples/pgsql/dbt3_pgsql_profile \
+		examples/pgsql/dbt3_pgxl_profile \
 		queries/pgsql/1.sql \
 		queries/pgsql/10.sql \
 		queries/pgsql/11.sql \

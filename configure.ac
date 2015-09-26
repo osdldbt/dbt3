@@ -101,7 +101,7 @@ if test "$DATABASE_TO_USE" = "mysql"; then
       MYSQL_ENGINE_TUNING=""
       ;;
   esac
-  AC_SUBST(MYSQL_ENGINE)  
+  AC_SUBST(MYSQL_ENGINE)
   AC_SUBST(MYSQL_ENGINE_TUNING)
 
   MYSQL_PID=$MYSQL_DATADIR/mysql.pid
@@ -137,6 +137,7 @@ AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([scripts/Makefile])
 AC_CONFIG_FILES([scripts/mysql/Makefile])
 AC_CONFIG_FILES([scripts/pgsql/Makefile])
+AC_CONFIG_FILES([scripts/pgxl/Makefile])
 AC_CONFIG_FILES([scripts/sapdb/Makefile])
 AC_CONFIG_FILES([src/Makefile])
 AC_CONFIG_FILES([src/dbgen/Makefile])

@@ -1,0 +1,35 @@
+export DSS_QUERY="~/dbt3/queries/pgsql"
+export DSS_PATH="/tmp/dss"
+export DSS_CONFIG="~/dbt3/src/dbgen"
+
+export DBGEN="$DSS_CONFIG/dbgen"
+export QGEN="$DSS_CONFIG/qgen"
+
+export DBT3_DIR=~/local/dbt3
+
+export PGDATABASE=dbt3
+export PGDATA=$DBT3_DIR/pgdata
+
+export PGPORT=5432
+
+export DEFAULT_LOAD_PARAMETERS=""
+export DEFAULT_POWER_PARAMETERS=""
+export DEFAULT_THROUGHPUT_PARAMETERS=""
+
+# PGXL
+export GTMDATA="$PGDATA/gtm"
+export GTMPROXYDATA="$PGDATA/gtm_proxy."
+export COORDINATORDATA="$PGDATA/coordinator"
+export DATANODEDATA="$PGDATA/datanode."
+
+export GTMHOST="pgxl"
+export HOSTNAMES="pgxl1 pgxl2"
+
+#export DATANODEPORT=15432
+
+# Datanodes per node
+export DNPN=1
+# Base port number for datanodes
+export DNBP=15432
+# Base pooler port number for datanodes
+export DNBPP=25432
