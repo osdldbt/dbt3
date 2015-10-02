@@ -269,12 +269,15 @@ if [ $USE_LINUXPERF -eq 1 ]; then
 				PERFDIR=$OUTPUT_DIR/perf/$i
 				PERFPREFIX=q$i
 				ssh $HOSTNAME << __EOF__ &
-perf report -i $PERFDIR/perf-$HOSTNAME-$PERFPREFIX.data -n \
-		> $PERFDIR/perf-report-$HOSTNAME-$PERFPREFIX.txt
-perf annotate -l -P -i $PERFDIR/perf-$HOSTNAME-$PERFPREFIX.data \
-		> $PERFDIR/perf-annotate-$HOSTNAME-$PERFPREFIX.txt
-perf script -L -i $PERFDIR/perf-$HOSTNAME-$PERFPREFIX.data \
-		> $PERFDIR/perf-trace-$HOSTNAME-$PERFPREFIX.txt
+(perf report -i $PERFDIR/perf-$HOSTNAME-$PERFPREFIX.data -n \
+		> $PERFDIR/perf-report-$HOSTNAME-$PERFPREFIX.txt && \
+		$GZIP $PERFDIR/perf-report-$HOSTNAME-$PERFPREFIX.txt)
+(perf annotate -l -P -i $PERFDIR/perf-$HOSTNAME-$PERFPREFIX.data \
+		> $PERFDIR/perf-annotate-$HOSTNAME-$PERFPREFIX.txt && \
+		$GZIP $PERFDIR/perf-annotate-$HOSTNAME-$PERFPREFIX.txt)
+(perf script -L -i $PERFDIR/perf-$HOSTNAME-$PERFPREFIX.data \
+		> $PERFDIR/perf-trace-$HOSTNAME-$PERFPREFIX.txt && \
+		$GZIP $PERFDIR/perf-trace-$HOSTNAME-$PERFPREFIX.txt)
 __EOF__
 				i=$(( $i + 1 ))
 			done > $OUTPUT_DIR/perf/report-output.txt 2>&1

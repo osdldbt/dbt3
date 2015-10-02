@@ -3,8 +3,8 @@
 # This file is released under the terms of the Artistic License.
 # Please see the file LICENSE, included in this package, for details.
 #
-# Copyright (C) 2005-2014 Mark Wong
-#               2014      2ndQuadrant, Ltd.
+# Copyright (C) 2005-2015 Mark Wong
+#               2014-2015 2ndQuadrant, Ltd.
 #
 
 write_perf_page()
@@ -19,20 +19,53 @@ write_perf_page()
 </head>
 <body>
 <h1>Database Test 3 $DESC Perf Details</h1>
+__EOF__
+
+	if [ "x$MPP" = "xyes" ]; then
+		cat << __EOF__ >> $FILE
+Reports are ordered by query number.
+__EOF__
+
+		for HOST in $HOSTNAMES; do
+			cat << __EOF__ >> $FILE
+<h2>$HOST</h2>
+<ol>
+__EOF__
+
+			for i in `seq 1 22`; do
+				cat << __EOF__ >> $FILE
+  <li>
+    <a href="$i/perf-report-$HOST-q$i.txt.gz">report</a> |
+    <a href="$i/perf-annotate-$HOST-q$i.txt.gz">annotated source</a> |
+    <a href="$i/perf-trace-$HOST-q$i.txt.gz">trace</a>
+  </li>
+__EOF__
+			done
+			cat << __EOF__ >> $FILE
+</ol>
+__EOF__
+		done
+	else
+		cat << __EOF__ >> $FILE
 <h2>$DESC Query</h2>
 <ol>
 __EOF__
-	for i in `seq 1 22`; do
-		cat << __EOF__ >> $FILE
+		for i in `seq 1 22`; do
+			cat << __EOF__ >> $FILE
   <li>
     <a href="$i/q$i-perf-report.txt.gz">report</a> |
     <a href="$i/q$i-perf-annotate.txt.gz">annotated source</a> |
     <a href="$i/q$i-perf-trace.txt.gz">trace</a>
   </li>
 __EOF__
-	done
-	cat << __EOF__ >> $FILE
+		done
+
+		cat << __EOF__ >> $FILE
 </ol>
+__EOF__
+	fi
+
+	cat << __EOF__ >> $FILE
 </body>
 </html>
 __EOF__
@@ -40,7 +73,7 @@ __EOF__
 
 gen_db_chart_pages()
 {
-	for HOST in $GTMHOST $HOSTNAMES; do
+	for HOST in $HOSTNAMES; do
 		local HTMLFILE=$OUTDIR/$HOST-db.html
 
 		cat << __EOF__ > $HTMLFILE
@@ -73,7 +106,7 @@ __EOF__
 
 gen_system_chart_pages()
 {
-	for HOST in $GTMHOST $HOSTNAMES; do
+	for HOST in $HOSTNAMES; do
 		local HTMLFILE=$OUTDIR/$HOST-sar-cpu.html
 
 		cat << __EOF__ > $HTMLFILE
@@ -227,7 +260,7 @@ gen_results()
 		make_db_charts $NODE
 	done
 
-	for HOSTNAME in $GTMHOST $HOSTNAMES; do
+	for HOSTNAME in $HOSTNAMES; do
 		make_system_charts $OUTDIR/$HOSTNAME
 	done
 
@@ -262,13 +295,41 @@ __EOF__
 			cat << __EOF__ >> $SUBHTMLFILE
 [<a href="perf/index.html">Linux Perf Data</a> ]
 __EOF__
-		write_perf_page $PERFFILE "Power Test"
+			write_perf_page $PERFFILE "Power Test"
 		else
-			cat << __EOF__ >> $SUBHTMLFILE
+			if [ ! "x$MPP" = "xyes" ]; then
+				cat << __EOF__ >> $SUBHTMLFILE
 [Linux perf: <a href="perf/perf-report.txt.gz">report</a> |
 <a href="perf/perf-annotate.txt.gz">annotated source</a> |
 <a href="perf/perf-trace.txt.gz">trace</a>]
 __EOF__
+			else
+				if [ "x$SUBDIR" = "xload" ]; then
+					cat << __EOF__ >> $SUBHTMLFILE
+<h3>Linux perf</h3>
+<ul>
+__EOF__
+
+					for HOST in $HOSTNAMES; do
+						cat << __EOF__ >> $SUBHTMLFILE
+  <li>$HOST: <a href="perf/perf-report-$HOST.txt.gz">report</a> |
+      <a href="perf/perf-annotate-$HOST.txt.gz">annotated source</a> |
+      <a href="perf/perf-trace-$HOST.txt.gz">trace</a>
+  </li>
+__EOF__
+					done
+
+					cat << __EOF__ >> $SUBHTMLFILE
+</ul>
+__EOF__
+				else
+					cat << __EOF__ >> $SUBHTMLFILE
+<p>
+Not collected for multi-node databases systems.
+</p>
+__EOF__
+				fi
+			fi
 		fi
 	fi
 
@@ -276,10 +337,43 @@ __EOF__
 </p>
 
 <h2>Database Details</h2>
-<a href="dbt3.log">Log</a>
-|
-<a href="param.txt">Parameters</a>
+<h3>Logs</h3>
+<ul>
 __EOF__
+
+	if [ "x$DATABASE" = "xpgxl" ]; then
+		cat << __EOF__ >> $SUBHTMLFILE
+  <li><a href="gtm.log">GTM</a></li>
+  <li><a href="coordinator">Coordinator</a></li>
+  <li>
+__EOF__
+		for i in `seq 1 $NODE_COUNT`; do
+			cat << __EOF__ >> $SUBHTMLFILE
+    <a href="gtm_proxy_$i.log">GTM Proxy $i</a>
+__EOF__
+		done
+		cat << __EOF__ >> $SUBHTMLFILE
+  </li>
+  <li>
+__EOF__
+
+		for i in `seq 1 $NODE_COUNT`; do
+			cat << __EOF__ >> $SUBHTMLFILE
+    <a href="datanode_$i.log">Datanode $i</a>
+__EOF__
+		done
+		cat << __EOF__ >> $SUBHTMLFILE
+  </li>
+</ul>
+__EOF__
+	else
+		cat << __EOF__ >> $SUBHTMLFILE
+<p>
+<a href="dbt3.log">Log</a> |
+<a href="param.txt">Parameters</a>
+</p>
+__EOF__
+	fi
 
 	if [ "x$SUBDIR" = "xpower" ]; then
 		if [ -f "$OUTDIR/disaster.csv" ]; then
@@ -289,6 +383,8 @@ __EOF__
 		fi
 
 		cat << __EOF__ >> $SUBHTMLFILE
+</ul>
+
 <h3>Query Plans</h3>
 __EOF__
 		i=1
@@ -392,19 +488,21 @@ __EOF__
 		if [ -d $OUTDIR/results/1/perf ]; then
 			local DIRS=`ls -d $OUTDIR/results/* 2> /dev/null`
 
-			cat << __EOF__ >> $SUBHTMLFILE
+			if [ ! "x$MPP" = "xyes" ]; then
+				cat << __EOF__ >> $SUBHTMLFILE
 <h3>Stream Linux Perf Reports</h3>
 __EOF__
 
-			for DIR in $DIRS; do
-				S=`basename $DIR`
-				local PERFFILE=$OUTDIR/results/$S/perf/index.html
+				for DIR in $DIRS; do
+					S=`basename $DIR`
+					local PERFFILE=$OUTDIR/results/$S/perf/index.html
 
-				write_perf_page $PERFFILE "Throughput Test Stream $S"
-				cat << __EOF__ >> $SUBHTMLFILE
-<a href="results/1/perf/index.html">P$S</a>
+					write_perf_page $PERFFILE "Throughput Test Stream $S"
+					cat << __EOF__ >> $SUBHTMLFILE
+<a href="results/$S/perf/index.html">P$S</a>
 __EOF__
-			done
+				done
+			fi
 		fi
 
 		local FILES=`ls $OUTDIR/results/*/disaster.csv 2> /dev/null`
@@ -432,7 +530,7 @@ __EOF__
 <ul>
 __EOF__
 
-	for HOST in $GTMHOST $HOSTNAMES; do
+	for HOST in $HOSTNAMES; do
 			cat << __EOF__ >> $SUBHTMLFILE
   <li><a href="$HOST-sar-cpu.html">$HOST</a></li>
 __EOF__
@@ -444,7 +542,7 @@ __EOF__
 <h3>Block Devices</h3>
 <ul>
 __EOF__
-	for HOST in $GTMHOST $HOSTNAMES; do
+	for HOST in $HOSTNAMES; do
 			cat << __EOF__ >> $SUBHTMLFILE
   <li><a href="$HOST-sar-blockdev.html">$HOST</a></li>
 __EOF__
@@ -456,7 +554,7 @@ __EOF__
 <h3>Memory</h3>
 <ul>
 __EOF__
-	for HOST in $GTMHOST $HOSTNAMES; do
+	for HOST in $HOSTNAMES; do
 			cat << __EOF__ >> $SUBHTMLFILE
   <li><a href="$HOST-sar-mem.html">$HOST</a></li>
 __EOF__
@@ -468,7 +566,7 @@ __EOF__
 <h3>Swap</h3>
 <ul>
 __EOF__
-	for HOST in $GTMHOST $HOSTNAMES; do
+	for HOST in $HOSTNAMES; do
 			cat << __EOF__ >> $SUBHTMLFILE
   <li><a href="$HOST-sar-swap.html">$HOST</a></li>
 __EOF__
@@ -480,7 +578,7 @@ __EOF__
 <h3>Network Devices</h3>
 <ul>
 __EOF__
-	for HOST in $GTMHOST $HOSTNAMES; do
+	for HOST in $HOSTNAMES; do
 			cat << __EOF__ >> $SUBHTMLFILE
   <li><a href="$HOST-sar-net.html">$HOST</a></li>
 __EOF__
@@ -493,7 +591,7 @@ __EOF__
 <ul>
 __EOF__
 
-	for HOST in $GTMHOST $HOSTNAMES; do
+	for HOST in $HOSTNAMES; do
 			cat << __EOF__ >> $SUBHTMLFILE
   <li><a href="$HOST-db.html">$HOST</a></li>
 __EOF__
@@ -548,7 +646,7 @@ make_db_charts()
 		return 0
 	fi
 
-	if [ "x$DATABASE" = "xpgsql" ]; then
+	if [ "x$DATABASE" = "xpgsql" ] || [ "x$DATABASE" = "xpgxl" ]; then
 		dbt-pgsql-plot-database-stats ${SARDIR}pg_stat_databases.csv $SARDIR \
 				2>> $ERRLOG
 
@@ -615,11 +713,11 @@ DBVER=`grep "^dbver" $INDIR/config.txt | cut -d " " -f2-`
 CPU_MODEL=`grep "^model" $INDIR/config.txt | cut -d " " -f2-`
 CPUS=`grep CPUS $INDIR/config.txt | awk '{print $2}'`
 CPU_MHZ=`grep MHz $INDIR/config.txt | awk '{print $2}'`
+HOSTNAMES=`grep "^hostnames:" $INDIR/config.txt | cut -d " " -f2-`
+MPP=`grep "^mpp:" $INDIR/config.txt | cut -d " " -f 2`
+NODES=`grep "^datanodes:" $INDIR/config.txt`
+NODE_COUNT=`grep "^datanodes:" $INDIR/config.txt | cut -d " " -f 2`
 RAM=`grep memory $INDIR/config.txt | awk '{print $2}'`
-NODES=0
-for HOST in $HOSTNAMES; do
-	NODES=$(( $NODES + 1 ))
-done
 
 SF=`grep scale_factor $INDIR/config.txt | awk '{print $2}'`
 STREAMS=`grep num_stream $INDIR/config.txt | awk '{print $2}'`
@@ -693,7 +791,7 @@ cat << __EOF__ > $HTMLFILE
 <td></td><td>$RAM KB RAM</td><td></td>
 </tr>
 <tr>
-<td></td><td>$NODES Datanodes</td><td></td>
+<td></td><td>$NODES</td><td></td>
 </tr>
 </table>
 

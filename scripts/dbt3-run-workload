@@ -48,6 +48,7 @@ COMMENT=""
 FLAG_POWER_TEST=""
 FLAG_THROUGHPUT_TEST=""
 GENERATE=0
+MPP=0
 RUN_ALL_TESTS=1
 RUN_LOAD_TEST=0
 RUN_POWER_TEST=0
@@ -177,6 +178,7 @@ fi
 
 if [ "x$DATABASE" = "xpgxl" ]; then
 	TAG="pgsql"
+	MPP=1
 else
 	TAG=$DATABASE
 fi
@@ -294,7 +296,11 @@ echo "Getting system configuration... "
 dbt3-get-config $SCALE_FACTOR $STREAMS "$LOAD_PARAMETERS" "$POWER_PARAMETERS" \
 "$THROUGHPUT_PARAMETERS" $OUTPUT_DIR || exit 1
 echo "dbms: $DATABASE" >> $OUTPUT_DIR/config.txt
-echo "datanodes: $NODES" >> $OUTPUT_DIR/config.txt
+if [ $MPP -eq 1 ]; then
+	echo "mpp: yes" >> $OUTPUT_DIR/config.txt
+	echo "datanodes: $NODES" >> $OUTPUT_DIR/config.txt
+	echo "hostnames: $GTMHOST $HOSTNAMES" >> $OUTPUT_DIR/config.txt
+fi
 
 echo "Getting query times... "
 dbt3-$TAG-get-query-time > $OUTPUT_DIR/q_time.csv || exit 1

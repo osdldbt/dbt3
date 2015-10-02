@@ -56,6 +56,13 @@ DATANODES=$(( $NODES * $DNPN ))
 
 mkdir -p $DSS_PATH || exit 1
 
+which gzip > /dev/null 2>&1
+if [ $? -eq 0 ]; then
+	GZIP=gzip
+else
+	GZIP=true
+fi
+
 # Check to see if we have the files. If we don't have them - create them. 
 have_all_files=0
 for f in customer lineitem nation orders partsupp part region supplier; do
@@ -158,15 +165,18 @@ if [ $USE_LINUXPERF -eq 1 ]; then
 	echo "Generating Linux perf reports for load test..."
 	for HOSTNAME in $GTMHOST $HOSTNAMES; do
 		ssh $HOSTNAME << __EOF__ &
-perf report -i $PERFDIR/perf-$HOSTNAME.data -n \
+(perf report -i $PERFDIR/perf-$HOSTNAME.data -n \
 		> $PERFDIR/perf-report-$HOSTNAME.txt \
-		2>> $OUTPUT_DIR/perf/report-output-$HOSTNAME.txt &
-perf annotate -l -P -i $PERFDIR/perf-$HOSTNAME.data \
+		2>> $OUTPUT_DIR/perf/report-output-$HOSTNAME.txt && \
+		$GZIP $PERFDIR/perf-report-$HOSTNAME.txt) &
+(perf annotate -l -P -i $PERFDIR/perf-$HOSTNAME.data \
 		> $PERFDIR/perf-annotate-$HOSTNAME.txt \
-		2>> $OUTPUT_DIR/perf/report-output-$HOSTNAME.txt &
-perf script -L -i $PERFDIR/perf-$HOSTNAME.data \
+		2>> $OUTPUT_DIR/perf/report-output-$HOSTNAME.txt && \
+		$GZIP $PERFDIR/perf-annotate-$HOSTNAME.txt) &
+(perf script -L -i $PERFDIR/perf-$HOSTNAME.data \
 		> $PERFDIR/perf-trace-$HOSTNAME.txt \
-		2>> $OUTPUT_DIR/perf/report-output-$HOSTNAME.txt &
+		2>> $OUTPUT_DIR/perf/report-output-$HOSTNAME.txt && \
+		$GZIP $PERFDIR/perf-trace-$HOSTNAME.txt) &
 __EOF__
 	done
 fi
