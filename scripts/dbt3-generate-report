@@ -73,55 +73,115 @@ __EOF__
 
 gen_db_chart_pages()
 {
-	for HOST in $HOSTNAMES; do
-		local HTMLFILE=$OUTDIR/$HOST-db.html
+	local OUTDIR=$1
 
-		cat << __EOF__ > $HTMLFILE
+	if [ ! "x$MPP" = "xyes" ]; then
+		gen_db_stat_page $OUTDIR db.html "Database" "db-stat-*"
+	else
+		for HOST in $HOSTNAMES; do
+			gen_db_stat_page $OUTDIR $HOST-db.html "Database" "db-stat-*" $HOST
+		done
+	fi
+}
+
+gen_db_stat_page()
+{
+	local OUTDIR=$1
+	local FILENAME=$2
+	local TITLE=$3
+	local FILEGLOB=$4
+	local HOST=$5
+
+	local HTMLFILE=$OUTDIR/$FILENAME
+
+	if [ -z $HOST ]; then
+		local PNGDIR=$OUTDIR/db
+	else
+		local PNGDIR=$OUTDIR/db/$HOST
+		local URL="$HOST/"
+	fi
+
+	cat << __EOF__ > $HTMLFILE
 <html>
 <head>
-<title>Database Test 3 $HOST Database Charts</title>
+<title>Database Test 3 $HOST Database $TITLE Charts</title>
 </head>
 <body>
-<h1>Database Test 3 $HOST Database Charts</h1>
+<h1>Database Test 3 $HOST $TITLE Charts</h1>
 __EOF__
 
-	local FILES=`ls $OUTDIR/db/$HOST/db-stat-*.png 2> /dev/null`
+	local FILES=`ls -v $PNGDIR/$FILEGLOB.png 2> /dev/null`
 	if [ -n "$FILES" ]; then
 		for chart in $FILES; do
-			chart="$HOST/`basename $chart`"
+			chart="$URL`basename $chart`"
 			cat << __EOF__ >> $HTMLFILE
 <p>
 $chart<br/>
-<a href="$chart"><img src="$chart" width="100%" /></a>
+<a href="db/$chart"><img src="db/$chart" width="100%" /></a>
 </p>
 __EOF__
 		done
 	fi
+
 	cat << __EOF__ >> $HTMLFILE
 </body>
 </html>
 __EOF__
-	done
 }
 
 gen_system_chart_pages()
 {
-	for HOST in $HOSTNAMES; do
-		local HTMLFILE=$OUTDIR/$HOST-sar-cpu.html
+	local OUTDIR=$1
 
-		cat << __EOF__ > $HTMLFILE
+	if [ ! "x$MPP" = "xyes" ]; then
+		gen_system_stat_page $OUTDIR sar-cpu.html "Processor" "sar-cpu*"
+		gen_system_stat_page $OUTDIR sar-blockdev.html "Block Device" "sar-blockdev*"
+		gen_system_stat_page $OUTDIR sar-mem.html "Memory" "sar-mem*"
+		gen_system_stat_page $OUTDIR sar-swap.html "Swap" "sar-swap*"
+		gen_system_stat_page $OUTDIR sar-net.html "Network Device" "sar-net*"
+	else
+		for HOST in $HOSTNAMES; do
+			gen_system_stat_page $OUTDIR $HOST-sar-cpu.html "Processor" "sar-cpu*" $HOST
+			gen_system_stat_page $OUTDIR $HOST-sar-blockdev "Block Device" \
+					"sar-blockdev*" $HOST
+			gen_system_stat_page $OUTDIR $HOST-sar-mem.html "Memory" "sar-mem*" $HOST
+			gen_system_stat_page $OUTDIR $HOST-sar-swap.html "Swap" "sar-swap*" $HOST
+			gen_system_stat_page $OUTDIR $HOST-sar-net.html "Network Device" \
+					"sar-net*" $HOST
+		done
+	fi
+}
+
+gen_system_stat_page()
+{
+	local OUTDIR=$1
+	local FILENAME=$2
+	local TITLE=$3
+	local FILEGLOB=$4
+	local HOST=$5
+
+	local HTMLFILE=$OUTDIR/$FILENAME
+
+	if [ -z $HOST ]; then
+		local PNGDIR=$OUTDIR
+	else
+		local PNGDIR=$OUTDIR/$HOST
+		local URL="$HOST/"
+	fi
+
+	cat << __EOF__ > $HTMLFILE
 <html>
 <head>
-<title>Database Test 3 $HOST System Processor Charts</title>
+<title>Database Test 3 $HOST System $TITLE Charts</title>
 </head>
 <body>
-<h1>Database Test 3 $HOST System Processor Charts</h1>
+<h1>Database Test 3 $HOST $TITLE Charts</h1>
 __EOF__
 
-	local FILES=`ls $OUTDIR/$HOST/sar-cpu*.png 2> /dev/null`
+	local FILES=`ls -v $PNGDIR/$FILEGLOB.png 2> /dev/null`
 	if [ -n "$FILES" ]; then
 		for chart in $FILES; do
-			chart="$HOST/`basename $chart`"
+			chart="$URL`basename $chart`"
 			cat << __EOF__ >> $HTMLFILE
 <p>
 $chart<br/>
@@ -130,123 +190,11 @@ $chart<br/>
 __EOF__
 		done
 	fi
+
 	cat << __EOF__ >> $HTMLFILE
 </body>
 </html>
 __EOF__
-
-		local HTMLFILE=$OUTDIR/$HOST-sar-blockdev.html
-
-		cat << __EOF__ > $HTMLFILE
-<html>
-<head>
-<title>Database Test 3 $HOST System Block Device Charts</title>
-</head>
-<body>
-<h1>Database Test 3 $HOST System Block Device Charts</h1>
-__EOF__
-
-	local FILES=`ls $OUTDIR/$HOST/sar-blockdev*.png 2> /dev/null`
-	if [ -n "$FILES" ]; then
-		for chart in $FILES; do
-			chart="$HOST/`basename $chart`"
-			cat << __EOF__ >> $HTMLFILE
-<p>
-$chart<br/>
-<a href="$chart"><img src="$chart" width="100%" /></a>
-</p>
-__EOF__
-		done
-	fi
-	cat << __EOF__ >> $HTMLFILE
-</body>
-</html>
-__EOF__
-
-		local HTMLFILE=$OUTDIR/$HOST-sar-mem.html
-
-		cat << __EOF__ > $HTMLFILE
-<html>
-<head>
-<title>Database Test 3 $HOST System Memory Charts</title>
-</head>
-<body>
-<h1>Database Test 3 $HOST System Memory Charts</h1>
-__EOF__
-
-	local FILES=`ls $OUTDIR/$HOST/sar-mem*.png 2> /dev/null`
-	if [ -n "$FILES" ]; then
-		for chart in $FILES; do
-			chart="$HOST/`basename $chart`"
-			cat << __EOF__ >> $HTMLFILE
-<p>
-$chart<br/>
-<a href="$chart"><img src="$chart" width="100%" /></a>
-</p>
-__EOF__
-		done
-	fi
-	cat << __EOF__ >> $HTMLFILE
-</body>
-</html>
-__EOF__
-
-		local HTMLFILE=$OUTDIR/$HOST-sar-swap.html
-
-		cat << __EOF__ > $HTMLFILE
-<html>
-<head>
-<title>Database Test 3 $HOST System Swap Charts</title>
-</head>
-<body>
-<h1>Database Test 3 $HOST System Swap Charts</h1>
-__EOF__
-
-	local FILES=`ls $OUTDIR/$HOST/sar-swap*.png 2> /dev/null`
-	if [ -n "$FILES" ]; then
-		for chart in $FILES; do
-			chart="$HOST/`basename $chart`"
-			cat << __EOF__ >> $HTMLFILE
-<p>
-$chart<br/>
-<a href="$chart"><img src="$chart" width="100%" /></a>
-</p>
-__EOF__
-		done
-	fi
-	cat << __EOF__ >> $HTMLFILE
-</body>
-</html>
-__EOF__
-
-		local HTMLFILE=$OUTDIR/$HOST-sar-net.html
-
-		cat << __EOF__ > $HTMLFILE
-<html>
-<head>
-<title>Database Test 3 $HOST System Network Device Charts</title>
-</head>
-<body>
-<h1>Database Test 3 $HOST System Network Device Charts</h1>
-__EOF__
-
-	local FILES=`ls $OUTDIR/$HOST/sar-net*.png 2> /dev/null`
-	if [ -n "$FILES" ]; then
-		for chart in $FILES; do
-			chart="$HOST/`basename $chart`"
-			cat << __EOF__ >> $HTMLFILE
-<p>
-$chart<br/>
-<a href="$chart"><img src="$chart" width="100%" /></a>
-</p>
-__EOF__
-		done
-	fi
-	cat << __EOF__ >> $HTMLFILE
-</body>
-</html>
-__EOF__
-	done
 }
 
 gen_results()
@@ -342,7 +290,6 @@ __EOF__
 </p>
 
 <h2>Database Details</h2>
-<h3>Logs</h3>
 <ul>
 __EOF__
 
@@ -375,13 +322,12 @@ __EOF__
 <p>
 <a href="dbt3.log">Log</a> |
 <a href="param.txt">Parameters</a>
+__EOF__
+
+		cat << __EOF__ >> $SUBHTMLFILE
 </p>
 __EOF__
 	fi
-
-	cat << __EOF__ >> $SUBHTMLFILE
-</ul>
-__EOF__
 
 	if [ "x$SUBDIR" = "xpower" ]; then
 		if [ -f "$OUTDIR/disaster.csv" ]; then
@@ -389,7 +335,13 @@ __EOF__
 | <a href="disaster.csv">Disaster Report</a>
 __EOF__
 		fi
+	fi
 
+	cat << __EOF__ >> $SUBHTMLFILE
+</ul>
+__EOF__
+
+	if [ "x$SUBDIR" = "xpower" ]; then
 		cat << __EOF__ >> $SUBHTMLFILE
 </ul>
 
@@ -528,116 +480,131 @@ __EOF__
 		fi
 	fi
 
-	gen_system_chart_pages
-	gen_db_chart_pages
+	gen_system_chart_pages $OUTDIR
+	gen_db_chart_pages $OUTDIR
 
 	cat << __EOF__ >> $SUBHTMLFILE
 <h2>Charts</h2>
+__EOF__
 
+	if [ ! "x$MPP" = "xyes" ]; then
+		cat << __EOF__ >> $SUBHTMLFILE
+<ul>
+  <li><a href="sar-cpu.html">Processor</a></li>
+  <li><a href="sar-blockdev.html">Block Devices</a></li>
+  <li><a href="sar-mem.html">Memory</a></li>
+  <li><a href="sar-swap.html">Swap</a></li>
+  <li><a href="sar-net.html">Network Devices</a></li>
+  <li><a href="db.html">Database</a></li>
+</ul>
+__EOF__
+	else
+		cat << __EOF__ >> $SUBHTMLFILE
 <h3>Processor</h3>
 <ul>
 __EOF__
 
-	for HOST in $HOSTNAMES; do
+		for HOST in $HOSTNAMES; do
 			cat << __EOF__ >> $SUBHTMLFILE
   <li><a href="$HOST-sar-cpu.html">$HOST</a></li>
 __EOF__
-	done
+		done
 
-	cat << __EOF__ >> $SUBHTMLFILE
+		cat << __EOF__ >> $SUBHTMLFILE
 </ul>
 
 <h3>Block Devices</h3>
 <ul>
 __EOF__
-	for HOST in $HOSTNAMES; do
+		for HOST in $HOSTNAMES; do
 			cat << __EOF__ >> $SUBHTMLFILE
   <li><a href="$HOST-sar-blockdev.html">$HOST</a></li>
 __EOF__
-	done
+		done
 
-	cat << __EOF__ >> $SUBHTMLFILE
+		cat << __EOF__ >> $SUBHTMLFILE
 </ul>
 
 <h3>Memory</h3>
 <ul>
 __EOF__
-	for HOST in $HOSTNAMES; do
+		for HOST in $HOSTNAMES; do
 			cat << __EOF__ >> $SUBHTMLFILE
   <li><a href="$HOST-sar-mem.html">$HOST</a></li>
 __EOF__
-	done
+		done
 
-	cat << __EOF__ >> $SUBHTMLFILE
+		cat << __EOF__ >> $SUBHTMLFILE
 </ul>
 
 <h3>Swap</h3>
 <ul>
 __EOF__
-	for HOST in $HOSTNAMES; do
+		for HOST in $HOSTNAMES; do
 			cat << __EOF__ >> $SUBHTMLFILE
   <li><a href="$HOST-sar-swap.html">$HOST</a></li>
 __EOF__
-	done
+		done
 
-	cat << __EOF__ >> $SUBHTMLFILE
+		cat << __EOF__ >> $SUBHTMLFILE
 </ul>
 
 <h3>Network Devices</h3>
 <ul>
 __EOF__
-	for HOST in $HOSTNAMES; do
+		for HOST in $HOSTNAMES; do
 			cat << __EOF__ >> $SUBHTMLFILE
   <li><a href="$HOST-sar-net.html">$HOST</a></li>
 __EOF__
-	done
+		done
 
-	cat << __EOF__ >> $SUBHTMLFILE
+		cat << __EOF__ >> $SUBHTMLFILE
 </ul>
 
 <h3>Database</h3>
 <ul>
 __EOF__
 
-	for HOST in $HOSTNAMES; do
+		for HOST in $HOSTNAMES; do
 			cat << __EOF__ >> $SUBHTMLFILE
   <li><a href="$HOST-db.html">$HOST</a></li>
 __EOF__
-	done
+		done
 
-	cat << __EOF__ >> $SUBHTMLFILE
+		cat << __EOF__ >> $SUBHTMLFILE
 </ul>
 
 <h3>Tables</h3>
 __EOF__
 
-	local FILES=`ls $OUTDIR/db/tables/*.png 2> /dev/null`
-	if [ -n "$FILES" ]; then
-		for chart in $FILES; do
-			chart=`basename $chart`
-			cat << __EOF__ >> $SUBHTMLFILE
+		local FILES=`ls $OUTDIR/db/tables/*.png 2> /dev/null`
+		if [ -n "$FILES" ]; then
+			for chart in $FILES; do
+				chart=`basename $chart`
+				cat << __EOF__ >> $SUBHTMLFILE
 <p>
 $chart<br/>
 <a href="db/tables/$chart"><img src="db/tables/$chart" width="100%" /></a>
 </p>
 __EOF__
-		done
-	fi
+			done
+		fi
 
-	cat << __EOF__ >> $SUBHTMLFILE
+		cat << __EOF__ >> $SUBHTMLFILE
 <h3>Indexes</h3>
 __EOF__
-	local FILES=`ls $OUTDIR/db/indexes/*.png 2> /dev/null`
-	if [ -n "$FILES" ]; then
-		for chart in $FILES; do
-			chart=`basename $chart`
-			cat << __EOF__ >> $SUBHTMLFILE
+		local FILES=`ls $OUTDIR/db/indexes/*.png 2> /dev/null`
+		if [ -n "$FILES" ]; then
+			for chart in $FILES; do
+				chart=`basename $chart`
+				cat << __EOF__ >> $SUBHTMLFILE
 <p>
 $chart<br/>
 <a href="db/indexes/$chart"><img src="db/indexes/$chart" width="100%" /></a>
 </p>
 __EOF__
-		done
+			done
+		fi
 	fi
 
 	cat << __EOF__ >> $SUBHTMLFILE
