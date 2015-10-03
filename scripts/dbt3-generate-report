@@ -256,13 +256,18 @@ gen_results()
 	local OUTDIR=$INDIR/$SUBDIR
 	local SUBHTMLFILE=$OUTDIR/index.html
 
-	for NODE in `ls -d $OUTDIR/db/*/`; do
-		make_db_charts $NODE
-	done
+	if [ ! "x$MPP" = "xyes" ]; then
+		make_db_charts $OUTDIR/db
+		make_system_charts $OUTDIR
+	else
+		for NODE in `ls -d $OUTDIR/db/*/`; do
+			make_db_charts $NODE
+		done
 
-	for HOSTNAME in $HOSTNAMES; do
-		make_system_charts $OUTDIR/$HOSTNAME
-	done
+		for HOSTNAME in $HOSTNAMES; do
+			make_system_charts $OUTDIR/$HOSTNAME
+		done
+	fi
 
 	cat << __EOF__ > $SUBHTMLFILE
 <html>
@@ -364,7 +369,6 @@ __EOF__
 		done
 		cat << __EOF__ >> $SUBHTMLFILE
   </li>
-</ul>
 __EOF__
 	else
 		cat << __EOF__ >> $SUBHTMLFILE
@@ -374,6 +378,10 @@ __EOF__
 </p>
 __EOF__
 	fi
+
+	cat << __EOF__ >> $SUBHTMLFILE
+</ul>
+__EOF__
 
 	if [ "x$SUBDIR" = "xpower" ]; then
 		if [ -f "$OUTDIR/disaster.csv" ]; then
@@ -640,27 +648,36 @@ __EOF__
 
 make_db_charts()
 {
-	local SARDIR=$1
+	local OUTDIR=`dirname $1`/`basename $1`
 
 	if [ $FAST -eq 1 ]; then
 		return 0
 	fi
 
 	if [ "x$DATABASE" = "xpgsql" ] || [ "x$DATABASE" = "xpgxl" ]; then
-		dbt-pgsql-plot-database-stats ${SARDIR}pg_stat_databases.csv $SARDIR \
+		if [ "x$DATABASE" = "xpgsql" ]; then
+			local SARDIR="$OUTDIR"
+		elif [ "x$DATABASE" = "xpgxl" ]; then
+			local SARDIR="$OUTDIR/.."
+		else
+			echo "WARNING: Problem determining how to plot db stats"
+			return
+		fi
+
+		dbt-pgsql-plot-database-stats $SARDIR/pg_stat_databases.csv $SARDIR \
 				2>> $ERRLOG
 
-		local OUTDIR=${SARDIR}tables
+		local OUTDIR=$SARDIR/tables
 		mkdir -p $OUTDIR
-		for table in `cat ${SARDIR}../table-list.txt`; do
-			dbt-pgsql-plot-table-stats ${SARDIR}pg_stat_tables.csv $table \
+		for table in `cat $SARDIR/table-list.txt`; do
+			dbt-pgsql-plot-table-stats $SARDIR/pg_stat_tables.csv $table \
 					$OUTDIR 2>> $ERRLOG
 		done
 
-		local OUTDIR=${SARDIR}indexes
+		local OUTDIR=$SARDIR/indexes
 		mkdir -p $OUTDIR
-		for index in `cat ${SARDIR}../index-list.txt`; do
-			dbt-pgsql-plot-index-stats ${SARDIR}pg_stat_indexes.csv $index \
+		for index in `cat $SARDIR/index-list.txt`; do
+			dbt-pgsql-plot-index-stats $SARDIR/pg_stat_indexes.csv $index \
 					$OUTDIR 2>> $ERRLOG
 		done
 	fi
