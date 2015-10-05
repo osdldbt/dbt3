@@ -77,6 +77,10 @@ gen_db_chart_pages()
 
 	if [ ! "x$MPP" = "xyes" ]; then
 		gen_db_stat_page $OUTDIR db.html "Database" "db-stat-*"
+		dbt-pgsql-generate-table-html "Database Test 3" \
+				$OUTDIR/db/table-list.txt $OUTDIR/db/tables
+		dbt-pgsql-generate-index-html "Database Test 3" \
+				$OUTDIR/db/index-list.txt $OUTDIR/db/indexes
 	else
 		for HOST in $HOSTNAMES; do
 			gen_db_stat_page $OUTDIR $HOST-db.html "Database" "db-stat-*" $HOST
@@ -324,9 +328,6 @@ __EOF__
 <a href="param.txt">Parameters</a>
 __EOF__
 
-		cat << __EOF__ >> $SUBHTMLFILE
-</p>
-__EOF__
 	fi
 
 	if [ "x$SUBDIR" = "xpower" ]; then
@@ -335,6 +336,9 @@ __EOF__
 | <a href="disaster.csv">Disaster Report</a>
 __EOF__
 		fi
+	cat << __EOF__ >> $SUBHTMLFILE
+</p>
+__EOF__
 	fi
 
 	cat << __EOF__ >> $SUBHTMLFILE
@@ -496,6 +500,60 @@ __EOF__
   <li><a href="sar-swap.html">Swap</a></li>
   <li><a href="sar-net.html">Network Devices</a></li>
   <li><a href="db.html">Database</a></li>
+  <li>Tables</li>
+  <ul>
+__EOF__
+
+		for TABLE in `cat $OUTDIR/db/table-list.txt`; do
+			cat << __EOF__ >> $SUBHTMLFILE
+    <li><a href="db/tables/$TABLE-charts.html">$TABLE</a></li>
+__EOF__
+		done
+
+		cat << __EOF__ >> $SUBHTMLFILE
+  </ul>
+  <li>Table Metrics</li>
+  <ul>
+__EOF__
+
+		TABLEMETRICS=`(cd $OUTDIR/db/tables && ls *.png) 2> /dev/null \
+				| sed -e "s/table-stat-.*-//" | sed -e "s/.png$//" | sort | uniq`
+		for METRIC in $TABLEMETRICS; do
+			METRICCHARTFILE="$PNGDIR/t_$METRIC-charts.html"
+			cat << __EOF__ >> $SUBHTMLFILE
+    <li><a href="db/tables/$METRICCHARTFILE">$METRIC</a></li>
+__EOF__
+		done
+
+		cat << __EOF__ >> $SUBHTMLFILE
+  </ul>
+  <li>Indexes</li>
+  <ul>
+__EOF__
+
+		for INDEX in `cat $OUTDIR/db/index-list.txt`; do
+			cat << __EOF__ >> $SUBHTMLFILE
+    <li><a href="db/indexes/$INDEX-charts.html">$INDEX</a></li>
+__EOF__
+		done
+
+		cat << __EOF__ >> $SUBHTMLFILE
+  </ul>
+  <li>Index Metrics</li>
+  <ul>
+__EOF__
+
+		INDEXMETRICS=`(cd $OUTDIR/db/indexes && ls *.png) 2> /dev/null \
+				| sed -e "s/index-stat-.*-//" | sed -e "s/.png$//" | sort | uniq`
+		for METRIC in $INDEXMETRICS; do
+			METRICCHARTFILE="$PNGDIR/i_$METRIC-charts.html"
+			cat << __EOF__ >> $SUBHTMLFILE
+    <li><a href="db/indexes/$METRICCHARTFILE">$METRIC</a></li>
+__EOF__
+		done
+
+		cat << __EOF__ >> $SUBHTMLFILE
+  </ul>
 </ul>
 __EOF__
 	else
