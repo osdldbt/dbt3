@@ -76,7 +76,7 @@ gen_db_chart_pages()
 	local OUTDIR=$1
 
 	if [ ! "x$MPP" = "xyes" ]; then
-		gen_db_stat_page $OUTDIR db.html "Database" "db-stat-*"
+		dbt-pgsql-generate-db-html "Database Test 3" $OUTDIR/db
 		dbt-pgsql-generate-table-html "Database Test 3" \
 				$OUTDIR/db/table-list.txt $OUTDIR/db/tables
 		dbt-pgsql-generate-index-html "Database Test 3" \
@@ -86,51 +86,6 @@ gen_db_chart_pages()
 			gen_db_stat_page $OUTDIR $HOST-db.html "Database" "db-stat-*" $HOST
 		done
 	fi
-}
-
-gen_db_stat_page()
-{
-	local OUTDIR=$1
-	local FILENAME=$2
-	local TITLE=$3
-	local FILEGLOB=$4
-	local HOST=$5
-
-	local HTMLFILE=$OUTDIR/$FILENAME
-
-	if [ -z $HOST ]; then
-		local PNGDIR=$OUTDIR/db
-	else
-		local PNGDIR=$OUTDIR/db/$HOST
-		local URL="$HOST/"
-	fi
-
-	cat << __EOF__ > $HTMLFILE
-<html>
-<head>
-<title>Database Test 3 $HOST Database $TITLE Charts</title>
-</head>
-<body>
-<h1>Database Test 3 $HOST $TITLE Charts</h1>
-__EOF__
-
-	local FILES=`ls -v $PNGDIR/$FILEGLOB.png 2> /dev/null`
-	if [ -n "$FILES" ]; then
-		for chart in $FILES; do
-			chart="$URL`basename $chart`"
-			cat << __EOF__ >> $HTMLFILE
-<p>
-$chart<br/>
-<a href="db/$chart"><img src="db/$chart" width="100%" /></a>
-</p>
-__EOF__
-		done
-	fi
-
-	cat << __EOF__ >> $HTMLFILE
-</body>
-</html>
-__EOF__
 }
 
 gen_system_chart_pages()
@@ -499,7 +454,7 @@ __EOF__
   <li><a href="sar-mem.html">Memory</a></li>
   <li><a href="sar-swap.html">Swap</a></li>
   <li><a href="sar-net.html">Network Devices</a></li>
-  <li><a href="db.html">Database</a></li>
+  <li><a href="db/db.html">Database</a></li>
   <li>Tables</li>
   <ul>
 __EOF__
