@@ -75,15 +75,24 @@ gen_db_chart_pages()
 {
 	local OUTDIR=$1
 
+	if [ "x$DATABASE" = "xpgxl" ]; then
+		local DATABASE="pgsql"
+	fi
+
 	if [ ! "x$MPP" = "xyes" ]; then
 		dbt-pgsql-generate-db-html "Database Test 3" $OUTDIR/db
-		dbt-pgsql-generate-table-html "Database Test 3" \
+		dbt-$DATABASE-generate-table-html "Database Test 3" \
 				$OUTDIR/db/table-list.txt $OUTDIR/db/tables
-		dbt-pgsql-generate-index-html "Database Test 3" \
+		dbt-$DATABASE-generate-index-html "Database Test 3" \
 				$OUTDIR/db/index-list.txt $OUTDIR/db/indexes
 	else
-		for HOST in $HOSTNAMES; do
-			gen_db_stat_page $OUTDIR $HOST-db.html "Database" "db-stat-*" $HOST
+		for NODE in `ls -vd $OUTDIR/db/*/`; do
+			HOST=`basename $NODE`
+			dbt-pgsql-generate-db-html "Database Test 3 $HOST" $OUTDIR/db/$HOST
+			dbt-$DATABASE-generate-table-html "Database Test 3 $HOST" \
+					$OUTDIR/db/table-list.txt $OUTDIR/db/$HOST/tables
+			dbt-$DATABASE-generate-index-html "Database Test 3 $HOST" \
+					$OUTDIR/db/index-list.txt $OUTDIR/db/$HOST/indexes
 		done
 	fi
 }
@@ -94,17 +103,21 @@ gen_system_chart_pages()
 
 	if [ ! "x$MPP" = "xyes" ]; then
 		gen_system_stat_page $OUTDIR sar-cpu.html "Processor" "sar-cpu*"
-		gen_system_stat_page $OUTDIR sar-blockdev.html "Block Device" "sar-blockdev*"
+		gen_system_stat_page $OUTDIR sar-blockdev.html "Block Device" \
+				"sar-blockdev*"
 		gen_system_stat_page $OUTDIR sar-mem.html "Memory" "sar-mem*"
 		gen_system_stat_page $OUTDIR sar-swap.html "Swap" "sar-swap*"
 		gen_system_stat_page $OUTDIR sar-net.html "Network Device" "sar-net*"
 	else
 		for HOST in $HOSTNAMES; do
-			gen_system_stat_page $OUTDIR $HOST-sar-cpu.html "Processor" "sar-cpu*" $HOST
+			gen_system_stat_page $OUTDIR $HOST-sar-cpu.html "Processor" \
+					"sar-cpu*" $HOST
 			gen_system_stat_page $OUTDIR $HOST-sar-blockdev "Block Device" \
 					"sar-blockdev*" $HOST
-			gen_system_stat_page $OUTDIR $HOST-sar-mem.html "Memory" "sar-mem*" $HOST
-			gen_system_stat_page $OUTDIR $HOST-sar-swap.html "Swap" "sar-swap*" $HOST
+			gen_system_stat_page $OUTDIR $HOST-sar-mem.html "Memory" \
+					"sar-mem*" $HOST
+			gen_system_stat_page $OUTDIR $HOST-sar-swap.html "Swap" \
+					"sar-swap*" $HOST
 			gen_system_stat_page $OUTDIR $HOST-sar-net.html "Network Device" \
 					"sar-net*" $HOST
 		done
@@ -276,6 +289,14 @@ __EOF__
 		cat << __EOF__ >> $SUBHTMLFILE
   </li>
 __EOF__
+		if [ -f "$OUTDIR/disaster.csv" ]; then
+			cat << __EOF__ >> $SUBHTMLFILE
+  <li><a href="disaster.csv">Disaster Report</a></li>
+__EOF__
+		fi
+		cat << __EOF__ >> $SUBHTMLFILE
+</ul>
+__EOF__
 	else
 		cat << __EOF__ >> $SUBHTMLFILE
 <p>
@@ -287,18 +308,16 @@ __EOF__
 
 	if [ "x$SUBDIR" = "xpower" ]; then
 		if [ -f "$OUTDIR/disaster.csv" ]; then
+			if [ ! "x$MPP" = "xyes" ]; then
 			cat << __EOF__ >> $SUBHTMLFILE
 | <a href="disaster.csv">Disaster Report</a>
 __EOF__
+			fi
 		fi
 	cat << __EOF__ >> $SUBHTMLFILE
 </p>
 __EOF__
 	fi
-
-	cat << __EOF__ >> $SUBHTMLFILE
-</ul>
-__EOF__
 
 	if [ "x$SUBDIR" = "xpower" ]; then
 		cat << __EOF__ >> $SUBHTMLFILE
@@ -472,9 +491,10 @@ __EOF__
 __EOF__
 
 		TABLEMETRICS=`(cd $OUTDIR/db/tables && ls *.png) 2> /dev/null \
-				| sed -e "s/table-stat-.*-//" | sed -e "s/.png$//" | sort | uniq`
+				| sed -e "s/table-stat-.*-//" | sed -e "s/.png$//" | sort \
+				| uniq`
 		for METRIC in $TABLEMETRICS; do
-			METRICCHARTFILE="$PNGDIR/t_$METRIC-charts.html"
+			METRICCHARTFILE="t_$METRIC-charts.html"
 			cat << __EOF__ >> $SUBHTMLFILE
     <li><a href="db/tables/$METRICCHARTFILE">$METRIC</a></li>
 __EOF__
@@ -501,7 +521,7 @@ __EOF__
 		INDEXMETRICS=`(cd $OUTDIR/db/indexes && ls *.png) 2> /dev/null \
 				| sed -e "s/index-stat-.*-//" | sed -e "s/.png$//" | sort | uniq`
 		for METRIC in $INDEXMETRICS; do
-			METRICCHARTFILE="$PNGDIR/i_$METRIC-charts.html"
+			METRICCHARTFILE="i_$METRIC-charts.html"
 			cat << __EOF__ >> $SUBHTMLFILE
     <li><a href="db/indexes/$METRICCHARTFILE">$METRIC</a></li>
 __EOF__
@@ -512,75 +532,53 @@ __EOF__
 </ul>
 __EOF__
 	else
+		local NODES=`ls -vd $OUTDIR/db/*/`
+		local TABLELIST=`cat $OUTDIR/db/table-list.txt`
+		local INDEXLIST=`cat $OUTDIR/db/index-list.txt`
+		local TABLEMETRICS=`(ls $OUTDIR/db/*/tables/*.png) 2> /dev/null \
+				| xargs -n1 basename | sed -e "s/table-stat-.*-//" \
+				| sed -e "s/.png$//" | sort | uniq`
+		local INDEXMETRICS=`(ls $OUTDIR/db/*/indexes/*.png) 2> /dev/null \
+				| xargs -n1 basename 2> /dev/null \
+				| sed -e "s/index-stat-.*-//" | sed -e "s/.png$//" | sort \
+				| uniq`
+
 		cat << __EOF__ >> $SUBHTMLFILE
-<h3>Processor</h3>
-<ul>
+<table>
+  <tr>
+    <th></th>
+    <th>Processor</th>
+    <th>Block Devices</th>
+    <th>Memory</th>
+    <th>Swap</th>
+    <th>Netowrk Devices</th>
+  </tr>
 __EOF__
 
 		for HOST in $HOSTNAMES; do
 			cat << __EOF__ >> $SUBHTMLFILE
-  <li><a href="$HOST-sar-cpu.html">$HOST</a></li>
+  <tr>
+    <td><b>$HOST</b></td>
+    <td><a href="$HOST-sar-cpu.html">.oOo.</a></td>
+    <td><a href="$HOST-sar-blockdev.html">.oOo.</a></td>
+    <td><a href="$HOST-sar-mem.html">.oOo.</a></td>
+    <td><a href="$HOST-sar-swap.html">.oOo.</a></td>
+    <td><a href="$HOST-sar-net.html">.oOo.</a></td>
+  </tr>
 __EOF__
 		done
 
 		cat << __EOF__ >> $SUBHTMLFILE
-</ul>
-
-<h3>Block Devices</h3>
-<ul>
-__EOF__
-		for HOST in $HOSTNAMES; do
-			cat << __EOF__ >> $SUBHTMLFILE
-  <li><a href="$HOST-sar-blockdev.html">$HOST</a></li>
-__EOF__
-		done
-
-		cat << __EOF__ >> $SUBHTMLFILE
-</ul>
-
-<h3>Memory</h3>
-<ul>
-__EOF__
-		for HOST in $HOSTNAMES; do
-			cat << __EOF__ >> $SUBHTMLFILE
-  <li><a href="$HOST-sar-mem.html">$HOST</a></li>
-__EOF__
-		done
-
-		cat << __EOF__ >> $SUBHTMLFILE
-</ul>
-
-<h3>Swap</h3>
-<ul>
-__EOF__
-		for HOST in $HOSTNAMES; do
-			cat << __EOF__ >> $SUBHTMLFILE
-  <li><a href="$HOST-sar-swap.html">$HOST</a></li>
-__EOF__
-		done
-
-		cat << __EOF__ >> $SUBHTMLFILE
-</ul>
-
-<h3>Network Devices</h3>
-<ul>
-__EOF__
-		for HOST in $HOSTNAMES; do
-			cat << __EOF__ >> $SUBHTMLFILE
-  <li><a href="$HOST-sar-net.html">$HOST</a></li>
-__EOF__
-		done
-
-		cat << __EOF__ >> $SUBHTMLFILE
-</ul>
+</table>
 
 <h3>Database</h3>
 <ul>
 __EOF__
 
-		for HOST in $HOSTNAMES; do
+		for NODE in $NODES; do
+			HOST=`basename $NODE`
 			cat << __EOF__ >> $SUBHTMLFILE
-  <li><a href="$HOST-db.html">$HOST</a></li>
+  <li><a href="db/$HOST/db.html">$HOST</a></li>
 __EOF__
 		done
 
@@ -588,39 +586,155 @@ __EOF__
 </ul>
 
 <h3>Tables</h3>
+<table>
+  <tr>
+    <th></th>
 __EOF__
 
-		local FILES=`ls $OUTDIR/db/tables/*.png 2> /dev/null`
-		if [ -n "$FILES" ]; then
-			for chart in $FILES; do
-				chart=`basename $chart`
-				cat << __EOF__ >> $SUBHTMLFILE
-<p>
-$chart<br/>
-<a href="db/tables/$chart"><img src="db/tables/$chart" width="100%" /></a>
-</p>
+		for NODE in $NODES; do
+			cat << __EOF__ >> $SUBHTMLFILE
+    <th>`basename $NODE`</th>
 __EOF__
-			done
-		fi
+		done
 
 		cat << __EOF__ >> $SUBHTMLFILE
-<h3>Indexes</h3>
+  </tr>
 __EOF__
-		local FILES=`ls $OUTDIR/db/indexes/*.png 2> /dev/null`
-		if [ -n "$FILES" ]; then
-			for chart in $FILES; do
-				chart=`basename $chart`
+
+		for TABLE in $TABLELIST; do
+			cat << __EOF__ >> $SUBHTMLFILE
+  <tr>
+    <td><b>$TABLE</b></td>
+__EOF__
+
+			for NODE in $NODES; do
+				NODE=`basename $NODE`
 				cat << __EOF__ >> $SUBHTMLFILE
-<p>
-$chart<br/>
-<a href="db/indexes/$chart"><img src="db/indexes/$chart" width="100%" /></a>
-</p>
+    <td><a href="db/$NODE/tables/$TABLE-charts.html">.oOo.</a></td>
 __EOF__
 			done
-		fi
+
+			cat << __EOF__ >> $SUBHTMLFILE
+  </tr>
+__EOF__
+		done
+
+		cat << __EOF__ >> $SUBHTMLFILE
+</table>
+
+<h3>Table Metrics</h3>
+<table>
+  <tr>
+    <th></th>
+__EOF__
+
+		for NODE in $NODES; do
+			cat << __EOF__ >> $SUBHTMLFILE
+    <th>`basename $NODE`</th>
+__EOF__
+		done
+
+		cat << __EOF__ >> $SUBHTMLFILE
+  </tr>
+__EOF__
+
+		for METRIC in $TABLEMETRICS; do
+			METRICCHARTFILE="t_$METRIC-charts.html"
+			cat << __EOF__ >> $SUBHTMLFILE
+  <tr>
+    <td><b>$METRIC</b></td>
+__EOF__
+
+			for NODE in $NODES; do
+				NODE=`basename $NODE`
+
+				cat << __EOF__ >> $SUBHTMLFILE
+    <td><a href="db/$NODE/tables/$METRICCHARTFILE">.oOo.</a></li>
+__EOF__
+			done
+			cat << __EOF__ >> $SUBHTMLFILE
+  </tr>
+__EOF__
+
+		done
+
+		cat << __EOF__ >> $SUBHTMLFILE
+</table>
+
+<h3>Indexes</h3>
+<table>
+  <tr>
+    <th></th>
+__EOF__
+
+		for NODE in $NODES; do
+			cat << __EOF__ >> $SUBHTMLFILE
+    <th>`basename $NODE`</th>
+__EOF__
+		done
+
+		for INDEX in $INDEXLIST; do
+			cat << __EOF__ >> $SUBHTMLFILE
+  <tr>
+    <td><b>$INDEX</b></td>
+__EOF__
+
+			for NODE in $NODES; do
+				NODE=`basename $NODE`
+				cat << __EOF__ >> $SUBHTMLFILE
+    <td><a href="db/$NODE/indexes/$INDEX-charts.html">.oOo.</a></td>
+__EOF__
+			done
+
+			cat << __EOF__ >> $SUBHTMLFILE
+  </tr>
+__EOF__
+		done
+		cat << __EOF__ >> $SUBHTMLFILE
+</table>
+__EOF__
+
 	fi
 
 	cat << __EOF__ >> $SUBHTMLFILE
+<h3>Index Metrics</h3>
+<table>
+  <tr>
+    <th></th>
+__EOF__
+
+		for NODE in $NODES; do
+			cat << __EOF__ >> $SUBHTMLFILE
+    <th>`basename $NODE`</th>
+__EOF__
+		done
+
+		cat << __EOF__ >> $SUBHTMLFILE
+  </tr>
+__EOF__
+
+		for METRIC in $INDEXMETRICS; do
+			METRICCHARTFILE="i_$METRIC-charts.html"
+			cat << __EOF__ >> $SUBHTMLFILE
+  <tr>
+    <td><b>$METRIC</b></td>
+__EOF__
+
+			for NODE in $NODES; do
+				NODE=`basename $NODE`
+
+				cat << __EOF__ >> $SUBHTMLFILE
+    <td><a href="db/$NODE/indexes/$METRICCHARTFILE">.oOo.</a></li>
+__EOF__
+			done
+			cat << __EOF__ >> $SUBHTMLFILE
+  </tr>
+__EOF__
+
+		done
+
+		cat << __EOF__ >> $SUBHTMLFILE
+</table>
 </body>
 </html>
 __EOF__
@@ -628,39 +742,36 @@ __EOF__
 
 make_db_charts()
 {
-	local OUTDIR=`dirname $1`/`basename $1`
-
 	if [ $FAST -eq 1 ]; then
 		return 0
 	fi
 
-	if [ "x$DATABASE" = "xpgsql" ] || [ "x$DATABASE" = "xpgxl" ]; then
-		if [ "x$DATABASE" = "xpgsql" ]; then
-			local SARDIR="$OUTDIR"
-		elif [ "x$DATABASE" = "xpgxl" ]; then
-			local SARDIR="$OUTDIR/.."
-		else
-			echo "WARNING: Problem determining how to plot db stats"
-			return
-		fi
+	# Where the csv files are may be different than where the table/index lists
+	# are.
+	local CSVDIR=`dirname $1`/`basename $1`
+	local LISTDIR=$CSVDIR
 
-		dbt-pgsql-plot-database-stats $SARDIR/pg_stat_databases.csv $SARDIR \
-				2>> $ERRLOG
-
-		local OUTDIR=$SARDIR/tables
-		mkdir -p $OUTDIR
-		for table in `cat $SARDIR/table-list.txt`; do
-			dbt-pgsql-plot-table-stats $SARDIR/pg_stat_tables.csv $table \
-					$OUTDIR 2>> $ERRLOG
-		done
-
-		local OUTDIR=$SARDIR/indexes
-		mkdir -p $OUTDIR
-		for index in `cat $SARDIR/index-list.txt`; do
-			dbt-pgsql-plot-index-stats $SARDIR/pg_stat_indexes.csv $index \
-					$OUTDIR 2>> $ERRLOG
-		done
+	if [ "x$DATABASE" = "xpgxl" ]; then
+		local DATABASE="pgsql"
+		local LISTDIR="$LISTDIR/.."
 	fi
+
+	dbt-$DATABASE-plot-database-stats $CSVDIR/pg_stat_databases.csv $CSVDIR \
+			2>> $ERRLOG
+
+	local OUTDIR=$CSVDIR/tables
+	mkdir -p $OUTDIR
+	for table in `cat $LISTDIR/table-list.txt`; do
+		dbt-$DATABASE-plot-table-stats $CSVDIR/pg_stat_tables.csv $table \
+				$OUTDIR 2>> $ERRLOG
+	done
+
+	local OUTDIR=$CSVDIR/indexes
+	mkdir -p $OUTDIR
+	for index in `cat $LISTDIR/index-list.txt`; do
+		dbt-$DATABASE-plot-index-stats $CSVDIR/pg_stat_indexes.csv $index \
+				$OUTDIR 2>> $ERRLOG
+	done
 }
 
 make_system_charts()
