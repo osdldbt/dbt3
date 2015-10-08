@@ -57,6 +57,13 @@ while getopts "C:f:g:lo:p:RtyY:" opt; do
 	esac
 done
 
+which gzip > /dev/null 2>&1
+if [ $? -eq 0 ]; then
+	GZIP=gzip
+else
+	GZIP=true
+fi
+
 mkdir -p ${DSS_PATH} || exit 1
 
 # Check to see if we have the files. If we don't have them - create them. 
@@ -159,10 +166,13 @@ fi
 
 if [ $USE_LINUXPERF -eq 1 ]; then
 	echo "Generating Linux perf reports for load test..."
-	perf report -i $PERFDIR/perf.data -n > $PERFDIR/perf-report.txt \
-			2>> $OUTPUT_DIR/perf/report-output.txt &
-	perf annotate -l -P -i $PERFDIR/perf.data > $PERFDIR/perf-annotate.txt \
-			2>> $OUTPUT_DIR/perf/report-output.txt &
-	perf script -L -i $PERFDIR/perf.data > $PERFDIR/perf-trace.txt \
-			2>> $OUTPUT_DIR/perf/report-output.txt &
+	(perf report -i $PERFDIR/perf.data -n > $PERFDIR/perf-report.txt \
+			2>> $OUTPUT_DIR/perf/report-output.txt \
+			$GZIP $OUTPUT_DIR/perf/report-output.txt) &
+	(perf annotate -l -P -i $PERFDIR/perf.data > $PERFDIR/perf-annotate.txt \
+			2>> $OUTPUT_DIR/perf/report-output.txt \
+			$GZIP $OUTPUT_DIR/perf/report-output.txt) &
+	(perf script -L -i $PERFDIR/perf.data > $PERFDIR/perf-trace.txt \
+			2>> $OUTPUT_DIR/perf/report-output.txt \
+			$GZIP $OUTPUT_DIR/perf/report-output.txt) &
 fi
