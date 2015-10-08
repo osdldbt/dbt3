@@ -84,6 +84,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define EOL_HANDLING
 #define  NONE		-1
 #define  PART		0
 #define  PSUPP		1
@@ -273,6 +274,7 @@ EXTERN int refresh;
 EXTERN int resume;
 EXTERN long verbose;
 EXTERN long force;
+EXTERN long tostdout;
 EXTERN long updates;
 EXTERN long table;
 EXTERN long children;
@@ -469,15 +471,28 @@ extern tdef tdefs[];
 #define DT_CHR		6
 
 int dbg_print(int dt, FILE *tgt, void *data, int len, int eol);
+#ifdef PGSQL
+#define PR_STR(f, str, len, sep)	dbg_print(DT_STR, f, (void *)str, len, sep)
+#define PR_VSTR(f, str, len, sep)	dbg_print(DT_VSTR, f, (void *)str, len, sep)
+#else
 #define PR_STR(f, str, len)		dbg_print(DT_STR, f, (void *)str, len, 1)
 #define PR_VSTR(f, str, len) 	dbg_print(DT_VSTR, f, (void *)str, len, 1)
+#endif /* PGSQL */
 #define PR_VSTR_LAST(f, str, len) 	dbg_print(DT_VSTR, f, (void *)str, len, 0)
+#ifdef PGSQL
+#define PR_INT(f, str, sep)		dbg_print(DT_INT, f, (void *)str, 0, sep)
+#define PR_HUGE(f, str, sep)		dbg_print(DT_HUGE, f, (void *)str, 0, sep)
+#define PR_KEY(f, str, sep)		dbg_print(DT_KEY, f, (void *)str, 0, sep)
+#define PR_MONEY(f, str, sep)		dbg_print(DT_MONEY, f, (void *)str, 0, sep)
+#define PR_CHR(f, str, sep)		dbg_print(DT_CHR, f, (void *)str, 0, sep)
+#else
 #define PR_INT(f, str) 			dbg_print(DT_INT, f, (void *)str, 0, 1)
 #define PR_HUGE(f, str) 		dbg_print(DT_HUGE, f, (void *)str, 0, 1)
 #define PR_HUGE_LAST(f, str)        dbg_print(DT_HUGE, f, (void *)str, 0, 0)
 #define PR_KEY(f, str) 			dbg_print(DT_KEY, f, (void *)str, 0, -1)
 #define PR_MONEY(f, str) 		dbg_print(DT_MONEY, f, (void *)str, 0, 1)
 #define PR_CHR(f, str)	 		dbg_print(DT_CHR, f, (void *)str, 0, 1)
+#endif /* PGSQL */
 #define  PR_STRT(fp)   /* any line prep for a record goes here */
 #if defined(PGSQL) || defined(VIRTUOSO)
 #define  PR_END(fp)    {fseek(fp, -1, SEEK_CUR); fprintf(fp, "\n");}

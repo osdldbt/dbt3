@@ -386,6 +386,7 @@ usage (void)
 	fprintf (stderr, "Basic Options\n===========================\n");
 	fprintf (stderr, "-C <n> -- separate data set into <n> chunks (requires -S, default: 1)\n");
 	fprintf (stderr, "-f     -- force. Overwrite existing files\n");
+	fprintf (stderr, "-o     -- stdout. Writes to stdout instead of *.tbl files\n");
 	fprintf (stderr, "-h     -- display this message\n");
 	fprintf (stderr, "-q     -- enable QUIET mode\n");
 	fprintf (stderr, "-s <n> -- set Scale Factor (SF) to  <n> (default: 1) \n");
@@ -451,7 +452,7 @@ process_options (int count, char **vector)
 	FILE *pF;
 	
 	while ((option = getopt (count, vector,
-		"b:C:d:fi:hO:P:qs:S:T:U:v")) != -1)
+		"b:C:d:ofi:hO:P:qs:S:T:U:v")) != -1)
 	switch (option)
 	{
 		case 'b':				/* load distributions from named file */
@@ -475,6 +476,9 @@ process_options (int count, char **vector)
 			break;
 		case 'f':				/* blind overwrites; Force */
 			force = 1;
+			break;
+		case 'o':
+			tostdout = 1;
 			break;
 		case 'i':
 			insert_segments = atoi (optarg);
@@ -669,6 +673,7 @@ main (int ac, char **av)
 		(1 << REGION) |
 		(1 << PART_PSUPP) |
 		(1 << ORDER_LINE);
+	tostdout = 0;
 	force = 0;
     insert_segments=0;
     delete_segments=0;

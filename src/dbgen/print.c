@@ -99,16 +99,238 @@ print_prep(int table, int update)
     return(res);
 }
 
+/*
+ * pg_inttostr
+ *		Converts 'value' into a decimal string representation of the number.
+ *
+ * Caller must ensure that 'str' points to enough memory to hold the result
+ * (at least 12 bytes, counting a leading sign and trailing NUL). The return
+ * value is a pointer to, would be end of string. Note that the NUL termination
+ * char is not written.
+ *
+ * The intended use pattern for this function is to build strings which contain
+ * multiple individual numbers, such as:
+ *
+ *	str = pg_inttostr(str, a);
+ *	*str++ = ' ';
+ *	str = pg_inttostr(str, b);
+ *	*str = '\0';
+ *
+ * Note: Caller must ensure that 'a' points to enough memory to hold the result
+ * (at least 12 bytes, counting a leading sign and trailing NUL).
+ */
+char *
+pg_inttostr(char *str, long value)
+{
+	char *start;
+	char *end;
+
+	/*
+	 * Handle negative numbers in a special way. We can't just append a '-'
+	 * prefix and reverse the sign as on two's complement machines negative
+	 * numbers can be 1 further from 0 than positive numbers, we do it this way
+	 * so we properly handle the smallest possible value.
+	 */
+	if (value < 0)
+	{
+		*str++ = '-';
+
+		/* mark the position we must reverse the string from. */
+		start = str;
+
+		/* Compute the result string backwards. */
+		do
+		{
+			long		remainder;
+			long		oldval = value;
+
+			value /= 10;
+			remainder = oldval - value * 10;
+			*str++ = '0' + -remainder;
+		} while (value != 0);
+	}
+	else
+	{
+		/* mark the position we must reverse the string from. */
+		start = str;
+		do
+		{
+			long		remainder;
+			long		oldval = value;
+
+			value /= 10;
+			remainder = oldval - value * 10;
+			*str++ = '0' + remainder;
+		} while (value != 0);
+	}
+
+	/* Remember the end of string and back up 'str' to the last character. */
+	end = str--;
+
+	/* Reverse string. */
+	while (start < str)
+	{
+		char		swap = *start;
+		*start++ = *str;
+		*str-- = swap;
+	}
+	return end;
+}
+
+/*
+ * pg_inttostr_zeropad
+ *		Converts 'value' into a decimal string representation of the number.
+ *		'padding' specifies the minimum width of the number. Any extra space
+ *		is filled up by prefixing the number with zeros. The return value is a
+ *		pointer to, would be end of string. Note that the NUL termination char
+ *		is not written.
+ *
+ * The intended use pattern for this function is to build strings which contain
+ * multiple individual numbers, such as:
+ *
+ *	str = pg_inttostr_zeropad(str, hours, 2);
+ *	*str++ = ':';
+ *	str = pg_inttostr_zeropad(str, mins, 2);
+ *	*str++ = ':';
+ *	str = pg_inttostr_zeropad(str, secs, 2);
+ *	*str = '\0';
+ *
+ * Note: Callers should ensure that 'padding' is above zero.
+ * Note: This function is optimized for the case where the number is not too
+ *		 big to fit inside of the specified padding.
+ * Note: Caller must ensure that 'str' points to enough memory to hold the
+		 result (at least 12 bytes, counting a leading sign and trailing NUL,
+		 or padding + 1 bytes, whichever is larger).
+ */
+char *
+pg_inttostr_zeropad(char *str, long value, long padding)
+{
+	char	   *start = str;
+	char	   *end = &str[padding];
+	long		num = value;
+
+	/*
+	 * Handle negative numbers in a special way. We can't just append a '-'
+	 * prefix and reverse the sign as on two's complement machines negative
+	 * numbers can be 1 further from 0 than positive numbers, we do it this way
+	 * so we properly handle the smallest possible value.
+	 */
+	if (num < 0)
+	{
+		*start++ = '-';
+		padding--;
+
+		/*
+		 * Build the number starting at the end. Here remainder will be a
+		 * negative number, we must reverse this sign on this before adding
+		 * '0' in order to get the correct ASCII digit
+		 */
+		while (padding--)
+		{
+			long		remainder;
+			long		oldval = num;
+
+			num /= 10;
+			remainder = oldval - num * 10;
+			start[padding] = '0' + -remainder;
+		}
+	}
+	else
+	{
+		/* build the number starting at the end */
+		while (padding--)
+		{
+			long		remainder;
+			long		oldval = num;
+
+			num /= 10;
+			remainder = oldval - num * 10;
+			start[padding] = '0' + remainder;
+		}
+	}
+
+	/*
+	 * If padding was not high enough to fit this number then num won't have
+	 * been divided down to zero. We'd better have another go, this time we
+	 * know there won't be any zero padding required so we can just enlist the
+	 * help of pg_int2str()
+	 */
+	if (num != 0)
+		return pg_inttostr(str, value);
+
+	return end; /* Not NUL terminated */
+}
+
+char *
+pg_int64tostr(char *str, DSS_HUGE value)
+{
+	char *start;
+	char *end;
+
+	/*
+	 * Handle negative numbers in a special way. We can't just append a '-'
+	 * prefix and reverse the sign as on two's complement machines negative
+	 * numbers can be 1 further from 0 than positive numbers, we do it this way
+	 * so we properly handle the smallest possible value.
+	 */
+	if (value < 0)
+	{
+		*str++ = '-';
+
+		/* mark the position we must reverse the string from. */
+		start = str;
+
+		/* Compute the result string backwards. */
+		do
+		{
+			DSS_HUGE		remainder;
+			DSS_HUGE		oldval = value;
+
+			value /= 10;
+			remainder = oldval - value * 10;
+			*str++ = '0' + -remainder;
+		} while (value != 0);
+	}
+	else
+	{
+		/* mark the position we must reverse the string from. */
+		start = str;
+		do
+		{
+			DSS_HUGE		remainder;
+			DSS_HUGE		oldval = value;
+
+			value /= 10;
+			remainder = oldval - value * 10;
+			*str++ = '0' + remainder;
+		} while (value != 0);
+	}
+
+	/* Remember the end of string and back up 'str' to the last character. */
+	end = str--;
+
+	/* Reverse string. */
+	while (start < str)
+	{
+		char		swap = *start;
+		*start++ = *str;
+		*str-- = swap;
+	}
+	return end;
+}
+
 int
 dbg_print(int format, FILE *target, void *data, int len, int sep)
 {
 	int dollars,
 		cents;
+	char buffer[30];
+	char *p;
 
 	switch(format)
 	{
 	case DT_STR:
-		fprintf(target, "%s", (char *)data);
+		fputs(data, target);
 		break;
 #ifdef MVS
 	case DT_VSTR:
@@ -118,13 +340,16 @@ dbg_print(int format, FILE *target, void *data, int len, int sep)
 		break;
 #endif /* MVS */
 	case DT_INT:
-		fprintf(target, "%ld", (long)data);
+		p = pg_inttostr(buffer, (long)data);
+		fwrite(buffer, 1, p - buffer, target);
 		break;
 	case DT_HUGE:
-		fprintf(target, HUGE_FORMAT, *(DSS_HUGE *)data);
+		p = pg_int64tostr(buffer, *(DSS_HUGE *)data);
+		fwrite(buffer, 1, p - buffer, target);
 		break;
 	case DT_KEY:
-		fprintf(target, "%ld", (long)data);
+		p = pg_inttostr(buffer, (long)data);
+		fwrite(buffer, 1, p - buffer, target);
 		break;
 	case DT_MONEY:
 		cents = (int)*(DSS_HUGE *)data;
@@ -135,17 +360,32 @@ dbg_print(int format, FILE *target, void *data, int len, int sep)
 			}
 		dollars = cents / 100;
 		cents %= 100;
+#ifdef PGSQL
+		p = pg_inttostr(buffer, dollars);
+		*p++ = '.';
+		p = pg_inttostr_zeropad(p, cents, 2);
+		fwrite(buffer, 1, p - buffer, target);
+#else
 		fprintf(target, "%d.%02d", dollars, cents);
+#endif /* PGSQL */
 		break;
 	case DT_CHR:
+#ifdef PGSQL
+		fputc(*(char *)data, target);
+#else
 		fprintf(target, "%c", *(char *)data);
+#endif /* PGSQL */
 		break;
 	}
 
 #ifdef EOL_HANDLING
 	if (sep)
 #endif /* EOL_HANDLING */
+#ifdef PGSQL
+	fputc(SEPARATOR, target);
+#else
 	fprintf(target, "%c", (char) SEPARATOR);
+#endif
 	
 	return(0);
 }
@@ -159,16 +399,16 @@ static FILE *fp = NULL;
         fp = print_prep(CUST, 0);
 
    PR_STRT(fp);
-   PR_HUGE(fp, &c->custkey);
+   PR_HUGE(fp, &c->custkey, 1);
    if (scale <= 3000)
-   PR_VSTR(fp, c->name, C_NAME_LEN);
+   PR_VSTR(fp, c->name, C_NAME_LEN, 1);
    else
-   PR_VSTR(fp, c->name, C_NAME_LEN + 3);
-   PR_VSTR(fp, c->address, c->alen);
-   PR_HUGE(fp, &c->nation_code);
-   PR_STR(fp, c->phone, PHONE_LEN);
-   PR_MONEY(fp, &c->acctbal);
-   PR_STR(fp, c->mktsegment, C_MSEG_LEN);
+   PR_VSTR(fp, c->name, C_NAME_LEN + 3, 1);
+   PR_VSTR(fp, c->address, c->alen, 1);
+   PR_HUGE(fp, &c->nation_code, 1);
+   PR_STR(fp, c->phone, PHONE_LEN, 1);
+   PR_MONEY(fp, &c->acctbal, 1);
+   PR_STR(fp, c->mktsegment, C_MSEG_LEN, 1);
    PR_VSTR_LAST(fp, c->comment, c->clen);
    PR_END(fp);
 
@@ -192,14 +432,14 @@ pr_order(order_t *o, int mode)
         last_mode = mode;
         }
     PR_STRT(fp_o);
-    PR_HUGE(fp_o, &o->okey);
-    PR_HUGE(fp_o, &o->custkey);
-    PR_CHR(fp_o, &o->orderstatus);
-    PR_MONEY(fp_o, &o->totalprice);
-    PR_STR(fp_o, o->odate, DATE_LEN);
-    PR_STR(fp_o, o->opriority, O_OPRIO_LEN);
-    PR_STR(fp_o, o->clerk, O_CLRK_LEN);
-    PR_INT(fp_o, o->spriority);
+    PR_HUGE(fp_o, &o->okey, 1);
+    PR_HUGE(fp_o, &o->custkey, 1);
+    PR_CHR(fp_o, &o->orderstatus, 1);
+    PR_MONEY(fp_o, &o->totalprice, 1);
+    PR_STR(fp_o, o->odate, DATE_LEN, 1);
+    PR_STR(fp_o, o->opriority, O_OPRIO_LEN, 1);
+    PR_STR(fp_o, o->clerk, O_CLRK_LEN, 1);
+    PR_INT(fp_o, o->spriority, 1);
     PR_VSTR_LAST(fp_o, o->comment, o->clen);
     PR_END(fp_o);
 
@@ -227,21 +467,21 @@ pr_line(order_t *o, int mode)
     for (i = 0; i < o->lines; i++)
         {
         PR_STRT(fp_l);
-        PR_HUGE(fp_l, &o->l[i].okey);
-        PR_HUGE(fp_l, &o->l[i].partkey);
-        PR_HUGE(fp_l, &o->l[i].suppkey);
-        PR_HUGE(fp_l, &o->l[i].lcnt);
-        PR_HUGE(fp_l, &o->l[i].quantity);
-        PR_MONEY(fp_l, &o->l[i].eprice);
-        PR_MONEY(fp_l, &o->l[i].discount);
-        PR_MONEY(fp_l, &o->l[i].tax);
-        PR_CHR(fp_l, &o->l[i].rflag[0]);
-        PR_CHR(fp_l, &o->l[i].lstatus[0]);
-        PR_STR(fp_l, o->l[i].sdate, DATE_LEN);
-        PR_STR(fp_l, o->l[i].cdate, DATE_LEN);
-        PR_STR(fp_l, o->l[i].rdate, DATE_LEN);
-        PR_STR(fp_l, o->l[i].shipinstruct, L_INST_LEN);
-        PR_STR(fp_l, o->l[i].shipmode, L_SMODE_LEN);
+        PR_HUGE(fp_l, &o->l[i].okey, 1);
+        PR_HUGE(fp_l, &o->l[i].partkey, 1);
+        PR_HUGE(fp_l, &o->l[i].suppkey, 1);
+        PR_HUGE(fp_l, &o->l[i].lcnt, 1);
+        PR_HUGE(fp_l, &o->l[i].quantity, 1);
+        PR_MONEY(fp_l, &o->l[i].eprice, 1);
+        PR_MONEY(fp_l, &o->l[i].discount, 1);
+        PR_MONEY(fp_l, &o->l[i].tax, 1);
+        PR_CHR(fp_l, &o->l[i].rflag[0], 1);
+        PR_CHR(fp_l, &o->l[i].lstatus[0], 1);
+        PR_STR(fp_l, o->l[i].sdate, DATE_LEN, 1);
+        PR_STR(fp_l, o->l[i].cdate, DATE_LEN, 1);
+        PR_STR(fp_l, o->l[i].rdate, DATE_LEN, 1);
+        PR_STR(fp_l, o->l[i].shipinstruct, L_INST_LEN, 1);
+        PR_STR(fp_l, o->l[i].shipmode, L_SMODE_LEN, 1);
         PR_VSTR_LAST(fp_l, o->l[i].comment,o->l[i].clen);
         PR_END(fp_l);
         }
@@ -274,14 +514,14 @@ static FILE *p_fp = NULL;
         p_fp = print_prep(PART, 0);
 
    PR_STRT(p_fp);
-   PR_HUGE(p_fp, &part->partkey);
-   PR_VSTR(p_fp, part->name,part->nlen);
-   PR_STR(p_fp, part->mfgr, P_MFG_LEN);
-   PR_STR(p_fp, part->brand, P_BRND_LEN);
-   PR_VSTR(p_fp, part->type,part->tlen);
-   PR_HUGE(p_fp, &part->size);
-   PR_STR(p_fp, part->container, P_CNTR_LEN);
-   PR_MONEY(p_fp, &part->retailprice);
+   PR_HUGE(p_fp, &part->partkey, 1);
+   PR_VSTR(p_fp, part->name,part->nlen, 1);
+   PR_STR(p_fp, part->mfgr, P_MFG_LEN, 1);
+   PR_STR(p_fp, part->brand, P_BRND_LEN, 1);
+   PR_VSTR(p_fp, part->type,part->tlen, 1);
+   PR_HUGE(p_fp, &part->size, 1);
+   PR_STR(p_fp, part->container, P_CNTR_LEN, 1);
+   PR_MONEY(p_fp, &part->retailprice, 1);
    PR_VSTR_LAST(p_fp, part->comment,part->clen);
    PR_END(p_fp);
 
@@ -303,10 +543,10 @@ pr_psupp(part_t *part, int mode)
    for (i = 0; i < SUPP_PER_PART; i++)
       {
       PR_STRT(ps_fp);
-      PR_HUGE(ps_fp, &part->s[i].partkey);
-      PR_HUGE(ps_fp, &part->s[i].suppkey);
-      PR_HUGE(ps_fp, &part->s[i].qty);
-      PR_MONEY(ps_fp, &part->s[i].scost);
+      PR_HUGE(ps_fp, &part->s[i].partkey, 1);
+      PR_HUGE(ps_fp, &part->s[i].suppkey, 1);
+      PR_HUGE(ps_fp, &part->s[i].qty, 1);
+      PR_MONEY(ps_fp, &part->s[i].scost, 1);
       PR_VSTR_LAST(ps_fp, part->s[i].comment,part->s[i].clen);
       PR_END(ps_fp);
       }
@@ -336,12 +576,12 @@ static FILE *fp = NULL;
         fp = print_prep(SUPP, mode);
 
    PR_STRT(fp);
-   PR_HUGE(fp, &supp->suppkey);
-   PR_STR(fp, supp->name, S_NAME_LEN);
-   PR_VSTR(fp, supp->address, supp->alen);
-   PR_HUGE(fp, &supp->nation_code);
-   PR_STR(fp, supp->phone, PHONE_LEN);
-   PR_MONEY(fp, &supp->acctbal);
+   PR_HUGE(fp, &supp->suppkey, 1);
+   PR_STR(fp, supp->name, S_NAME_LEN, 1);
+   PR_VSTR(fp, supp->address, supp->alen, 1);
+   PR_HUGE(fp, &supp->nation_code, 1);
+   PR_STR(fp, supp->phone, PHONE_LEN, 1);
+   PR_MONEY(fp, &supp->acctbal, 1);
    PR_VSTR_LAST(fp, supp->comment, supp->clen);
    PR_END(fp);
 
@@ -357,9 +597,9 @@ static FILE *fp = NULL;
         fp = print_prep(NATION, mode);
 
    PR_STRT(fp);
-   PR_HUGE(fp, &c->code);
-   PR_STR(fp, c->text, NATION_LEN);
-   PR_INT(fp, c->join);
+   PR_HUGE(fp, &c->code, 1);
+   PR_STR(fp, c->text, NATION_LEN, 1);
+   PR_INT(fp, c->join, 1);
    PR_VSTR_LAST(fp, c->comment, c->clen);
    PR_END(fp);
 
@@ -375,8 +615,8 @@ static FILE *fp = NULL;
         fp = print_prep(REGION, mode);
 
    PR_STRT(fp);
-   PR_HUGE(fp, &c->code);
-   PR_STR(fp, c->text, REGION_LEN);
+   PR_HUGE(fp, &c->code, 1);
+   PR_STR(fp, c->text, REGION_LEN, 1);
    PR_VSTR_LAST(fp, c->comment, c->clen);
    PR_END(fp);
 
@@ -431,7 +671,11 @@ pr_drange(int tbl, DSS_HUGE min, DSS_HUGE cnt, long num)
 			}
 		}
 		PR_STRT(dfp);
+#ifdef PGSQL
+		PR_HUGE(dfp, &new,0);
+#else
 		PR_HUGE_LAST(dfp, &new);
+#endif /* PGSQL */
 		PR_END(dfp);
 		start = new;
 		last = new;
