@@ -80,7 +80,7 @@ gen_db_chart_pages()
 	fi
 
 	if [ ! "x$MPP" = "xyes" ]; then
-		dbt-pgsql-generate-db-html "Database Test 3" $OUTDIR/db
+		dbt-$DATABASE-generate-db-html "Database Test 3" $OUTDIR/db
 		dbt-$DATABASE-generate-table-html "Database Test 3" \
 				$OUTDIR/db/table-list.txt $OUTDIR/db/tables
 		dbt-$DATABASE-generate-index-html "Database Test 3" \
@@ -88,7 +88,7 @@ gen_db_chart_pages()
 	else
 		for NODE in `ls -vd $OUTDIR/db/*/`; do
 			HOST=`basename $NODE`
-			dbt-pgsql-generate-db-html "Database Test 3 $HOST" $OUTDIR/db/$HOST
+			dbt-$DATABASE-generate-db-html "Database Test 3 $HOST" $OUTDIR/db/$HOST
 			dbt-$DATABASE-generate-table-html "Database Test 3 $HOST" \
 					$OUTDIR/db/table-list.txt $OUTDIR/db/$HOST/tables
 			dbt-$DATABASE-generate-index-html "Database Test 3 $HOST" \
