@@ -130,6 +130,15 @@
 #define SET_DBASE       ".LOGON %s\n"
 #endif
 
+#ifdef VIRTUOSO
+#define GEN_QUERY_PLAN  ""
+#define START_TRAN      ""
+#define END_TRAN        ""
+#define SET_OUTPUT      ""
+#define SET_ROWCOUNT    "TOP %d"
+#define SET_DBASE       ""
+#endif
+
 #define MAX_VARS      8 /* max number of host vars in any query */
 #define QLEN_MAX   2048 /* max length of any query */
 #define QUERIES_PER_SET 22

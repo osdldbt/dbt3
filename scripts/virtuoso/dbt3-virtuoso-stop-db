@@ -1,0 +1,12 @@
+#!/bin/sh
+#
+# This file is released under the terms of the Artistic License.
+# Please see the file LICENSE, included in this package, for details.
+#
+# Copyright (C) 2015      Mark Wong
+#               2015      2ndQuadrant, Ltd.
+
+isql PROMPT=OFF ERRORS=STDOUT VERBOSE=OFF << __
+SHUTDOWN;
+__
+exit $?
