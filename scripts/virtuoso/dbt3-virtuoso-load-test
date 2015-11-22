@@ -5,45 +5,28 @@
 #
 # Copyright (C) 2002-2006 Open Source Development Labs, Inc.
 #               2002-2006 Jenny Zhang
-#               2005-2014 Mark Wong
-#               2014      2ndQuadrant, Ltd.
+#               2005-2015 Mark Wong
+#               2015      2ndQuadrant, Ltd.
 #
 
-CHUNKS=1
 GENERATE=0
-ONLY_LOAD=0
 SF=0
 USE_OPROFILE=0
 USE_LINUXPERF=0
-WORKLOAD="H"
 
-while getopts "C:f:g:lo:p:RtyY:" opt; do
+ISQL="isql PROMPT=OFF ERRORS=STDOUT VERBOSE=OFF"
+
+while getopts "f:g:o:yY" opt; do
 	case $opt in
-	C)
-		CHUNKS="$OPTARG"
-		;;
 	f)
 		SF=$OPTARG
 		;;
 	g)
 		GENERATE=$OPTARG
 		;;
-	l)
-		ONLY_LOAD=1
-		;;
 	o)
 		OUTPUT_DIR=$OPTARG
 		mkdir -p $OUTPUT_DIR
-		;;
-	p)
-		PARAMETERS_ARG="-p \"$OPTARG\""
-		;;
-	R)
-		WORKLOAD="R"
-		WORKLOAD_ARG="-R"
-		;;
-	t)
-		TABLESPACE_FLAG="-t -b"
 		;;
 	y)
 		USE_OPROFILE=1
@@ -64,39 +47,20 @@ else
 	GZIP=true
 fi
 
-mkdir -p ${DSS_PATH} || exit 1
+mkdir -p $DSS_PATH || exit 1
 
-# Check to see if we have the files. If we don't have them - create them. 
+# Check to see if we have the files. If we don't have them - create them.
 have_all_files=1
 for f in customer lineitem nation orders partsupp part region supplier; do
-	if [ $CHUNKS -eq 1 ] || [ "$f" = "nation" ] || [ "$f" = "region" ]; then
-		if ! test -f $DSS_PATH/$f.tbl ; then
-			have_all_files=0
-		fi
-	else
-		i=1
-		while [ $i -le $CHUNKS ]; do
-			if ! test -f $DSS_PATH/$f.tbl.$i ; then
-				have_all_files=0
-			fi
-			i=$(( $i + 1 ))
-		done
+	if ! test -f $DSS_PATH/$f.tbl ; then
+		have_all_files=0
 	fi
 done
 
 if [ $GENERATE -ne 0 ] || [ $have_all_files -eq 0 ]; then
 	echo "`date` Generating data for scale factor $SF..."
 	# DBGEN reads DSS_PATH env var to determine where to put the files
-	if [ $CHUNKS -eq 1 ]; then
-		$DBGEN -s $SF || exit 1
-	else
-		i=1
-		while [ $i -le $CHUNKS ]; do
-			yes no | $DBGEN -s $SF -C $CHUNKS -S $i &
-			i=$(( $i + 1 ))
-		done
-	fi
-	wait
+	$DBGEN -s $SF || exit 1
 else
 	echo "Creating the database using existing data files."
 fi
@@ -104,27 +68,24 @@ fi
 # Start collecting system statistics.
 dbt3-sysstats --outdir $OUTPUT_DIR --sample 60 || exit 1
 
-eval dbt3-pgsql-create-db -o $OUTPUT_DIR $PARAMETERS_ARG
+dbt3-virtuoso-create-db
 
-dbt3-pgsql-drop-tables || exit 1
-dbt3-pgsql-create-tables ${TABLESPACE_FLAG} || exit 1
+dbt3-virtuoso-drop-tables || exit 1
+dbt3-virtuoso-create-tables || exit 1
 
 echo "Load Test starting at `date`"
 s_time=`date +%s`
-psql -v ON_ERROR_STOP=1 -X -q << __EOF__ > /dev/null 2>&1
-INSERT INTO time_statistics (task_name, s_time)
-VALUES ('LOAD', CURRENT_TIMESTAMP);
-__EOF__
+dbt3-virtuoso-time-statistics -s -n "LOAD"
 
 # Collect database statistics
-dbt3-pgsql-dbstat ${OUTPUT_DIR} 2> /dev/null &
+dbt3-virtuoso-dbstat $OUTPUT_DIR 2> /dev/null &
 
 # Initialize profile counters.
 if [ -f /proc/profile ]; then
 	clearprof
 fi
 
-if [ ${USE_OPROFILE} -eq 1 ]; then
+if [ $USE_OPROFILE -eq 1 ]; then
 	clearoprof
 fi
 
@@ -134,24 +95,20 @@ if [ $USE_LINUXPERF -eq 1 ]; then
 	PERFCOMMAND="perf record -a -g -s -F 100 -o $PERFDIR/perf.data"
 fi
 
-eval $PERFCOMMAND dbt3-pgsql-load-data -C $CHUNKS || exit 1
+eval $PERFCOMMAND dbt3-virtuoso-load-data || exit 1
 
-psql -v ON_ERROR_STOP=1 -X -q << __EOF__ > /dev/null 2>&1
-UPDATE time_statistics
-SET e_time = current_timestamp
-WHERE task_name = 'LOAD';
-__EOF__
+dbt3-virtuoso-time-statistics -e -n "LOAD"
 e_time=`date +%s`
 diff_time=`expr $e_time - $s_time`
 echo "Elapsed time for Load Test : $diff_time seconds"
 
 # Stop collecting system statistics.
-read SARPID < ${OUTPUT_DIR}/sar.pid
-kill ${SARPID}
-read PIDSTATPID < ${OUTPUT_DIR}/pidstat.pid
-kill ${PIDSTATPID}
-read DBSTATPID < ${OUTPUT_DIR}/dbstat.pid
-kill ${DBSTATPID}
+read SARPID < $OUTPUT_DIR/sar.pid
+kill $SARPID
+read PIDSTATPID < $OUTPUT_DIR/pidstat.pid
+kill $PIDSTATPID
+#read DBSTATPID < $OUTPUT_DIR/dbstat.pid
+#kill $DBSTATPID
 
 # Collect profile data.
 if [ -f /proc/profile ]; then

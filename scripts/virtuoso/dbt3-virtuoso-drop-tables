@@ -16,4 +16,5 @@ DROP TABLE orders;
 DROP TABLE lineitem;
 DROP TABLE nation;
 DROP TABLE region;
+DROP TABLE time_statistics;
 __

@@ -109,6 +109,12 @@ CREATE TABLE region (
     PRIMARY KEY  (r_regionkey)
 )
 ALTER INDEX region ON region PARTITION CLUSTER REPLICATED;
+
+CREATE TABLE time_statistics (
+	task_name VARCHAR(40),
+	s_time DATETIME,
+	e_time DATETIME
+);
 __
 
 exit $?
