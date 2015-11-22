@@ -1,3 +1,4 @@
+#!/bin/sh
 #
 # This file is released under the terms of the Artistic License.
 # Please see the file LICENSE, included in this package, for details.
@@ -6,11 +7,13 @@
 #               2015      2ndQuadrant, Ltd.
 #
 
-AUTOMAKE_OPTIONS = foreign
-
-dist_bin_SCRIPTS = dbt3-virtuoso-create-db \
-		dbt3-virtuoso-create-tables \
-		dbt3-virtuoso-drop-tables \
-		dbt3-virtuoso-load-data \
-		dbt3-virtuoso-start-db \
-		dbt3-virtuoso-stop-db
+isql PROMPT=OFF ERRORS=STDOUT VERBOSE=OFF << __
+DROP TABLE supplier;
+DROP TABLE part;
+DROP TABLE partsupp;
+DROP TABLE customer;
+DROP TABLE orders;
+DROP TABLE lineitem;
+DROP TABLE nation;
+DROP TABLE region;
+__
