@@ -115,6 +115,8 @@ CREATE TABLE time_statistics (
 	s_time DATETIME,
 	e_time DATETIME
 );
+
+sequence_set('dataset', 1, 0);
 __
 
 exit $?
