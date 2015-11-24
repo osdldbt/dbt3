@@ -147,7 +147,6 @@ else
 		start_remote_sar $HOSTNAME &
 		SARPIDS="$SARPIDS $!"
 	done
-
 	echo $SARPIDS > $OUTPUT_DIR/sar.pid
 
 	PIDSTATFILE="$OUTPUT_DIR/$GTMHOST/pidstat.txt"
@@ -158,4 +157,5 @@ else
 		start_remote_pidstat $HOSTNAME &
 		PIDSTATPIDS="$PIDSTATPIDS $!"
 	done
+	echo $PIDSTATPIDS > $OUTPUT_DIR/pidstat.pid
 fi
