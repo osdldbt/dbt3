@@ -95,7 +95,11 @@ else
 fi
 
 # Generate queries for the Power test.
-read SEED < $SEED_FILE
+if [ -f "$SEED_FILE" ]; then
+	read SEED < $SEED_FILE
+else
+	SEED=`date +%-m%d%H%M%S`
+fi
 echo "Seed : $SEED" > $OUTPUT_DIR/readme.txt
 
 # Get the EXPLAIN plans for only the SELECT statements.
