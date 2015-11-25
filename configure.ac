@@ -32,6 +32,11 @@ if test -z "$SAR"; then
   SAR=
 fi
 
+AC_ARG_WITH(monetdb,
+	[AC_HELP_STRING([--with-monetdb=DIR], [])],
+	[MONETDB_PATH=$withval DATABASE_TO_USE="monetdb" DATABASE_DEF="MONETDB=1"],
+	[])
+
 AC_ARG_WITH(postgresql,
 	[AC_HELP_STRING([--with-postgresql], [])],
 	[PGSQL_PATH=$withval DATABASE_TO_USE="pgsql" DATABASE_DEF="PGSQL=1"],
@@ -54,7 +59,9 @@ TOPDIR=`pwd`
 AC_SUBST(TOPDIR)
 AC_SUBST(DATABASE_TO_USE)
 
-if test "$DATABASE_TO_USE" = "mysql"; then
+if test "$DATABASE_TO_USE" = "monetdb"; then
+  AC_DEFINE(MONETDB, 1)
+elif test "$DATABASE_TO_USE" = "mysql"; then
   dnl check if the user has the mysql binaries we need
   if test "$MYSQL_PATH" = "yes"; then
     MYSQL_TEST_PATH=$PATH
@@ -135,6 +142,7 @@ fi
 
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([scripts/Makefile])
+AC_CONFIG_FILES([scripts/monetdb/Makefile])
 AC_CONFIG_FILES([scripts/mysql/Makefile])
 AC_CONFIG_FILES([scripts/pgsql/Makefile])
 AC_CONFIG_FILES([scripts/pgxl/Makefile])

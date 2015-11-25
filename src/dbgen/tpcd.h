@@ -76,6 +76,15 @@
 #define SET_DBASE       "database %s ;\n"
 #endif
 
+#ifdef MONETDB
+#define GEN_QUERY_PLAN  "EXPLAIN"
+#define START_TRAN      "START TRANSACTION;"
+#define END_TRAN        "COMMIT;"
+#define SET_OUTPUT      ""
+#define SET_ROWCOUNT    "LIMIT %d;\n"
+#define SET_DBASE       ""
+#endif /* MONETDB */
+
 #ifdef MYSQL
 #define GEN_QUERY_PLAN  "EXPLAIN"
 #define START_TRAN      "START TRANSACTION;"
