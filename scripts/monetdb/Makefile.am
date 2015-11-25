@@ -14,6 +14,8 @@ dist_bin_SCRIPTS = dbt3-monetdb-create-db \
 		dbt3-monetdb-drop-tables \
 		dbt3-monetdb-load-data \
 		dbt3-monetdb-load-test \
+		dbt3-monetdb-rf1 \
+		dbt3-monetdb-rf2 \
 		dbt3-monetdb-start-db \
 		dbt3-monetdb-stop-db \
 		dbt3-monetdb-time-statistics

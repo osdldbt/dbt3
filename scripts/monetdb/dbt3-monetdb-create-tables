@@ -94,4 +94,6 @@ CREATE TABLE time_statistics (
 	task_name VARCHAR(40),
 	s_time TIMESTAMP,
 	e_time TIMESTAMP);
+
+CREATE SEQUENCE "dataset" AS INTEGER START WITH 1;
 __EOF__

@@ -72,7 +72,9 @@ if [ "x$DATABASE" = "x" ]; then
 	exit 1
 fi
 
-if [ $DATABASE = "pgsql" ] || [ $DATABASE = "pgxl" ]; then
+if [ $DATABASE = "monetdb" ]; then
+	DBCMD="mclient -e -d $DBNAME"
+elif [ $DATABASE = "pgsql" ] || [ $DATABASE = "pgxl" ]; then
 	DBCMD="psql -v ON_ERROR_STOP=1 -X -e"
 elif [ $DATABASE = "mysql" ]; then
 	DBCMD="mysql -u root -D $DBNAME"
@@ -226,8 +228,10 @@ read PIDSTATPIDS < $OUTPUT_DIR/pidstat.pid
 for PIDSTATPID in $PIDSTATPIDS; do
 	kill $PIDSTATPID
 done
-read DBSTATPID < ${OUTPUT_DIR}/dbstat.pid
-kill ${DBSTATPID}
+if [ -f "$OUTPUT_DIR/dbstat.pid" ]; then
+	read DBSTATPID < $OUTPUT_DIR/dbstat.pid
+	kill $DBSTATPID
+fi
 
 # Brute force.
 if [ $MPP -eq 1 ]; then

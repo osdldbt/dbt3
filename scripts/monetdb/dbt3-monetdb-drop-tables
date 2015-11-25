@@ -23,4 +23,5 @@ DROP TABLE lineitem CASCADE;
 DROP TABLE nation CASCADE;
 DROP TABLE region CASCADE;
 DROP TABLE time_statistics;
+DROP SEQUENCE dataset;
 __EOF__

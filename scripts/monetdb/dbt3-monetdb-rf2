@@ -1,0 +1,47 @@
+#!/bin/sh
+#
+# This file is released under the terms of the Artistic License.
+# Please see the file LICENSE, included in this package, for details.
+#
+# Copyright (C) 2015      Mark Wong
+#               2015      2ndQuadrant, Ltd.
+
+if [ -z $DBNAME ]; then
+	echo "DBNAME not defined."
+	exit 1
+fi
+
+if [ $# -ne 1 ]; then
+        echo "Usage: `basename $0` <dataset>"
+        exit 1
+fi
+
+set_num=$1
+
+echo "`date`: Stream $set_num : Starting Refresh Stream 2..."
+s_time=`date +%s`
+
+mclient -d $DBNAME << __EOF__
+START TRANSACTION;
+
+CREATE TEMPORARY TABLE tmp_orderkey$set_num (orderkey integer);
+
+COPY INTO tmp_orderkey$set_num
+FROM '$DSS_PATH/delete.$set_num'
+USING DELIMITERS '|', '\n';
+
+DELETE FROM lineitem
+WHERE l_orderkey IN (SELECT orderkey
+                     FROM tmp_orderkey$set_num);
+
+DELETE FROM orders
+WHERE o_orderkey IN (SELECT orderkey
+                     FROM tmp_orderkey$set_num);
+
+COMMIT;
+__EOF__
+
+e_time=`date +%s`
+echo "`date`: Stream $set_num : Refresh Stream 2 completed."
+diff_time=$(( $e_time - $s_time ))
+echo "Stream $set_num : Elapsed time for Refresh Stream 2 : $diff_time seconds"
