@@ -251,15 +251,16 @@ if [ $USE_LINUXPERF -eq 1 ]; then
 		while [ $i -le 22 ]; do
 			PERFDIR=$OUTPUT_DIR/perf/$i
 			PERFPREFIX=q$i
-			(perf report -i $PERFDIR/$PERFPREFIX-perf.data -n \
-					> $PERFDIR/$PERFPREFIX-perf-report.txt && \
-					$GZIP $PERFDIR/$PERFPREFIX-perf-report.txt) &
-			(perf annotate -l -P -i $PERFDIR/$PERFPREFIX-perf.data \
-					> $PERFDIR/$PERFPREFIX-perf-annotate.txt \
-					&& $GZIP $PERFDIR/$PERFPREFIX-perf-annotate.txt) &
-			(perf script -L -i $PERFDIR/$PERFPREFIX-perf.data \
-					> $PERFDIR/$PERFPREFIX-perf-trace.txt \
-					&& $GZIP $PERFDIR/$PERFPREFIX-perf-trace.txt) &
+			perf report -i $PERFDIR/$PERFPREFIX-perf.data -n \
+					> $PERFDIR/$PERFPREFIX-perf-report.txt
+			$GZIP $PERFDIR/$PERFPREFIX-perf-report.txt
+			perf annotate -l -P -i $PERFDIR/$PERFPREFIX-perf.data \
+					> $PERFDIR/$PERFPREFIX-perf-annotate.txt
+			$GZIP $PERFDIR/$PERFPREFIX-perf-annotate.txt
+			perf script -L -i $PERFDIR/$PERFPREFIX-perf.data \
+					> $PERFDIR/$PERFPREFIX-perf-trace.txt
+			$GZIP $PERFDIR/$PERFPREFIX-perf-trace.txt
+			$GZIP $PERFDIR/$PERFPREFIX-perf.data
 			i=$(( $i + 1 ))
 		done > $OUTPUT_DIR/perf/report-output.txt 2>&1
 	else
@@ -269,15 +270,16 @@ if [ $USE_LINUXPERF -eq 1 ]; then
 				PERFDIR=$OUTPUT_DIR/perf/$i
 				PERFPREFIX=q$i
 				ssh $HOSTNAME << __EOF__ &
-(perf report -i $PERFDIR/perf-$HOSTNAME-$PERFPREFIX.data -n \
-		> $PERFDIR/perf-report-$HOSTNAME-$PERFPREFIX.txt && \
-		$GZIP $PERFDIR/perf-report-$HOSTNAME-$PERFPREFIX.txt)
-(perf annotate -l -P -i $PERFDIR/perf-$HOSTNAME-$PERFPREFIX.data \
-		> $PERFDIR/perf-annotate-$HOSTNAME-$PERFPREFIX.txt && \
-		$GZIP $PERFDIR/perf-annotate-$HOSTNAME-$PERFPREFIX.txt)
-(perf script -L -i $PERFDIR/perf-$HOSTNAME-$PERFPREFIX.data \
-		> $PERFDIR/perf-trace-$HOSTNAME-$PERFPREFIX.txt && \
-		$GZIP $PERFDIR/perf-trace-$HOSTNAME-$PERFPREFIX.txt)
+perf report -i $PERFDIR/perf-$HOSTNAME-$PERFPREFIX.data -n \
+		> $PERFDIR/perf-report-$HOSTNAME-$PERFPREFIX.txt
+$GZIP $PERFDIR/perf-report-$HOSTNAME-$PERFPREFIX.txt
+perf annotate -l -P -i $PERFDIR/perf-$HOSTNAME-$PERFPREFIX.data \
+		> $PERFDIR/perf-annotate-$HOSTNAME-$PERFPREFIX.txt
+$GZIP $PERFDIR/perf-annotate-$HOSTNAME-$PERFPREFIX.txt
+perf script -L -i $PERFDIR/perf-$HOSTNAME-$PERFPREFIX.data \
+		> $PERFDIR/perf-trace-$HOSTNAME-$PERFPREFIX.txt
+$GZIP $PERFDIR/perf-trace-$HOSTNAME-$PERFPREFIX.txt
+$GZIP $PERFDIR/perf-$HOSTNAME-$PERFPREFIX.data
 __EOF__
 				i=$(( $i + 1 ))
 			done > $OUTPUT_DIR/perf/report-output.txt 2>&1
