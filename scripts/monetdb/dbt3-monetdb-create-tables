@@ -89,4 +89,9 @@ CREATE TABLE region (
     r_regionkey  INTEGER NOT NULL,
     r_name       CHAR(25) NOT NULL,
     r_comment    VARCHAR(152));
+
+CREATE TABLE time_statistics (
+	task_name VARCHAR(40),
+	s_time TIMESTAMP,
+	e_time TIMESTAMP);
 __EOF__
