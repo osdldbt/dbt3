@@ -1,0 +1,34 @@
+#!/bin/sh
+#
+# This file is released under the terms of the Artistic License.
+# Please see the file LICENSE, included in this package, for details.
+#
+# Copyright (C) 2015      Mark Wong
+#               2015      2ndQuadrant, Ltd.
+#
+
+if [ -z $DBNAME ]; then
+	echo "DBNAME not defined."
+	exit 1
+fi
+
+load_table()
+{
+	table=$1
+	file=$table.tbl
+
+	
+	mclient -d $DBNAME << __EOF__
+COPY INTO $table FROM '$DSS_PATH/$table.tbl' USING DELIMITERS '|', '\n' LOCKED;
+__EOF__
+}
+
+# FIXME: Can't load more than two tables simultaneously, something locks up.
+load_table supplier
+load_table part
+load_table partsupp
+load_table customer
+load_table orders
+load_table lineitem
+load_table nation
+load_table region
