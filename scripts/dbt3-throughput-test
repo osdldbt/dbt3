@@ -118,8 +118,10 @@ read PIDSTATPIDS < $OUTPUT_DIR/pidstat.pid
 for PIDSTATPID in $PIDSTATPIDS; do
 	kill $PIDSTATPID
 done
-read DBSTATPID < ${OUTPUT_DIR}/dbstat.pid
-kill ${DBSTATPID}
+if [ -f "$OUTPUT_DIR/dbstat.pid" ]; then
+	read DBSTATPID < $OUTPUT_DIR/dbstat.pid
+	kill $DBSTATPID
+fi
 
 dbt3-$TAG-time-statistics -e -n PERF.THRUPUT || exit 1
 
@@ -138,15 +140,16 @@ fi
 
 if [ $MPP -eq 0 ] && [ $USE_LINUXPERF -eq 1 ]; then
 	echo "Generating Linux perf reports for throughput test..."
-	(perf report -i $PERFDIR/perf.data -n > $PERFDIR/perf-report.txt \
-			2>> $OUTPUT_DIR/perf/report-output.txt && \
-			$GZIP $PERFDIR/perf-report.txt) &
-	(perf annotate -l -P -i $PERFDIR/perf.data > $PERFDIR/perf-annotate.txt \
-			2>> $OUTPUT_DIR/perf/report-output.txt && \
-			$GZIP $PERFDIR/perf-annotate.txt) &
-	(perf script -L -i $PERFDIR/perf.data > $PERFDIR/perf-trace.txt \
-			2>> $OUTPUT_DIR/perf/report-output.txt && \
-			$GZIP $PERFDIR/perf-trace.txt) &
+	perf report -i $PERFDIR/perf.data -n > $PERFDIR/perf-report.txt \
+			2>> $OUTPUT_DIR/perf/report-output.txt
+	$GZIP $PERFDIR/perf-report.txt
+	perf annotate -l -P -i $PERFDIR/perf.data > $PERFDIR/perf-annotate.txt \
+			2>> $OUTPUT_DIR/perf/report-output.txt
+	$GZIP $PERFDIR/perf-annotate.txt
+	perf script -L -i $PERFDIR/perf.data > $PERFDIR/perf-trace.txt \
+			2>> $OUTPUT_DIR/perf/report-output.txt
+	$GZIP $PERFDIR/perf-trace.txt
+	$GZIP $PERFDIR/perf.data
 
 	i=1
 	while [ $i -le $num_stream ]; do
@@ -154,15 +157,16 @@ if [ $MPP -eq 0 ] && [ $USE_LINUXPERF -eq 1 ]; then
 		while [ $j -le 22 ]; do
 			PERFDIR=$OUTPUT_DIR/results/$i/perf/$j
 			PERFPREFIX=q$j
-			(perf report -i $PERFDIR/$PERFPREFIX-perf.data -n \
-					> $PERFDIR/$PERFPREFIX-perf-report.txt && \
-					$GZIP $PERFDIR/$PERFPREFIX-perf-report.txt) &
-			(perf annotate -l -P -i $PERFDIR/$PERFPREFIX-perf.data \
-					> $PERFDIR/$PERFPREFIX-perf-annotate.txt && \
-					$GZIP $PERFDIR/$PERFPREFIX-perf-annotate.txt) &
-			(perf script -L -i $PERFDIR/$PERFPREFIX-perf.data \
-					> $PERFDIR/$PERFPREFIX-perf-trace.txt && \
-					$GZIP $PERFDIR/$PERFPREFIX-perf-trace.txt) &
+			perf report -i $PERFDIR/$PERFPREFIX-perf.data -n \
+					> $PERFDIR/$PERFPREFIX-perf-report.txt
+			$GZIP $PERFDIR/$PERFPREFIX-perf-report.txt
+			perf annotate -l -P -i $PERFDIR/$PERFPREFIX-perf.data \
+					> $PERFDIR/$PERFPREFIX-perf-annotate.txt
+			$GZIP $PERFDIR/$PERFPREFIX-perf-annotate.txt
+			perf script -L -i $PERFDIR/$PERFPREFIX-perf.data \
+					> $PERFDIR/$PERFPREFIX-perf-trace.txt
+			$GZIP $PERFDIR/$PERFPREFIX-perf-trace.txt
+			$GZIP $PERFDIR/$PERFPREFIX-perf.data
 			j=$(( $j + 1 ))
 		done
 		i=$(( $i + 1 ))

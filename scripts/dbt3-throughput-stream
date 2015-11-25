@@ -47,7 +47,9 @@ else
 	TAG=$DATABASE
 fi
 
-if [ $DATABASE = "pgsql" ] || [ $DATABASE = "pgxl" ]; then
+if [ $DATABASE = "monetdb" ]; then
+	DBCMD="mclient -e -d $DBNAME"
+elif [ $DATABASE = "pgsql" ] || [ $DATABASE = "pgxl" ]; then
 	DBCMD="psql -v ON_ERROR_STOP=1 -X -e"
 elif [ $DATABASE = "mysql" ]; then
 	DBCMD="mysql -u root -D $DBNAME"

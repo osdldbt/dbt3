@@ -24,7 +24,7 @@ usage()
 	echo " 1 - run load test"
 	echo " 2 - run power test"
 	echo " 3 - run throughput test"
-	echo " a - dbms under test (mysql, pgsql, sapdb)"
+	echo " a - dbms under test (monetdb, mysql, pgsql, sapdb)"
 	echo " c - comment about the test"
 	echo " e - EXPLAIN ANALYZE (PostgreSQL only)"
 	echo " g - generate flat files"
