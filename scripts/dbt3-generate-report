@@ -80,11 +80,12 @@ gen_db_chart_pages()
 	fi
 
 	if [ ! "x$MPP" = "xyes" ]; then
-		dbt-$DATABASE-generate-db-html "Database Test 3" $OUTDIR/db
+		dbt-$DATABASE-generate-db-html "Database Test 3" $OUTDIR/db \
+				2> /dev/null
 		dbt-$DATABASE-generate-table-html "Database Test 3" \
-				$OUTDIR/db/table-list.txt $OUTDIR/db/tables
+				$OUTDIR/db/table-list.txt $OUTDIR/db/tables 2> /dev/null
 		dbt-$DATABASE-generate-index-html "Database Test 3" \
-				$OUTDIR/db/index-list.txt $OUTDIR/db/indexes
+				$OUTDIR/db/index-list.txt $OUTDIR/db/indexes 2> /dev/null
 	else
 		for NODE in `ls -vd $OUTDIR/db/*/`; do
 			HOST=`basename $NODE`
@@ -478,7 +479,7 @@ __EOF__
   <ul>
 __EOF__
 
-		for TABLE in `cat $OUTDIR/db/table-list.txt`; do
+		for TABLE in `cat $OUTDIR/db/table-list.txt 2> /dev/null`; do
 			cat << __EOF__ >> $SUBHTMLFILE
     <li><a href="db/tables/$TABLE-charts.html">$TABLE</a></li>
 __EOF__
@@ -506,7 +507,7 @@ __EOF__
   <ul>
 __EOF__
 
-		for INDEX in `cat $OUTDIR/db/index-list.txt`; do
+		for INDEX in `cat $OUTDIR/db/index-list.txt 2> /dev/null`; do
 			cat << __EOF__ >> $SUBHTMLFILE
     <li><a href="db/indexes/$INDEX-charts.html">$INDEX</a></li>
 __EOF__
@@ -533,8 +534,8 @@ __EOF__
 __EOF__
 	else
 		local NODES=`ls -vd $OUTDIR/db/*/`
-		local TABLELIST=`cat $OUTDIR/db/table-list.txt`
-		local INDEXLIST=`cat $OUTDIR/db/index-list.txt`
+		local TABLELIST=`cat $OUTDIR/db/table-list.txt 2> /dev/null`
+		local INDEXLIST=`cat $OUTDIR/db/index-list.txt 2> /dev/null`
 		local TABLEMETRICS=`(ls $OUTDIR/db/*/tables/*.png) 2> /dev/null \
 				| xargs -n1 basename | sed -e "s/table-stat-.*-//" \
 				| sed -e "s/.png$//" | sort | uniq`
@@ -761,14 +762,14 @@ make_db_charts()
 
 	local OUTDIR=$CSVDIR/tables
 	mkdir -p $OUTDIR
-	for table in `cat $LISTDIR/table-list.txt`; do
+	for table in `cat $LISTDIR/table-list.txt 2> /dev/null`; do
 		dbt-$DATABASE-plot-table-stats $CSVDIR/pg_stat_tables.csv $table \
 				$OUTDIR 2>> $ERRLOG
 	done
 
 	local OUTDIR=$CSVDIR/indexes
 	mkdir -p $OUTDIR
-	for index in `cat $LISTDIR/index-list.txt`; do
+	for index in `cat $LISTDIR/index-list.txt 2> /dev/null`; do
 		dbt-$DATABASE-plot-index-stats $CSVDIR/pg_stat_indexes.csv $index \
 				$OUTDIR 2>> $ERRLOG
 	done
