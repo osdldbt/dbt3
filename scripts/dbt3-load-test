@@ -98,6 +98,21 @@ if [ $GENERATE -ne 0 ] || [ $have_all_files -eq 0 ]; then
 	# DBGEN reads DSS_PATH env var to determine where to put the files
 	if [ $CHUNKS -eq 1 ]; then
 		$DBGEN -s $SF || exit 1
+
+		mv $DSS_PATH/lineitem.tbl $DSS_PATH/lineitem.tbl.orig
+		sort -t "|" -k 11 -k 12 $DSS_PATH/lineitem.tbl.orig \
+				> $DSS_PATH/lineitem.tbl
+		$GZIP $DSS_PATH/lineitem.tbl.orig
+
+		mv $DSS_PATH/orders.tbl $DSS_PATH/orders.tbl.orig
+		sort -t "|" -k 5 $DSS_PATH/orders.tbl.orig \
+				> $DSS_PATH/orders.tbl
+		$GZIP $DSS_PATH/orders.tbl.orig
+
+		mv $DSS_PATH/part.tbl $DSS_PATH/part.tbl.orig
+		sort -t "|" -k 6 $DSS_PATH/part.tbl.orig \
+				> $DSS_PATH/part.tbl
+		$GZIP $DSS_PATH/part.tbl.orig
 	else
 		i=1
 		while [ $i -le $CHUNKS ]; do
