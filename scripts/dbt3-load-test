@@ -5,8 +5,8 @@
 #
 # Copyright (C) 2002-2006 Open Source Development Labs, Inc.
 #               2002-2006 Jenny Zhang
-#               2005-2014 Mark Wong
-#               2014      2ndQuadrant, Ltd.
+#               2005-2015 Mark Wong
+#               2015      2ndQuadrant, Ltd.
 #
 
 CHUNKS=1
@@ -17,8 +17,11 @@ USE_OPROFILE=0
 USE_LINUXPERF=0
 WORKLOAD="H"
 
-while getopts "C:f:g:lo:p:RtyY:" opt; do
+while getopts "a:C:f:g:lo:p:RtyY:" opt; do
 	case $opt in
+	a)
+		DATABASE=$OPTARG
+		;;
 	C)
 		CHUNKS="$OPTARG"
 		;;
@@ -57,6 +60,12 @@ while getopts "C:f:g:lo:p:RtyY:" opt; do
 	esac
 done
 
+if [ "x$DATABASE" = "x" ]; then
+	echo "Specify database management system with -a flag"
+	usage
+	exit 1
+fi
+
 which gzip > /dev/null 2>&1
 if [ $? -eq 0 ]; then
 	GZIP=gzip
@@ -64,9 +73,9 @@ else
 	GZIP=true
 fi
 
-mkdir -p ${DSS_PATH} || exit 1
+mkdir -p $DSS_PATH || exit 1
 
-# Check to see if we have the files. If we don't have them - create them. 
+# Check to see if we have the files. If we don't have them - create them.
 have_all_files=1
 for f in customer lineitem nation orders partsupp part region supplier; do
 	if [ $CHUNKS -eq 1 ] || [ "$f" = "nation" ] || [ "$f" = "region" ]; then
@@ -104,27 +113,24 @@ fi
 # Start collecting system statistics.
 dbt3-sysstats --outdir $OUTPUT_DIR --sample 60 || exit 1
 
-eval dbt3-pgsql-create-db -o $OUTPUT_DIR $PARAMETERS_ARG
+eval dbt3-$DATABASE-create-db -o $OUTPUT_DIR $PARAMETERS_ARG
 
-dbt3-pgsql-drop-tables || exit 1
-dbt3-pgsql-create-tables ${TABLESPACE_FLAG} || exit 1
+dbt3-$DATABASE-drop-tables || exit 1
+dbt3-$DATABASE-create-tables $TABLESPACE_FLAG || exit 1
 
 echo "Load Test starting at `date`"
 s_time=`date +%s`
-psql -v ON_ERROR_STOP=1 -X -q << __EOF__ > /dev/null 2>&1
-INSERT INTO time_statistics (task_name, s_time)
-VALUES ('LOAD', CURRENT_TIMESTAMP);
-__EOF__
+dbt3-$DATABASE-time-statistics -s -n LOAD || exit 1
 
 # Collect database statistics
-dbt3-pgsql-dbstat ${OUTPUT_DIR} 2> /dev/null &
+dbt3-$DATABASE-dbstat $OUTPUT_DIR 2> /dev/null &
 
 # Initialize profile counters.
 if [ -f /proc/profile ]; then
 	clearprof
 fi
 
-if [ ${USE_OPROFILE} -eq 1 ]; then
+if [ $USE_OPROFILE -eq 1 ]; then
 	clearoprof
 fi
 
@@ -134,24 +140,22 @@ if [ $USE_LINUXPERF -eq 1 ]; then
 	PERFCOMMAND="perf record -a -g -s -F 100 -o $PERFDIR/perf.data"
 fi
 
-eval $PERFCOMMAND dbt3-pgsql-load-data -C $CHUNKS || exit 1
+eval $PERFCOMMAND dbt3-$DATABASE-load-data -C $CHUNKS || exit 1
 
-psql -v ON_ERROR_STOP=1 -X -q << __EOF__ > /dev/null 2>&1
-UPDATE time_statistics
-SET e_time = current_timestamp
-WHERE task_name = 'LOAD';
-__EOF__
+dbt3-$DATABASE-time-statistics -e -n LOAD || exit 1
 e_time=`date +%s`
 diff_time=`expr $e_time - $s_time`
 echo "Elapsed time for Load Test : $diff_time seconds"
 
 # Stop collecting system statistics.
-read SARPID < ${OUTPUT_DIR}/sar.pid
-kill ${SARPID}
-read PIDSTATPID < ${OUTPUT_DIR}/pidstat.pid
-kill ${PIDSTATPID}
-read DBSTATPID < ${OUTPUT_DIR}/dbstat.pid
-kill ${DBSTATPID}
+read SARPID < $OUTPUT_DIR/sar.pid
+kill $SARPID
+read PIDSTATPID < $OUTPUT_DIR/pidstat.pid
+kill $PIDSTATPID
+if [ -f "$OUTPUT_DIR/dbstat.pid" ]; then
+	read DBSTATPID < $OUTPUT_DIR/dbstat.pid
+	kill $DBSTATPID
+fi
 
 # Collect profile data.
 if [ -f /proc/profile ]; then
@@ -166,13 +170,14 @@ fi
 
 if [ $USE_LINUXPERF -eq 1 ]; then
 	echo "Generating Linux perf reports for load test..."
-	(perf report -i $PERFDIR/perf.data -n > $PERFDIR/perf-report.txt \
-			2>> $OUTPUT_DIR/perf/report-output.txt \
-			$GZIP $OUTPUT_DIR/perf/report-output.txt) &
-	(perf annotate -l -P -i $PERFDIR/perf.data > $PERFDIR/perf-annotate.txt \
-			2>> $OUTPUT_DIR/perf/report-output.txt \
-			$GZIP $OUTPUT_DIR/perf/report-output.txt) &
-	(perf script -L -i $PERFDIR/perf.data > $PERFDIR/perf-trace.txt \
-			2>> $OUTPUT_DIR/perf/report-output.txt \
-			$GZIP $OUTPUT_DIR/perf/report-output.txt) &
+	perf report -i $PERFDIR/perf.data -n > $PERFDIR/perf-report.txt \
+			2>> $OUTPUT_DIR/perf/report-output.txt
+	$GZIP $OUTPUT_DIR/perf/perf-report.txt
+	perf annotate -l -P -i $PERFDIR/perf.data > $PERFDIR/perf-annotate.txt \
+			2>> $OUTPUT_DIR/perf/report-output.txt
+	$GZIP $OUTPUT_DIR/perf/perf-annotate.txt
+	perf script -L -i $PERFDIR/perf.data > $PERFDIR/perf-trace.txt \
+			2>> $OUTPUT_DIR/perf/report-output.txt
+	$GZIP $OUTPUT_DIR/perf/perf-trace.txt
+	$GZIP $PERFDIR/perf.data
 fi

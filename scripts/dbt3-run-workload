@@ -222,7 +222,8 @@ echo "Using seed: `cat $SEED_FILE`"
 
 # Load Test
 if [ ${RUN_LOAD_TEST} -eq 1 ]; then
-	eval dbt3-${DATABASE}-load-test \
+	eval dbt3-load-test \
+			-a $DATABASE \
 			-o $OUTPUT_DIR/load \
 			${LOAD_PARAMETERS_ARG} \
 			${OPROFILE_FLAG} \

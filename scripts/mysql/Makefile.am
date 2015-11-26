@@ -16,7 +16,6 @@ dist_bin_SCRIPTS = dbt3-mysql-create-db \
 		dbt3-mysql-get-query-time \
 		dbt3-mysql-get-version \
 		dbt3-mysql-load-data \
-		dbt3-mysql-load-test \
 		dbt3-mysql-rf1 \
 		dbt3-mysql-rf2 \
 		dbt3-mysql-start-db \

@@ -14,6 +14,7 @@ dist_bin_SCRIPTS = dbt3-compare-results \
 		dbt3-composite-score \
 		dbt3-generate-report \
 		dbt3-get-config \
+		dbt3-load-test \
 		dbt3-plot-results \
 		dbt3-post-process \
 		dbt3-power-score \
