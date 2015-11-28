@@ -1,0 +1,42 @@
+#!/bin/sh
+#
+# This file is released under the terms of the Artistic License.
+# Please see the file LICENSE, included in this package, for details.
+#
+# Copyright (C) 2015      Mark Wong
+#               2015      2ndQuadrant, Ltd.
+
+if [ $# -ne 1 ]; then
+        echo "Usage: `basename $0` <scale factor>"
+        exit 1
+fi
+
+SCALE_FACTOR=$1
+
+ISQL="isql PROMPT=OFF VERBOSE=OFF"
+
+DATASET=`$ISQL BANNER=OFF << __
+SELECT sequence_next('dataset');
+__
+`
+dbgen -s $SCALE_FACTOR -U $DATASET -S $DATASET || exit 1
+
+echo "`date`: Stream $DATASET : Starting Refresh Stream 1..."
+s_time=`date +%s`
+
+$ISQL ERRORS=STDOUT << __EOF__
+csv_load_file('$DSS_PATH/lineitem.tbl.u$DATASET', 0, NULL, 'lineitem', 2,
+              vector('csv-delimiter', '|'));
+csv_load_file('$DSS_PATH/orders.tbl.u$DATASET', 0, NULL, 'orders', 2,
+              vector('csv-delimiter', '|'));
+__EOF__
+
+e_time=`date +%s`
+echo "`date`: Stream $DATASET : Refresh Stream 1 completed."
+diff_time=$(( $e_time - $s_time ))
+echo "Stream $DATASET : Elapsed time for Refresh Stream 1 : $diff_time seconds"
+
+if [ $DATASET -gt 0 ]; then
+	exit $DATASET
+fi
+exit -1

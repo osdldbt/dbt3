@@ -108,4 +108,26 @@ EXTRA_DIST = \
 		queries/sapdb/6.sql \
 		queries/sapdb/7.sql \
 		queries/sapdb/8.sql \
-		queries/sapdb/9.sql
+		queries/sapdb/9.sql \
+		queries/virtuoso/1.sql \
+		queries/virtuoso/10.sql \
+		queries/virtuoso/11.sql \
+		queries/virtuoso/12.sql \
+		queries/virtuoso/13.sql \
+		queries/virtuoso/14.sql \
+		queries/virtuoso/15.sql \
+		queries/virtuoso/16.sql \
+		queries/virtuoso/17.sql \
+		queries/virtuoso/18.sql \
+		queries/virtuoso/19.sql \
+		queries/virtuoso/2.sql \
+		queries/virtuoso/20.sql \
+		queries/virtuoso/21.sql \
+		queries/virtuoso/22.sql \
+		queries/virtuoso/3.sql \
+		queries/virtuoso/4.sql \
+		queries/virtuoso/5.sql \
+		queries/virtuoso/6.sql \
+		queries/virtuoso/7.sql \
+		queries/virtuoso/8.sql \
+		queries/virtuoso/9.sql

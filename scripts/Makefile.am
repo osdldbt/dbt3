@@ -8,7 +8,7 @@
 
 AUTOMAKE_OPTIONS = foreign
 
-SUBDIRS = monetdb mysql pgsql pgxl sapdb
+SUBDIRS = monetdb mysql pgsql pgxl sapdb virtuoso
 
 dist_bin_SCRIPTS = dbt3-compare-results \
 		dbt3-composite-score \

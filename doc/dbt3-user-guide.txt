@@ -45,6 +45,14 @@ source code.
 Getting and Installing the Kit
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+Virtuoso
+^^^^^^^^
+
+In order to keep the scripts simple, the installation of this software needs to
+be the same as the user that will be executing the test kit.  The reason for
+this is because the database location is tied to the parameters set when
+running the Virtuoso configure script.
+
 Required Software
 ~~~~~~~~~~~~~~~~~
 
@@ -177,6 +185,11 @@ following:
 * *DNBP=15432* - Starting listener port number for datanodes.
 * *DNBPP=25432* - Starting listener port number for datanode pooler.
 
+Virtuoso Environment Variables
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* *VADDIR=/usr/local/virtuoso-opensource/var/lib/virtuoso/db* - Location of
+  virtuoso.ini file.
 
 Quick Start
 ^^^^^^^^^^^

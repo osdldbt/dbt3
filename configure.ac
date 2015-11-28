@@ -52,6 +52,11 @@ AC_ARG_WITH(sapdb,
 	[  --with-sapdb],
 	[DATABASE_TO_USE="sapdb" DATABASE_DEF="SABDB=1"], [])
 
+AC_ARG_WITH(virtuoso,
+	[AC_HELP_STRING([--with-virtuoso], [])],
+	[VIRTUOSO_PATH=$withval DATABASE_TO_USE="virtuoso" DATABASE_DEF="VIRTUOSO=1"],
+	[])
+
 AC_DEFINE(DBNAME, "dss")
 AC_DEFINE(TPCH)
 AC_DEFINE(LINUX)
@@ -138,6 +143,8 @@ elif test "$DATABASE_TO_USE" = "sapdb"; then
       [chmod +x scripts/sapdb/sapdb_profile])
   AC_CONFIG_FILES([scripts/sapdb/update_statistics.sh],
       [chmod +x scripts/sapdb/update_statistics.sh])
+elif test "$DATABASE_TO_USE" = "virtuoso"; then
+  AC_DEFINE(VIRTUOSO, 1)
 fi
 
 AC_CONFIG_FILES([Makefile])
@@ -147,6 +154,7 @@ AC_CONFIG_FILES([scripts/mysql/Makefile])
 AC_CONFIG_FILES([scripts/pgsql/Makefile])
 AC_CONFIG_FILES([scripts/pgxl/Makefile])
 AC_CONFIG_FILES([scripts/sapdb/Makefile])
+AC_CONFIG_FILES([scripts/virtuoso/Makefile])
 AC_CONFIG_FILES([src/Makefile])
 AC_CONFIG_FILES([src/dbgen/Makefile])
 
