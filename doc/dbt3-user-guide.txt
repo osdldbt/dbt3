@@ -147,6 +147,12 @@ executing the test kit scripts.
 Each DBMS may have additional environment variables that need to be set.  The
 following sections details the required variables.
 
+MonetDB Environment Variables
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+* *DBDATA=/tmp/moneydb* - This defines where to initialize the MonetDB data
+  directory
+* *DBNAME=dbt3* - This is the database name to use.
+
 MySQL/MariaDB Environment Variables
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 * *DBNAME=dbt3* - This is the database name to use.
