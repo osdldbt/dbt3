@@ -26,6 +26,7 @@ usage()
 	echo " 3 - run throughput test"
 	echo " a - dbms under test (monetdb, mysql, pgsql, sapdb)"
 	echo " c - comment about the test"
+	echo " C - flag to resort data load files"
 	echo " e - EXPLAIN ANALYZE (PostgreSQL only)"
 	echo " g - generate flat files"
 	echo " h - this help message"
@@ -56,6 +57,7 @@ RUN_THROUGHPUT_TEST=0
 NO_REFRESH=0
 NODES=0
 OUTPUT_DIR=""
+RESORT_ARG=""
 SCALE_FACTOR=1
 SEED=0
 STREAMS=1
@@ -72,7 +74,7 @@ if [ -n "$DEFAULT_THROUGHPUT_PARAMETERS" ]; then
 	THROUGHPUT_PARAMETERS="$DEFAULT_THROUGHPUT_PARAMETERS"
 fi
 
-while getopts "123a:c:ef:ghn:Oo:p:Pq:Rr:s:tuVz" opt; do
+while getopts "123a:c:Cef:ghn:Oo:p:Pq:Rr:s:tuVz" opt; do
 	case $opt in
 	1)
 		RUN_LOAD_TEST=1
@@ -94,6 +96,9 @@ while getopts "123a:c:ef:ghn:Oo:p:Pq:Rr:s:tuVz" opt; do
 		;;
 	c)
 		COMMENT=${OPTARG}
+		;;
+	C)
+		RESORT_ARG="-c"
 		;;
 	e)
 		# PostgreSQL only.
@@ -231,6 +236,7 @@ if [ ${RUN_LOAD_TEST} -eq 1 ]; then
 			-f $SCALE_FACTOR \
 			-g $GENERATE \
 			${WORKLOAD_ARG} \
+			$RESORT_ARG \
 			${TABLESPACES_FLAG} || exit 1
 else
 	#
