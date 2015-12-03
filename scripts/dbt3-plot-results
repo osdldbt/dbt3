@@ -96,7 +96,8 @@ if (${POWER_TEST} == 1) {
 
   df_plot <- rbind(df_plot, df_power)
 
-  power <- prod(df_power\$seconds) ^ (1 / length(df_power\$seconds))
+  power <- 3600 * $SCALE_FACTOR /
+           prod(df_power\$seconds) ^ (1 / length(df_power\$seconds))
 }
 
 if (${THROUGHPUT_TEST} == 1) {

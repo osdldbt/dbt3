@@ -50,7 +50,6 @@ while getopts "23i:n:o:s:z" OPT; do
 		SCALE_FACTOR=${OPTARG}
 		;;
 	z)
-		NO_REFRESH_FLAG="-z"
 		PLOT_OPTS="${PLOT_OPTS} -z"
 		;;
 	\?)
@@ -83,7 +82,7 @@ for SARFILE in `find $INDIR -name sar_raw.out`; do
 done
 
 if [ ${FLAG_POWER_TEST} -eq 1 ]; then
-	POWER=`dbt3-power-score -i $QTIME -s $SCALE_FACTOR $NO_REFRESH_FLAG`
+	POWER=`dbt3-power-score -i $QTIME -s $SCALE_FACTOR`
 	echo "power = $POWER"  | tee -a $OUTFILE
 fi
 
