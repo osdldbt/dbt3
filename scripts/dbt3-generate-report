@@ -941,8 +941,8 @@ cat << __EOF__ > $HTMLFILE
 __EOF__
 
 # Plot a query results
-dbt3-plot-results -i $INDIR/q_time.csv -o $OUTDIR $PLOT_OPTS 2>> $ERRLOG \
-		|| >&2 echo "Failed to plot query times..."
+dbt3-plot-results -i $INDIR/q_time.csv -o $OUTDIR -f $SF $PLOT_OPTS \
+		2>> $ERRLOG || >&2 echo "Failed to plot query times..."
 
 if [ -f "$INDIR/q_time.png" ]; then
 	cat << __EOF__ >> $HTMLFILE
