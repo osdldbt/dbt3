@@ -140,11 +140,12 @@
 #endif
 
 #ifdef VIRTUOSO
+/* Logic to get query plans in power test script. */
 #define GEN_QUERY_PLAN  ""
-#define START_TRAN      ""
-#define END_TRAN        ""
+#define START_TRAN      "SET AUTOCOMMIT MANUAL;"
+#define END_TRAN        "COMMIT WORK;"
 #define SET_OUTPUT      ""
-#define SET_ROWCOUNT    "TOP %d"
+#define SET_ROWCOUNT    "TOP %d\n"
 #define SET_DBASE       ""
 #endif
 
