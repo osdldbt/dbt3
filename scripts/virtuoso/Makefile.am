@@ -12,6 +12,8 @@ dist_bin_SCRIPTS = dbt3-virtuoso-create-db \
 		dbt3-virtuoso-create-tables \
 		dbt3-virtuoso-dbstat \
 		dbt3-virtuoso-drop-tables \
+		dbt3-virtuoso-get-version \
+		dbt3-virtuoso-get-query-time \
 		dbt3-virtuoso-load-data \
 		dbt3-virtuoso-load-test \
 		dbt3-virtuoso-rf1 \
