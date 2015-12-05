@@ -98,7 +98,7 @@ for f in customer lineitem nation orders partsupp part region supplier; do
 done
 
 if [ $GENERATE -ne 0 ] || [ $have_all_files -eq 0 ]; then
-	echo "`date` Generating data for scale factor $SF..."
+	echo "`date` Generating data for scale factor $SF ..."
 	# DBGEN reads DSS_PATH env var to determine where to put the files
 	if [ $CHUNKS -eq 1 ]; then
 		$DBGEN -s $SF || exit 1
