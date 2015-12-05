@@ -25,3 +25,5 @@ DROP TABLE region CASCADE;
 DROP TABLE time_statistics;
 DROP SEQUENCE dataset;
 __EOF__
+
+exit 0
