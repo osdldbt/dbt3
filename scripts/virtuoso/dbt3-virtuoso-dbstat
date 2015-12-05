@@ -13,6 +13,8 @@ fi
 
 OUTPUT_DIR=$1
 
+echo "$$" > ${OUTPUT_DIR}/dbstat.pid
+
 DBOUTPUT_DIR=$OUTPUT_DIR/db
 mkdir -p $DBOUTPUT_DIR
 
