@@ -53,6 +53,8 @@ elif [ $DATABASE = "pgsql" ] || [ $DATABASE = "pgxl" ]; then
 	DBCMD="psql -v ON_ERROR_STOP=1 -X -e"
 elif [ $DATABASE = "mysql" ]; then
 	DBCMD="mysql -u root -D $DBNAME"
+elif [ $DATABASE = "virtuoso" ]; then
+	DBCMD="isql PROMPT=OFF ERRORS=STDOUT ECHO=ON VERBOSE=OFF"
 else
 	echo "Unsupported database system"
 	exit 1
@@ -77,14 +79,26 @@ SEED=$(( ${SEED} + ${stream_num} ))
 PLANDIR=${OUTPUT_DIR}/plans/${stream_num}
 mkdir -p ${PLANDIR} || exit 1
 
+if [ $DATABASE = "virtuoso" ]; then
+	# Special case for Virtuoso since qgen cannot do this for us.
+	ESTART="explain('"
+	EEND="');"
+fi
 i=1
 while [ $i -le 22 ]
 do
 	# Remember the query planned is in the order determined by the seed.
 	Q=`${QGEN} -c -r ${SEED} -p ${stream_num} -s ${SCALE_FACTOR} -x ${i}`
 	N=`echo ${Q} | sed -n -r 's/.*\(#\)([[:digit:]]+)\..*/\1/p'`
+	if [ $DATABASE = "virtuoso" ]; then
+		# Can't have comments or transaction statments sent to explain().
+		# Escape single quotes for explain().
+		Q=`$QGEN -a -r $SEED -p 0 -s $SCALE_FACTOR -x $i | tail -n +2 | sed -e "s/'/''/g"`
+	fi
 	$DBCMD<< __EOF__ > ${PLANDIR}/${N}.txt
+$ESTART
 ${Q}
+$EEND
 __EOF__
 	i=$(( $i + 1 ))
 done
