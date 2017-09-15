@@ -12,6 +12,7 @@
 CHUNKS=1
 RESORT=0
 GENERATE=0
+MPP=0
 ONLY_LOAD=0
 SF=0
 USE_OPROFILE=0
@@ -22,6 +23,9 @@ while getopts "a:cC:f:g:lo:p:RtyY:" opt; do
 	case $opt in
 	a)
 		DATABASE=$OPTARG
+		if [ "x$DATABASE" = "xpgxl" ]; then
+			MPP=1
+		fi
 		;;
 	c)
 		RESORT=1
@@ -41,6 +45,10 @@ while getopts "a:cC:f:g:lo:p:RtyY:" opt; do
 	o)
 		OUTPUT_DIR=$OPTARG
 		mkdir -p $OUTPUT_DIR
+		for HOSTNAME in $HOSTNAMES; do
+			ssh $HOSTNAME "mkdir -p $OUTPUT_DIR"
+			NODES=$(( $NODES + 1 ))
+		done
 		;;
 	p)
 		PARAMETERS_ARG="-p \"$OPTARG\""
@@ -101,7 +109,7 @@ if [ $GENERATE -ne 0 ] || [ $have_all_files -eq 0 ]; then
 	echo "`date` Generating data for scale factor $SF ..."
 	# DBGEN reads DSS_PATH env var to determine where to put the files
 	if [ $CHUNKS -eq 1 ]; then
-		$DBGEN -s $SF || exit 1
+		dbgen -s $SF || exit 1
 
 		if [ $RESORT -eq 1 ]; then
 			echo "`date` resorting data files..."
@@ -122,8 +130,12 @@ if [ $GENERATE -ne 0 ] || [ $have_all_files -eq 0 ]; then
 		fi
 	else
 		i=1
+		dbgen -s $SF -T l &
 		while [ $i -le $CHUNKS ]; do
-			yes no | $DBGEN -s $SF -C $CHUNKS -S $i &
+			dbgen -s $SF -C $CHUNKS -S $i -T c &
+			dbgen -s $SF -C $CHUNKS -S $i -T o &
+			dbgen -s $SF -C $CHUNKS -S $i -T p &
+			dbgen -s $SF -C $CHUNKS -S $i -T s &
 			i=$(( $i + 1 ))
 		done
 	fi
@@ -133,7 +145,7 @@ else
 fi
 
 # Start collecting system statistics.
-dbt3-sysstats --outdir $OUTPUT_DIR --sample 60 || exit 1
+dbt3-sysstats --outdir $OUTPUT_DIR --sample 60 --mpp $MPP || exit 1
 
 eval dbt3-$DATABASE-create-db -o $OUTPUT_DIR $PARAMETERS_ARG
 
@@ -177,6 +189,13 @@ kill $PIDSTATPID
 if [ -f "$OUTPUT_DIR/dbstat.pid" ]; then
 	read DBSTATPID < $OUTPUT_DIR/dbstat.pid
 	kill $DBSTATPID
+fi
+
+# Brute force.
+if [ $MPP -eq 1 ]; then
+	for HOSTNAME in $GTMHOST $HOSTNAMES; do
+		ssh $HOSTNAME "killall -9 sar sadc pidstat"
+	done
 fi
 
 # Collect profile data.

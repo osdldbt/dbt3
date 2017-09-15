@@ -184,6 +184,7 @@ fi
 if [ "x$DATABASE" = "xpgxl" ]; then
 	TAG="pgsql"
 	MPP=1
+	MPP_ARG="-C $NODES"
 else
 	TAG=$DATABASE
 fi
@@ -237,6 +238,7 @@ if [ ${RUN_LOAD_TEST} -eq 1 ]; then
 			-g $GENERATE \
 			${WORKLOAD_ARG} \
 			$RESORT_ARG \
+			$MPP_ARG \
 			${TABLESPACES_FLAG} || exit 1
 else
 	#

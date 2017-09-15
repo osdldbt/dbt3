@@ -13,7 +13,7 @@ start_remote_pidstat()
 
 	PIDSTATFILE="$OUTPUT_DIR/$HOST/pidstat.txt"
 	ssh $HOST << __EOF__
-mkdir -p $SARDIR
+mkdir -p $OUTPUT_DIR/$HOST
 $PIDSTAT $SAMPLE_LENGTH > $PIDSTATFILE
 __EOF__
 }

@@ -51,7 +51,7 @@ for HOSTNAME in $HOSTNAMES; do
 		PORT=$(( $DNBP + $j ))
 		POOLERPORT=$(( $DNBPP + $j ))
 		ssh $HOSTNAME << __EOF__
-pg_ctl -Z datanode -w -D $DATANODEDATA$i.$j -l $OUTDIR/datanode_$i_$j.log -o "-p $PORT -c pooler_port=$POOLERPORT $PARAMETERS" start
+pg_ctl -Z datanode -w -D $DATANODEDATA$i.$j -l $OUTDIR/datanode_${i}_${j}.log -o "-p $PORT -c pooler_port=$POOLERPORT $PARAMETERS" start
 __EOF__
 		if [ $? -ne 0 ]; then
 			exit 1

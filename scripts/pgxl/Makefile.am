@@ -10,7 +10,9 @@ AUTOMAKE_OPTIONS = foreign
 
 dist_bin_SCRIPTS = dbt3-pgxl-create-db \
 		dbt3-pgxl-create-tables \
+		dbt3-pgxl-drop-tables \
 		dbt3-pgxl-dbstat \
 		dbt3-pgxl-load-data \
 		dbt3-pgxl-start-db \
-		dbt3-pgxl-stop-db
+		dbt3-pgxl-stop-db \
+		dbt3-pgxl-time-statistics

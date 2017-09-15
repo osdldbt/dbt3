@@ -196,8 +196,11 @@ ADD CONSTRAINT pk_region PRIMARY KEY (r_regionkey);" &
 
 NODES=0
 USE_TABLESPACES=0
-while getopts "t" OPT; do
+while getopts "C:t" OPT; do
 	case ${OPT} in
+	C)
+		# Do nothing
+		;;
 	t)
 		USE_TABLESPACES=1
 		;;
