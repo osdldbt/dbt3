@@ -29,8 +29,9 @@ done
 PSQL="psql -v ON_ERROR_STOP=1 -X -A -t"
 
 # if the FIXEDDECIMAL extension exists, use it instead of NUMERIC (or REAL).
-RC=`$PSQL -c "SELECT 1 FROM pg_extension WHERE extname = 'fixeddecimal';"`
+RC=`$PSQL -c "SELECT 1 FROM pg_available_extensions WHERE name = 'fixeddecimal';"`
 if [ "x$RC" = "x1" ]; then
+	$PSQL -c "CREATE EXTENSION fixeddecimal;"
 	NUM_OR_FD="FIXEDDECIMAL"
 fi
 
