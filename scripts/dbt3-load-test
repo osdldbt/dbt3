@@ -10,16 +10,18 @@
 #
 
 CHUNKS=1
-RESORT=0
+DIRECT_LOAD=0
+DIRECT_LOAD_ARG=""
 GENERATE=0
 MPP=0
 ONLY_LOAD=0
+RESORT=0
 SF=0
 USE_OPROFILE=0
 USE_LINUXPERF=0
 WORKLOAD="H"
 
-while getopts "a:cC:f:g:lo:p:RtyY:" opt; do
+while getopts "a:cC:df:g:lo:p:RtyY:" opt; do
 	case $opt in
 	a)
 		DATABASE=$OPTARG
@@ -32,6 +34,10 @@ while getopts "a:cC:f:g:lo:p:RtyY:" opt; do
 		;;
 	C)
 		CHUNKS="$OPTARG"
+		;;
+	d)
+		DIRECT_LOAD=1
+		DIRECT_LOAD_ARG="-d"
 		;;
 	f)
 		SF=$OPTARG
@@ -105,7 +111,9 @@ for f in customer lineitem nation orders partsupp part region supplier; do
 	fi
 done
 
-if [ $GENERATE -ne 0 ] || [ $have_all_files -eq 0 ]; then
+if [ $DIRECT_LOAD -eq 1 ]; then
+	echo "Creating the database with a direct load from dbgen."
+elif [ $GENERATE -ne 0 ] || [ $have_all_files -eq 0 ]; then
 	echo "`date` Generating data for scale factor $SF ..."
 	# DBGEN reads DSS_PATH env var to determine where to put the files
 	if [ $CHUNKS -eq 1 ]; then
@@ -174,7 +182,7 @@ if [ $USE_LINUXPERF -eq 1 ]; then
 	PERFCOMMAND="perf record -a -g -s -F 100 -o $PERFDIR/perf.data"
 fi
 
-eval $PERFCOMMAND dbt3-$DATABASE-load-data -C $CHUNKS || exit 1
+eval $PERFCOMMAND dbt3-$DATABASE-load-data -C $CHUNKS $DIRECT_LOAD_ARG || exit 1
 
 dbt3-$DATABASE-time-statistics -e -n LOAD || exit 1
 e_time=`date +%s`

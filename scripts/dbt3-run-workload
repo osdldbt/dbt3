@@ -15,7 +15,7 @@ killall sar sadc pidstat dbt3-$DATABASE-dbstat' TERM
 
 usage()
 {
-	echo "usage: `basename $0` [-123aeghoPRuz] [-c comment] [-f scale factor] "
+	echo "usage: `basename $0` [-123adeghoPRuz] [-c comment] [-f scale factor] "
 	echo "  [-l database port] [-n streams] [-s seed]"
 	echo "  [-p load test database parameters]"
 	echo "  [-q power test database parameters]"
@@ -27,6 +27,7 @@ usage()
 	echo " a - dbms under test (monetdb, mysql, pgsql, sapdb)"
 	echo " c - comment about the test"
 	echo " C - flag to resort data load files"
+	echo " d - direct data load"
 	echo " e - EXPLAIN ANALYZE (PostgreSQL only)"
 	echo " g - generate flat files"
 	echo " h - this help message"
@@ -45,6 +46,7 @@ usage()
 }
 
 DATABASE=""
+DIRECT_LOAD_ARG=""
 COMMENT=""
 FLAG_POWER_TEST=""
 FLAG_THROUGHPUT_TEST=""
@@ -74,7 +76,7 @@ if [ -n "$DEFAULT_THROUGHPUT_PARAMETERS" ]; then
 	THROUGHPUT_PARAMETERS="$DEFAULT_THROUGHPUT_PARAMETERS"
 fi
 
-while getopts "123a:c:Cef:ghn:Oo:p:Pq:Rr:s:tuVz" opt; do
+while getopts "123a:c:Cdef:ghn:Oo:p:Pq:Rr:s:tuVz" opt; do
 	case $opt in
 	1)
 		RUN_LOAD_TEST=1
@@ -100,12 +102,15 @@ while getopts "123a:c:Cef:ghn:Oo:p:Pq:Rr:s:tuVz" opt; do
 	C)
 		RESORT_ARG="-c"
 		;;
+	d)
+		DIRECT_LOAD_ARG="-d"
+		;;
 	e)
 		# PostgreSQL only.
 		TEST_ARGS="$TEST_ARGS -e"
 		;;
 	f)
-		SCALE_FACTOR=$OPTARG
+		export SCALE_FACTOR=$OPTARG
 		;;
 	g)
 		GENERATE=1
@@ -239,6 +244,7 @@ if [ ${RUN_LOAD_TEST} -eq 1 ]; then
 			${WORKLOAD_ARG} \
 			$RESORT_ARG \
 			$MPP_ARG \
+			$DIRECT_LOAD_ARG \
 			${TABLESPACES_FLAG} || exit 1
 else
 	#

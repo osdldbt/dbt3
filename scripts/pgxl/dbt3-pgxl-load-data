@@ -13,11 +13,40 @@ load_table()
 	table=${1}
 	file=${table}.tbl
 
-	if [ "$table" = "nation" ] || [ "$table" = "region" ]; then
-			$PSQL -c "COPY $table FROM '$DSS_PATH/$file' USING DELIMITERS '|';" &
+	if [ $DIRECT_LOAD -eq 0 ]; then
+			if [ "$table" = "nation" ] || [ "$table" = "region" ]; then
+					$PSQL -c "COPY $table FROM '$DSS_PATH/$file' USING DELIMITERS '|';" &
+			else
+				for i in `seq 1 $DATANODES`; do
+					$PSQL -c "COPY $table FROM '$DSS_PATH/$file.$i' USING DELIMITERS '|';" &
+				done
+			fi
 	else
+		if [ "$table" = "customer" ]; then
+			FLAG="c"
+		elif [ "$table" = "lineitem" ]; then
+			FLAG="L"
+		elif [ "$table" = "nation" ]; then
+			$PSQL -c "COPY $table FROM PROGRAM 'dbgen -s $SCALE_FACTOR -T n -o' USING DELIMITERS '|';" &
+			return
+		elif [ "$table" = "orders" ]; then
+			FLAG="O"
+		elif [ "$table" = "part" ]; then
+			FLAG="P"
+		elif [ "$table" = "region" ]; then
+			$PSQL -c "COPY $table FROM PROGRAM 'dbgen -s $SCALE_FACTOR -T r -o' USING DELIMITERS '|';" &
+			return
+		elif [ "$table" = "supplier" ]; then
+			FLAG="s"
+		elif [ "$table" = "partsupp" ]; then
+			FLAG="S"
+		else
+			echo "unknown table: $table"
+			return
+		fi
+
 		for i in `seq 1 $DATANODES`; do
-			$PSQL -c "COPY $table FROM '$DSS_PATH/$file.$i' USING DELIMITERS '|';" &
+			$PSQL -c "COPY $table FROM PROGRAM 'dbgen -s $SCALE_FACTOR -T $FLAG -o -C $DATANODES -S $i' USING DELIMITERS '|';" &
 		done
 	fi
 	wait
@@ -276,12 +305,16 @@ ALTER TABLE region ADD CONSTRAINT pk_region PRIMARY KEY USING INDEX pk_region;"
 	$PSQL -c "VACUUM ANALYZE region;"
 }
 
+DIRECT_LOAD=0
 NODES=0
 USE_TABLESPACES=0
-while getopts "C:t" OPT; do
+while getopts "C:dt" OPT; do
 	case ${OPT} in
 	C)
 		# Do nothing
+		;;
+	d)
+		DIRECT_LOAD=1
 		;;
 	t)
 		USE_TABLESPACES=1
