@@ -26,6 +26,10 @@ load_table()
 supplier()
 {
 	load_table supplier
+}
+
+supplier_ind()
+{
 
 	$PSQL -c "
 CREATE UNIQUE INDEX pk_supplier
@@ -52,7 +56,10 @@ ALTER TABLE supplier ADD CONSTRAINT pk_supplier PRIMARY KEY USING INDEX pk_suppl
 part()
 {
 	load_table part
+}
 
+part_ind()
+{
 	$PSQL -c "
 CREATE UNIQUE INDEX pk_part
 ON part (p_partkey)
@@ -84,6 +91,10 @@ ALTER TABLE part ADD CONSTRAINT pk_part PRIMARY KEY USING INDEX pk_part;"
 partsupp()
 {
 	load_table partsupp
+}
+
+partsupp_ind()
+{
 
 	$PSQL -c "
 CREATE UNIQUE INDEX pk_partsupp
@@ -105,6 +116,10 @@ ALTER TABLE partsupp ADD CONSTRAINT pk_partsupp PRIMARY KEY USING INDEX pk_parts
 customer()
 {
 	load_table customer
+}
+
+customer_ind()
+{
 
 	$PSQL -c "
 CREATE UNIQUE INDEX pk_customer
@@ -138,6 +153,10 @@ ALTER TABLE customer ADD CONSTRAINT pk_customer PRIMARY KEY USING INDEX pk_custo
 orders()
 {
 	load_table orders
+}
+
+orders_ind()
+{
 
 	$PSQL -c "
 CREATE UNIQUE INDEX pk_orders
@@ -165,7 +184,10 @@ ALTER TABLE orders ADD CONSTRAINT pk_orders PRIMARY KEY USING INDEX pk_orders;"
 lineitem()
 {
 	load_table lineitem
+}
 
+lineitem_ind()
+{
 	$PSQL -c "
 CREATE UNIQUE INDEX pk_lineitem
 ON lineitem (l_orderkey, l_linenumber)
@@ -217,7 +239,10 @@ ALTER TABLE lineitem ADD CONSTRAINT pk_lineitem PRIMARY KEY USING INDEX pk_linei
 nation()
 {
 	load_table nation
+}
 
+nation_ind()
+{
 	$PSQL -c "
 CREATE UNIQUE INDEX pk_nation
 ON nation (n_nationkey)
@@ -234,7 +259,10 @@ ALTER TABLE nation ADD CONSTRAINT pk_nation PRIMARY KEY USING INDEX pk_nation;"
 region()
 {
 	load_table region
+}
 
+region_ind()
+{
 	$PSQL -c "
 CREATE UNIQUE INDEX pk_region
 ON region (r_regionkey)
@@ -268,6 +296,8 @@ for HOSTNAME in $HOSTNAMES; do
 done
 DATANODES=$(( $NODES * $DNPN ))
 
+echo "Loading tables `date`"
+
 supplier &
 part &
 partsupp &
@@ -276,5 +306,18 @@ orders &
 lineitem &
 nation &
 region &
+
+wait
+
+echo "Building indexes `date`"
+
+supplier_ind &
+part_ind &
+partsupp_ind &
+customer_ind &
+orders_ind &
+lineitem_ind &
+nation_ind &
+region_ind &
 
 wait
