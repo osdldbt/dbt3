@@ -120,7 +120,7 @@ CREATE TABLE customer (
 
 create_table "
 CREATE TABLE orders (
-	o_orderkey INTEGER,
+	o_orderkey BIGINT,
 	o_custkey INTEGER,
 	o_orderstatus CHAR(1),
 	o_totalprice $NUM_OR_FD,
@@ -133,7 +133,7 @@ CREATE TABLE orders (
 
 create_table "
 CREATE TABLE lineitem (
-	l_orderkey INTEGER,
+	l_orderkey BIGINT,
 	l_partkey INTEGER,
 	l_suppkey INTEGER,
 	l_linenumber INTEGER,
