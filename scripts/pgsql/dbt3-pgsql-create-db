@@ -56,7 +56,7 @@ if [ -d ${PGDATA} ]; then
 else
 	# initialize database cluster
 	echo "initializing database cluster..."
-	initdb -A trust -D ${PGDATA} --locale=C || exit 1
+	initdb -A trust -D ${PGDATA} --locale=C -E UTF8 || exit 1
 
 	# Use alternative XLOG directory.
 	if [ ! "x${XLOGPATH}" = "x" ]; then
