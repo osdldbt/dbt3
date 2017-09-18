@@ -13,277 +13,321 @@ load_table()
 	table=${1}
 	file=${table}.tbl
 
-	if [ $CHUNKS -eq 1 ] || [ "$table" = "nation" ] || \
-			[ "$table" = "region" ]; then
-		$PSQL << __EOF__
+	if [ $DIRECT_LOAD -eq 0 ]; then
+		if [ $CHUNKS -eq 1 ] || [ "$table" = "nation" ] || \
+				[ "$table" = "region" ]; then
+			$PSQL << __EOF__
 COPY $table FROM '$DSS_PATH/$file' USING DELIMITERS '|';
 __EOF__
-	else
-		i=1
-		while [ $i -le $CHUNKS ]; do
-			$PSQL << __EOF__ &
+		else
+			i=1
+			while [ $i -le $CHUNKS ]; do
+				$PSQL << __EOF__ &
 COPY $table FROM '$DSS_PATH/$file.$i' USING DELIMITERS '|';
 __EOF__
-			i=$(( $i + 1 ))
-		done
-		wait
+				i=$(( $i + 1 ))
+			done
+		fi
+	else
+		if [ "$table" = "customer" ]; then
+			FLAG="c"
+		elif [ "$table" = "lineitem" ]; then
+			FLAG="L"
+		elif [ "$table" = "nation" ]; then
+			FLAG="n"
+		elif [ "$table" = "orders" ]; then
+			FLAG="O"
+		elif [ "$table" = "part" ]; then
+			FLAG="P"
+		elif [ "$table" = "region" ]; then
+			FLAG="r"
+		elif [ "$table" = "supplier" ]; then
+			FLAG="s"
+		elif [ "$table" = "partsupp" ]; then
+			FLAG="S"
+		else
+			echo "unknown table: $table"
+			return
+		fi
+
+		if [ $CHUNKS -eq 1 ] || [ "$table" = "nation" ] || \
+				[ "$table" = "region" ]; then
+			$PSQL << __EOF__ &
+COPY $table FROM PROGRAM 'dbgen -s $SCALE_FACTOR -T $FLAG -o' USING DELIMITERS '|';
+__EOF__
+		else
+			i=1
+			while [ $i -le $CHUNKS ]; do
+				$PSQL << __EOF__ &
+COPY $table FROM PROGRAM 'dbgen -s $SCALE_FACTOR -T $FLAG -o -C $CHUNKS -S $i' USING DELIMITERS '|';
+__EOF__
+				i=$(( $i + 1 ))
+			done
+		fi
 	fi
+	wait
 }
 
 supplier()
 {
 	load_table supplier
+}
 
-	$PSQL << __EOF__ &
+supplier_ind()
+{
+	$PSQL -c "
 CREATE UNIQUE INDEX pk_supplier
 ON supplier (s_suppkey)
-WITH (fillfactor = 100);
-__EOF__
-	$PSQL << __EOF__ &
+WITH (fillfactor = 100);" &
+	$PSQL -c "
 CREATE INDEX supplier_s_suppkey_idx_like
 ON supplier (s_suppkey)
 WITH (fillfactor = 100)
-WHERE s_comment LIKE '%Customer%Complaints%';
-__EOF__
-	$PSQL << __EOF__ &
+WHERE s_comment LIKE '%Customer%Complaints%';" &
+	$PSQL -c "
 CREATE INDEX supplier_s_nationkey_s_suppkey_idx
 ON supplier (s_nationkey, s_suppkey)
-WITH (fillfactor = 100);
-__EOF__
+WITH (fillfactor = 100);" &
 
 	wait
 
-	${PSQL} -c "VACUUM ANALYZE supplier;"
+	$PSQL -c "
+ALTER TABLE supplier ADD CONSTRAINT pk_supplier PRIMARY KEY USING INDEX pk_supplier;"
+
+	$PSQL -c "VACUUM ANALYZE supplier;"
 }
 
 part()
 {
 	load_table part
+}
 
-	$PSQL << __EOF__ &
+part_ind()
+{
+	$PSQL -c "
+CREATE UNIQUE INDEX pk_part
+ON part (p_partkey)
+WITH (fillfactor = 100);" &
+	$PSQL -c "
 CREATE INDEX part_p_type_p_partkey_idx
 ON part(p_type, p_partkey)
-WITH (fillfactor = 100);
-__EOF__
-	$PSQL << __EOF__ &
+WITH (fillfactor = 100);" &
+	$PSQL -c "
 CREATE INDEX part_p_container_p_brand_p_partkey_idx
 ON part(p_container, p_brand, p_partkey)
-WITH (fillfactor = 100);
-__EOF__
-	if [ $PGVERSION -ge 90500 ]; then
-		$PSQL << __EOF__ &
+WITH (fillfactor = 100);" &
+	$PSQL -c "
 CREATE INDEX part_ios_test1
-ON part
-USING btree (p_size, p_partkey, p_brand, p_type)
-WITH (fillfactor = 100);
-__EOF__
-		$PSQL << __EOF__ &
-CREATE INDEX part_p_size_idx ON part USING BRIN (p_size);
-__EOF__
-else
-		$PSQL << __EOF__ &
+ON part USING btree (p_size, p_partkey, p_brand, p_type)
+WITH (fillfactor = 100);" &
+	$PSQL -c "
 CREATE INDEX part_p_size_idx
-ON part(p_size);
-__EOF__
-		$PSQL << __EOF__ &
-CREATE INDEX part_p_name_idx
-ON part(p_name);
-__EOF__
-	fi
+ON part USING BRIN (p_size);" &
 
 	wait
 
-	${PSQL} -c "VACUUM ANALYZE part;"
+	$PSQL -c "
+ALTER TABLE part ADD CONSTRAINT pk_part PRIMARY KEY USING INDEX pk_part;"
+
+	$PSQL -c "VACUUM ANALYZE part;"
 }
 
 partsupp()
 {
 	load_table partsupp
+}
 
-	$PSQL << __EOF__ &
+partsupp_ind()
+{
+	$PSQL -c "
 CREATE UNIQUE INDEX pk_partsupp
 ON partsupp (ps_partkey, ps_suppkey)
-WITH (fillfactor = 100);
-__EOF__
-	$PSQL << __EOF__ &
+WITH (fillfactor = 100);" &
+	$PSQL -c "
 CREATE INDEX partsupp_ps_suppkey_idx
 ON partsupp (ps_suppkey)
-WITH (fillfactor = 100);
-__EOF__
+WITH (fillfactor = 100);" &
 
 	wait
 
-	${PSQL} -c "VACUUM ANALYZE partsupp;"
+	$PSQL -c "
+ALTER TABLE partsupp ADD CONSTRAINT pk_partsupp PRIMARY KEY USING INDEX pk_partsupp;"
+
+	$PSQL -c "VACUUM ANALYZE partsupp;"
 }
 
 customer()
 {
 	load_table customer
+}
 
-	$PSQL << __EOF__ &
+customer_ind()
+{
+	$PSQL -c "
 CREATE UNIQUE INDEX pk_customer
 ON customer (c_custkey)
-WITH (fillfactor = 100);
-__EOF__
-	$PSQL << __EOF__ &
+WITH (fillfactor = 100);" &
+	$PSQL -c "
 CREATE INDEX customer_c_nationkey_c_custkey_idx
 ON customer (c_nationkey, c_custkey)
-WITH (fillfactor = 100);
-__EOF__
-	$PSQL << __EOF__ &
-CREATE INDEX customer_ios_test1
+WITH (fillfactor = 100);" &
+	$PSQL -c "
+CREATE INDEX customer_c_phone_idx_c_acctbal
+ON customer (substr(c_phone::text, 1, 2))
+WHERE c_acctbal > 0.00;" &
+	$PSQL -c "
+CREATE INDEX customer_c_phone_c_acctbal_c_custkey_idx
 ON customer (substring(c_phone from 1 for 2), c_acctbal, c_custkey)
-WITH (fillfactor = 100);
-__EOF__
-	$PSQL << __EOF__ &
+WITH (fillfactor = 100);" &
+	$PSQL -c "
 CREATE INDEX customer_c_mktsegment_c_custkey_idx
 ON customer (c_mktsegment, c_custkey)
-WITH (fillfactor = 100);
-__EOF__
+WITH (fillfactor = 100);" &
 
 	wait
 
-	${PSQL} -c "VACUUM ANALYZE customer;"
+	$PSQL -c "
+ALTER TABLE customer ADD CONSTRAINT pk_customer PRIMARY KEY USING INDEX pk_customer;"
+
+	$PSQL -c "VACUUM ANALYZE customer;"
 }
 
 orders()
 {
 	load_table orders
+}
 
-	$PSQL << __EOF__ &
+orders_ind()
+{
+	$PSQL -c "
 CREATE UNIQUE INDEX pk_orders
-ON orders (o_orderkey)
-WITH (fillfactor = 100);
-__EOF__
-	$PSQL << __EOF__ &
+ON orders (o_orderkey) WITH (fillfactor = 100);" &
+	$PSQL -c "
 CREATE INDEX orders_o_orderkey_o_orderdate_idx
 ON orders (o_orderkey, o_orderdate)
-WITH (fillfactor = 100);
-__EOF__
-	if [ $PGVERSION -ge 90500 ]; then
-		$PSQL << __EOF__ &
+WITH (fillfactor = 100);" &
+	$PSQL -c "
 CREATE INDEX orders_o_custkey_idx
 ON orders (o_custkey)
-WITH (fillfactor = 100);
-__EOF__
-		$PSQL << __EOF__ &
+WITH (fillfactor = 100);" &
+	$PSQL -c "
 CREATE INDEX orders_o_orderdate_idx
-ON orders USING BRIN (o_orderdate);
-__EOF__
-	else
-		$PSQL << __EOF__ &
-CREATE INDEX orders_o_orderdate_o_orderkey_idx
-ON orders (o_orderdate, o_orderkey);
-__EOF__
-	fi
+ON orders USING BRIN (o_orderdate);" &
 
 	wait
 
-	${PSQL} -c "VACUUM ANALYZE orders;"
+	$PSQL -c "
+ALTER TABLE orders ADD CONSTRAINT pk_orders PRIMARY KEY USING INDEX pk_orders;"
+
+	$PSQL -c "VACUUM ANALYZE orders;"
 }
 
 lineitem()
 {
 	load_table lineitem
+}
 
-	$PSQL << __EOF__ &
+lineitem_ind()
+{
+	$PSQL -c "
 CREATE UNIQUE INDEX pk_lineitem
 ON lineitem (l_orderkey, l_linenumber)
-WITH (fillfactor = 100);
-__EOF__
-	$PSQL << __EOF__ &
+WITH (fillfactor = 100);" &
+	$PSQL -c "
 CREATE INDEX lineitem_l_partkey_l_quantity_l_shipmode_idx
 ON lineitem (l_partkey, l_quantity, l_shipmode)
-WITH (fillfactor = 100);
-__EOF__
-	$PSQL << __EOF__ &
+WITH (fillfactor = 100);" &
+	$PSQL -c "
 CREATE INDEX lineitem_l_orderkey_idx_l_returnflag
 ON lineitem (l_orderkey)
 WITH (fillfactor = 100)
-WHERE l_returnflag = 'R';
-__EOF__
-	$PSQL << __EOF__ &
-CREATE INDEX lineitem_l_orderkey_idx_part1
-ON lineitem (l_orderkey, l_suppkey)
-WITH (fillfactor = 100)
-WHERE l_commitdate < l_receiptdate;
-__EOF__
-	$PSQL << __EOF__ &
+WHERE l_returnflag = 'R';" &
+	$PSQL -c "
 CREATE INDEX lineitem_l_orderkey_idx_part2
 ON lineitem (l_orderkey)
 WITH (fillfactor = 100)
 WHERE l_commitdate < l_receiptdate
-  AND l_shipdate < l_commitdate;
-__EOF__
-	if [ $PGVERSION -ge 90500 ]; then
-		$PSQL << __EOF__ &
-CREATE INDEX line_item_l_orderkey_l_suppkey_idx
+  AND l_shipdate < l_commitdate;" &
+	$PSQL -c "
+CREATE INDEX lineitem_l_orderkey_l_suppkey_l_quantity_idx
+ON lineitem (l_orderkey, l_suppkey, l_quantity)
+WITH (fillfactor = 100);" &
+	# Q4, Q21
+	$PSQL -c "
+CREATE INDEX lineitem_l_orderkey_l_suppkey_idx
 ON lineitem (l_orderkey, l_suppkey)
-WITH (fillfactor = 100);
-__EOF__
-		$PSQL << __EOF__ &
+WITH (fillfactor = 100)
+WHERE l_commitdate < l_receiptdate;" &
+	$PSQL -c "
 CREATE INDEX lineitem_l_partkey_l_suppkey_l_shipdate_l_quantity_idx
 ON lineitem (l_partkey, l_suppkey, l_shipdate, l_quantity)
-WITH (fillfactor = 100);
-__EOF__
-		$PSQL << __EOF__ &
-CREATE INDEX lineitem_l_shipdate_idx ON lineitem USING BRIN (l_shipdate);
-__EOF__
-		$PSQL << __EOF__ &
-CREATE INDEX lineitem_l_receiptdate_idx ON lineitem USING BRIN (l_receiptdate);
-__EOF__
-	else
-		$PSQL << __EOF__ &
-CREATE INDEX lineitem_l_orderkey_idx
-ON lineitem (l_orderkey);
-__EOF__
-		$PSQL << __EOF__ &
-CREATE INDEX lineitem_l_shipdate_l_suppkey__idx
-ON lineitem (l_shipdate, l_suppkey);
-__EOF__
-		$PSQL << __EOF__ &
-CREATE INDEX lineitem_l_orderkey_l_linenumber_l_shipdate_idx
-ON lineitem (l_orderkey, l_linenumber, l_shipdate);
-__EOF__
-	fi
+WITH (fillfactor = 100);" &
+	$PSQL -c "
+CREATE INDEX lineitem_l_shipdate_idx
+ON lineitem USING BRIN (l_shipdate);" &
+	$PSQL -c "
+CREATE INDEX lineitem_l_receiptdate_idx
+ON lineitem USING BRIN (l_receiptdate);" &
 
 	wait
 
-	${PSQL} -c "VACUUM ANALYZE lineitem;"
+	$PSQL -c "
+ALTER TABLE lineitem ADD CONSTRAINT pk_lineitem PRIMARY KEY USING INDEX pk_lineitem;"
+
+	$PSQL -c "VACUUM ANALYZE lineitem;"
 }
 
 nation()
 {
 	load_table nation
+}
 
-	$PSQL << __EOF__ &
-CREATE UNIQUE INDEX pk_nation ON nation (n_nationkey) WITH (fillfactor = 100);
-__EOF__
+nation_ind()
+{
+	$PSQL -c "
+CREATE UNIQUE INDEX pk_nation
+ON nation (n_nationkey)
+WITH (fillfactor = 100);" &
 
 	wait
 
-	${PSQL} -c "VACUUM ANALYZE nation;"
+	$PSQL -c "
+ALTER TABLE nation ADD CONSTRAINT pk_nation PRIMARY KEY USING INDEX pk_nation;"
+
+	$PSQL -c "VACUUM ANALYZE nation;"
 }
 
 region()
 {
 	load_table region
+}
 
-	$PSQL << __EOF__ &
-CREATE UNIQUE INDEX pk_region ON region (r_regionkey) WITH (fillfactor = 100);
-__EOF__
+region_ind()
+{
+	$PSQL -c "
+CREATE UNIQUE INDEX pk_region
+ON region (r_regionkey)
+WITH (fillfactor = 100);" &
 
 	wait
 
-	${PSQL} -c "VACUUM ANALYZE region;"
+	$PSQL -c "
+ALTER TABLE region ADD CONSTRAINT pk_region PRIMARY KEY USING INDEX pk_region;"
+
+	$PSQL -c "VACUUM ANALYZE region;"
 }
 
 CHUNKS=1
+DIRECT_LOAD=0
+NODES=0
 USE_TABLESPACES=0
-while getopts "C:t" OPT; do
+while getopts "C:dt" OPT; do
 	case ${OPT} in
 	C)
 		CHUNKS=$OPTARG
+		;;
+	d)
+		DIRECT_LOAD=1
 		;;
 	t)
 		USE_TABLESPACES=1
@@ -292,7 +336,8 @@ while getopts "C:t" OPT; do
 done
 
 PSQL="psql -v ON_ERROR_STOP=1 -X"
-PGVERSION=`$PSQL -t --no-align -c "SHOW server_version_num;"`
+
+echo "Loading tables `date`"
 
 supplier &
 part &
@@ -302,5 +347,18 @@ orders &
 lineitem &
 nation &
 region &
+
+wait
+
+echo "Building indexes `date`"
+
+supplier_ind &
+part_ind &
+partsupp_ind &
+customer_ind &
+orders_ind &
+lineitem_ind &
+nation_ind &
+region_ind &
 
 wait

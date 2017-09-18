@@ -76,7 +76,7 @@ if [ -n "$DEFAULT_THROUGHPUT_PARAMETERS" ]; then
 	THROUGHPUT_PARAMETERS="$DEFAULT_THROUGHPUT_PARAMETERS"
 fi
 
-while getopts "123a:c:Cdef:ghn:Oo:p:Pq:Rr:s:tuVz" opt; do
+while getopts "123a:c:CdD:ef:ghn:Oo:p:Pq:Rr:s:tuVz" opt; do
 	case $opt in
 	1)
 		RUN_LOAD_TEST=1
@@ -104,6 +104,9 @@ while getopts "123a:c:Cdef:ghn:Oo:p:Pq:Rr:s:tuVz" opt; do
 		;;
 	d)
 		DIRECT_LOAD_ARG="-d"
+		;;
+	D)
+		CHUNK_ARG="-C $OPTARG"
 		;;
 	e)
 		# PostgreSQL only.
@@ -245,6 +248,7 @@ if [ ${RUN_LOAD_TEST} -eq 1 ]; then
 			$RESORT_ARG \
 			$MPP_ARG \
 			$DIRECT_LOAD_ARG \
+			$CHUNK_ARG \
 			${TABLESPACES_FLAG} || exit 1
 else
 	#
