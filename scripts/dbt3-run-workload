@@ -318,7 +318,7 @@ echo "dbms: $DATABASE" >> $OUTPUT_DIR/config.txt
 if [ $MPP -eq 1 ]; then
 	echo "mpp: yes" >> $OUTPUT_DIR/config.txt
 	echo "datanodes: $NODES" >> $OUTPUT_DIR/config.txt
-	echo "hostnames: $gtmMasterServer ${datanodeMasterServers[*]}" >> $OUTPUT_DIR/config.txt
+	echo "hostnames: ${coordMasterServers[*]} ${datanodeMasterServers[*]}" >> $OUTPUT_DIR/config.txt
 fi
 
 echo "Getting query times... "
@@ -333,16 +333,14 @@ for HOSTNAME in ${datanodeMasterServers[*]}; do
 	rsync -av $HOSTNAME:$OUTPUT_DIR/ $OUTPUT_DIR/ &
 done
 wait
-if [ $RUN_POWER_TEST -eq 1 ] || [ $RUN_THROUGHPUT_TEST -eq 1 ]; then
-	dbt3-post-process \
-			-i $OUTPUT_DIR \
-			-s $SCALE_FACTOR \
-			-n $STREAMS \
-			-o $OUTPUT_DIR/metrics.txt \
-			$NO_REFRESH_FLAG \
-			$FLAG_POWER_TEST \
-			$FLAG_THROUGHPUT_TEST 2> $OUTPUT_DIR/post-process.txt || exit 1
-fi
+dbt3-post-process \
+		-i $OUTPUT_DIR \
+		-s $SCALE_FACTOR \
+		-n $STREAMS \
+		-o $OUTPUT_DIR/metrics.txt \
+		$NO_REFRESH_FLAG \
+		$FLAG_POWER_TEST \
+		$FLAG_THROUGHPUT_TEST 2> $OUTPUT_DIR/post-process.txt || exit 1
 
 which R > /dev/null 2>&1
 if [ $? -eq 0 ]; then
