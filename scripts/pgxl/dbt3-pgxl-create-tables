@@ -31,94 +31,94 @@ fi
 
 create_table "
 CREATE TABLE supplier (
-	s_suppkey  INTEGER,
-	s_name CHAR(25),
-	s_address VARCHAR(40),
-	s_nationkey INTEGER,
-	s_phone CHAR(15),
-	s_acctbal $NUM_OR_FD,
-	s_comment VARCHAR(101))
+	s_suppkey INTEGER NOT NULL,
+	s_name CHAR(25) NOT NULL,
+	s_address VARCHAR(40) NOT NULL,
+	s_nationkey INTEGER NOT NULL,
+	s_phone CHAR(15) NOT NULL,
+	s_acctbal $NUM_OR_FD NOT NULL,
+	s_comment VARCHAR(101) NOT NULL)
 	DISTRIBUTE BY REPLICATION;" || exit 1
 
 create_table "
 CREATE TABLE part (
-	p_partkey INTEGER,
-	p_name VARCHAR(55),
-	p_mfgr CHAR(25),
-	p_brand CHAR(10),
-	p_type VARCHAR(25),
-	p_size INTEGER,
-	p_container CHAR(10),
-	p_retailprice $NUM_OR_FD,
-	p_comment VARCHAR(23))
+	p_partkey INTEGER NOT NULL,
+	p_name VARCHAR(55) NOT NULL,
+	p_mfgr CHAR(25) NOT NULL,
+	p_brand CHAR(10) NOT NULL,
+	p_type VARCHAR(25) NOT NULL,
+	p_size INTEGER NOT NULL,
+	p_container CHAR(10) NOT NULL,
+	p_retailprice $NUM_OR_FD NOT NULL,
+	p_comment VARCHAR(23) NOT NULL)
 	DISTRIBUTE BY HASH (p_partkey);" || exit 1
 
 create_table "
 CREATE TABLE partsupp (
-	ps_partkey INTEGER,
-	ps_suppkey INTEGER,
-	ps_availqty $INT_OR_FD,
-	ps_supplycost $NUM_OR_FD,
-	ps_comment VARCHAR(199))
+	ps_partkey INTEGER NOT NULL,
+	ps_suppkey INTEGER NOT NULL,
+	ps_availqty $INT_OR_FD NOT NULL,
+	ps_supplycost $NUM_OR_FD NOT NULL,
+	ps_comment VARCHAR(199) NOT NULL)
 	DISTRIBUTE BY HASH (ps_partkey);" || exit 1
 
 create_table "
 CREATE TABLE customer (
-	c_custkey INTEGER,
-	c_name VARCHAR(25),
-	c_address VARCHAR(40),
-	c_nationkey INTEGER,
-	c_phone CHAR(15),
-	c_acctbal $NUM_OR_FD,
-	c_mktsegment CHAR(10),
-	c_comment VARCHAR(117))
+	c_custkey INTEGER NOT NULL,
+	c_name VARCHAR(25) NOT NULL,
+	c_address VARCHAR(40) NOT NULL,
+	c_nationkey INTEGER NOT NULL,
+	c_phone CHAR(15) NOT NULL,
+	c_acctbal $NUM_OR_FD NOT NULL,
+	c_mktsegment CHAR(10) NOT NULL,
+	c_comment VARCHAR(117) NOT NULL)
 	DISTRIBUTE BY REPLICATION;" || exit 1
 
 create_table "
 CREATE TABLE orders (
-	o_orderkey BIGINT,
-	o_custkey INTEGER,
-	o_orderstatus CHAR(1),
-	o_totalprice $NUM_OR_FD,
-	o_orderdate DATE,
-	o_orderpriority CHAR(15),
-	o_clerk CHAR(15),
-	o_shippriority INTEGER,
-	o_comment VARCHAR(79))
+	o_orderkey BIGINT NOT NULL,
+	o_custkey INTEGER NOT NULL,
+	o_orderstatus CHAR(1) NOT NULL,
+	o_totalprice $NUM_OR_FD NOT NULL,
+	o_orderdate DATE NOT NULL,
+	o_orderpriority CHAR(15) NOT NULL,
+	o_clerk CHAR(15) NOT NULL,
+	o_shippriority INTEGER NOT NULL,
+	o_comment VARCHAR(79) NOT NULL)
 	DISTRIBUTE BY HASH (o_orderkey);" || exit 1
 
 create_table "
 CREATE TABLE lineitem (
-	l_orderkey BIGINT,
-	l_partkey INTEGER,
-	l_suppkey INTEGER,
-	l_linenumber INTEGER,
-	l_quantity $NUM_OR_FD,
-	l_extendedprice $NUM_OR_FD,
-	l_discount $NUM_OR_FD,
-	l_tax $NUM_OR_FD,
-	l_returnflag CHAR(1),
-	l_linestatus CHAR(1),
-	l_shipdate DATE,
-	l_commitdate DATE,
-	l_receiptdate DATE,
-	l_shipinstruct CHAR(25),
-	l_shipmode CHAR(10),
-	l_comment VARCHAR(44))
+	l_orderkey BIGINT NOT NULL,
+	l_partkey INTEGER NOT NULL,
+	l_suppkey INTEGER NOT NULL,
+	l_linenumber INTEGER NOT NULL,
+	l_quantity $NUM_OR_FD NOT NULL,
+	l_extendedprice $NUM_OR_FD NOT NULL,
+	l_discount $NUM_OR_FD NOT NULL,
+	l_tax $NUM_OR_FD NOT NULL,
+	l_returnflag CHAR(1) NOT NULL,
+	l_linestatus CHAR(1) NOT NULL,
+	l_shipdate DATE NOT NULL,
+	l_commitdate DATE NOT NULL,
+	l_receiptdate DATE NOT NULL,
+	l_shipinstruct CHAR(25) NOT NULL,
+	l_shipmode CHAR(10) NOT NULL,
+	l_comment VARCHAR(44) NOT NULL)
 	DISTRIBUTE BY HASH (l_orderkey);" || exit 1
 
 create_table "
 CREATE TABLE nation (
-	n_nationkey INTEGER,
-	n_name CHAR(25),
-	n_regionkey INTEGER,
-	n_comment VARCHAR(152)) DISTRIBUTE BY REPLICATION;" || exit 1
+	n_nationkey INTEGER NOT NULL,
+	n_name CHAR(25) NOT NULL,
+	n_regionkey INTEGER NOT NULL,
+	n_comment VARCHAR(152) NOT NULL) DISTRIBUTE BY REPLICATION;" || exit 1
 
 create_table "
 CREATE TABLE region (
-	r_regionkey INTEGER,
-	r_name CHAR(25),
-	r_comment VARCHAR(152)) DISTRIBUTE BY REPLICATION;" || exit 1
+	r_regionkey INTEGER NOT NULL,
+	r_name CHAR(25) NOT NULL,
+	r_comment VARCHAR(152) NOT NULL) DISTRIBUTE BY REPLICATION;" || exit 1
 
 create_table "
 CREATE TABLE time_statistics (
