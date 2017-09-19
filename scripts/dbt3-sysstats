@@ -1,11 +1,11 @@
-#!/bin/sh
+#!/bin/bash
 #
 # This file is released under the terms of the Artistic License.
 # Please see the file LICENSE, included in this package, for details.
 #
 # Copyright (C) 2002-2008 Open Source Development Labs, Inc.
 #               2002-2014 Mark Wong
-#               2014      2ndQuadrant, Ltd.
+#               2014-2017 2ndQuadrant, Ltd.
 
 start_remote_pidstat()
 {
@@ -138,12 +138,17 @@ if [ $MPP -eq 0 ]; then
 	$PIDSTAT $SAMPLE_LENGTH > $OUTPUT_DIR/pidstat.txt &
 	echo "$!" > ${OUTPUT_DIR}/pidstat.pid
 else
+	# FIXME: This is postgres-xl specific
+	if [ -f $HOME/pgxc_ctl/pgxc_ctl.conf ]; then
+		. $HOME/pgxc_ctl/pgxc_ctl.conf
+	fi
+
 	SARDIR="$OUTPUT_DIR/$GTMHOST"
 	mkdir -p $SARDIR
 	$SAR -o $SARDIR/sar_raw.out $SAMPLE_LENGTH > $SARDIR/sar.txt &
 	SARPIDS="$!"
 
-	for HOSTNAME in $HOSTNAMES; do
+	for HOSTNAME in ${datanodeMasterServers[*]}; do
 		start_remote_sar $HOSTNAME &
 		SARPIDS="$SARPIDS $!"
 	done
@@ -153,7 +158,7 @@ else
 
 	$PIDSTAT $SAMPLE_LENGTH > $PIDSTATFILE &
 	PIDSTATPIDS="$!"
-	for HOSTNAME in $HOSTNAMES; do
+	for HOSTNAME in ${datanodeMasterServers[*]}; do
 		start_remote_pidstat $HOSTNAME &
 		PIDSTATPIDS="$PIDSTATPIDS $!"
 	done

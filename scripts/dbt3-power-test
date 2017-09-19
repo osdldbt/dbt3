@@ -41,9 +41,6 @@ while getopts "a:ef:o:p:s:yYz" opt; do
 			OUTPUT_DIR=$OPTARG
 			RESULTSDIR="${OUTPUT_DIR}/results"
 			mkdir -p ${RESULTSDIR}
-			for HOSTNAME in $HOSTNAMES; do
-				ssh $HOSTNAME "mkdir -p $RESULTSDIR"
-			done
 			;;
 		p)
 			PARAMETERS_ARG="-p \"$OPTARG\""
@@ -88,6 +85,10 @@ fi
 
 if [ "x$DATABASE" = "xpgxl" ]; then
 	TAG="pgsql"
+	. $HOME/pgxc_ctl/pgxc_ctl.conf
+	for HOSTNAME in ${datanodeMasterServers[*]}; do
+		ssh $HOSTNAME "mkdir -p $RESULTSDIR"
+	done
 else
 	TAG=$DATABASE
 fi
@@ -183,7 +184,7 @@ while [ ${i} -le 22 ]; do
 			mkdir -p $PERFDIR
 			PERFCOMMAND="perf record -a -g -s -F 100 -o $PERFDIR/q$N-perf.data"
 		else
-			for HOSTNAME in $GTMHOST $HOSTNAMES; do
+			for HOSTNAME in ${coordMasterServers[*]} ${datanodeMasterServers[*]}; do
 				ssh $HOSTNAME << __EOF__ &
 mkdir -p $PERFDIR
 perf record -a -g -s -F 100 -o $PERFDIR/perf-$HOSTNAME-q$N.data
@@ -207,7 +208,7 @@ __EOF__
 	dbt3-$TAG-time-statistics -e -n $TASK || exit 1
 	if [ $MPP -eq 1 ] && [ $USE_LINUXPERF -eq 1 ]; then
 		# Brute force.
-		for HOSTNAME in $GTMHOST $HOSTNAMES; do
+		for HOSTNAME in ${coordMasterServers[*]} ${datanodeMasterServers[*]}; do
 			ssh $HOSTNAME "killall -9 perf"
 		done
 	fi
@@ -250,7 +251,7 @@ fi
 
 # Brute force.
 if [ $MPP -eq 1 ]; then
-	for HOSTNAME in $GTMHOST $HOSTNAMES; do
+	for HOSTNAME in ${coordMasterServers[*]} ${datanodeMasterServers[*]}; do
 		ssh $HOSTNAME "killall -9 sar sadc pidstat"
 	done
 fi
@@ -287,7 +288,7 @@ if [ $USE_LINUXPERF -eq 1 ]; then
 			i=$(( $i + 1 ))
 		done > $OUTPUT_DIR/perf/report-output.txt 2>&1
 	else
-		for HOSTNAME in $GTMHOST $HOSTNAMES; do
+		for HOSTNAME in ${coordMasterServers[*]} ${datanodeMasterServers[*]}; do
 			i=1
 			while [ $i -le 22 ]; do
 				PERFDIR=$OUTPUT_DIR/perf/$i

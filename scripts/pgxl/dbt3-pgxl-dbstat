@@ -1,12 +1,14 @@
-#!/bin/sh
+#!/bin/bash
 #
 # This file is released under the terms of the Artistic License.
 # Please see the file LICENSE, included in this package, for details.
 #
 # Copyright (C) 2003-2007 Open Source Development Labs, Inc.
 #               2003-2007 Jenny Zhang
-#               2015      Mark Wong
-#               2015      2ndQuadrant, Ltd.
+#               2015-2017 Mark Wong
+#               2015-2017 2ndQuadrant, Ltd.
+
+. $HOME/pgxc_ctl/pgxc_ctl.conf
 
 dbstat_init()
 {
@@ -155,13 +157,8 @@ echo "$$" > $OUTPUT_DIR/dbstat.pid
 dbstat_init $GTMHOST coordinator &
 
 i=1
-for HOSTNAME in $HOSTNAMES; do
-	j=1
-	while [ $j -le $DNPN ]; do
-		DPORT=$(( $DNBP + $j ))
-		dbstat_init $HOSTNAME datanode.$i.$j $DPORT &
-		j=$(( $j + 1 ))
-	done
+for HOSTNAME in ${datanodeMasterServers[*]}; do
+	dbstat_init $HOSTNAME datanode.$i ${datanodePorts[$i]} &
 	i=$(( $i + 1 ))
 done
 
@@ -171,13 +168,8 @@ while [ 1 ]; do
 	dbstat $GTMHOST coordinator &
 
 	i=1
-	for HOSTNAME in $HOSTNAMES; do
-		j=1
-		while [ $j -le $DNPN ]; do
-			DPORT=$(( $DNBP + $j ))
-			dbstat $HOSTNAME datanode.$i.$j $DPORT &
-			j=$(( $j + 1 ))
-		done
+	for HOSTNAME in ${datanodeMasterServers[*]}; do
+		dbstat $HOSTNAME datanode.$i ${datanodePorts[$i]} &
 		i=$(( $i + 1 ))
 	done
 done

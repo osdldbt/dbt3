@@ -13,22 +13,4 @@ if [ -z ${PGDATA} ]; then
 	exit 1
 fi
 
-pg_ctl -Z coordinator -w -D $COORDINATORDATA stop -m fast
-
-i=1
-for HOSTNAME in $HOSTNAMES; do
-	j=1
-	while [ $j -le $DNPN ]; do
-		ssh $HOSTNAME "pg_ctl -Z datanode -w -D $DATANODEDATA$i.$j stop -m fast"
-		j=$(( $j + 1 ))
-	done
-	i=$(( $i + 1 ))
-done
-
-i=1
-for HOSTNAME in $HOSTNAMES; do
-	ssh $HOSTNAME "gtm_ctl -Z gtm_proxy -D $GTMPROXYDATA$i stop -m fast"
-	i=$(( $i + 1 ))
-done
-
-gtm_ctl -D $GTMDATA -Z gtm stop -m fast
+pgxc_ctl stop all

@@ -4,8 +4,8 @@
 # Please see the file LICENSE, included in this package, for details.
 #
 # Copyright (C) 2002-2008 Open Source Development Labs, Inc.
-#               2002-2015 Mark Wong
-#               2015      2ndQuadrant, Ltd.
+#               2002-2017 Mark Wong
+#               2015-2017 2ndQuadrant, Ltd.
 
 # dont start script as root!
 id=`id | sed s/\(.*// | sed s/uid=//`
@@ -51,42 +51,9 @@ dbt3-pgxl-stop-db
 
 SKIP=0
 echo "Creating database..."
-if [ -d $PGDATA ]; then
-	echo "PGData directory '$PGDATA' already exists, skipping initdb..."
-	SKIP=1
-else
-	echo "initializing database cluster..."
-
-	initdb -D $COORDINATORDATA --nodename coordinator || exit 1
-	echo "host all all 0.0.0.0/0 trust" >> $COORDINATORDATA/pg_hba.conf || exit 1
-	echo "host all all ::/0 trust" >> $COORDINATORDATA/pg_hba.conf || exit 1
-	i=1
-	for HOSTNAME in $HOSTNAMES; do
-		ssh $HOSTNAME << __EOF__
-#initdb -D $COORDINATORDATA.$i --nodename coordinator_$i || exit 1
-#echo "host all all 0.0.0.0/0 trust" >> $COORDINATORDATA.$i/pg_hba.conf || exit 1
-#echo "host all all ::/0 trust" >> $COORDINATORDATA.$i/pg_hba.conf || exit 1
-initgtm -D $GTMPROXYDATA$i -Z gtm_proxy || exit 1
-__EOF__
-		j=1
-		while [ $j -le $DNPN ]; do
-			ssh $HOSTNAME << __EOF__
-initdb -D $DATANODEDATA$i.$j --nodename datanode_${i}_$j || exit 1
-echo "host all all 0.0.0.0/0 trust" >> $DATANODEDATA$i.$j/pg_hba.conf || exit 1
-echo "host all all ::/0 trust" >> $DATANODEDATA$i.$j/pg_hba.conf || exit 1
-__EOF__
-			if [ $? -ne 0 ]; then
-				exit 1
-			fi
-			j=$(( $j + 1 ))
-		done
-
-		i=$(( $i + 1 ))
-	done
-	initgtm -D $GTMDATA -Z gtm
-fi
 
 eval dbt3-pgxl-start-db -o $OUTPUT_DIR $PARAMOPT
+
 if [ $SKIP -eq 1 ]; then
 	# Clear time statistics on repeated run otherwise results are
 	# indecipherable.
@@ -94,104 +61,4 @@ if [ $SKIP -eq 1 ]; then
 	exit 0
 fi
 
-echo "Adding coordinators to coordinators..."
-$PSQL << __EOF__
-ALTER NODE coordinator WITH (TYPE = 'coordinator', HOST = '$GTMHOST');
-__EOF__
-if [ $? -ne 0 ]; then
-	exit 1
-fi
-
-echo "Adding datanodes to coordinators..."
-i=1
-for HOSTNAME in $HOSTNAMES; do
-	j=1
-	while [ $j -le $DNPN ]; do
-		PORT=$(( $DNBP + $j ))
-		$PSQL <<__EOF__
-CREATE NODE datanode_${i}_$j
-WITH (TYPE = 'datanode', HOST = '$HOSTNAME', PORT = $PORT);
-__EOF__
-		if [ $? -ne 0 ]; then
-			exit 1
-		fi
-		j=$(( $j + 1 ))
-	done
-	i=$(( $i + 1 ))
-done
-
-echo "Adding coordinators to datanodes..."
-i=1
-for HOSTNAME in $HOSTNAMES; do
-	j=1
-	while [ $j -le $DNPN ]; do
-		$PSQL << __EOF__
-EXECUTE DIRECT ON (datanode_${i}_$j)
-'CREATE NODE coordinator WITH (TYPE = ''coordinator'', HOST = ''$GTMHOST'')';
-__EOF__
-		if [ $? -ne 0 ]; then
-			exit 1
-		fi
-
-		j=$(( $j + 1 ))
-	done
-	i=$(( $i + 1 ))
-done
-
-echo "Adding datanodes to datanodes..."
-i=1
-# For each node, each datanode needs a host and node number combination.
-for HOSTNAME in $HOSTNAMES; do
-	j=1
-	while [ $j -le $DNPN ]; do
-		k=1
-		for NODENAME in $HOSTNAMES; do
-			l=1
-			while [ $l -le $DNPN ]; do
-				PORT=$(( DNBP + $l ))
-				if [ $i -eq $k ] && [ $j -eq $l ]; then
-					$PSQL << __EOF__
-EXECUTE DIRECT ON (datanode_${i}_$j)
-'ALTER NODE datanode_${k}_$l
- WITH (TYPE = ''datanode'', HOST = ''$NODENAME'', PORT = $PORT)';
-__EOF__
-					if [ $? -ne 0 ]; then
-						exit 1
-					fi
-				else
-					$PSQL << __EOF__
-EXECUTE DIRECT ON (datanode_${i}_$j)
-'CREATE NODE datanode_${k}_$l
-WITH (TYPE = ''datanode'', HOST = ''$NODENAME'', PORT = $PORT)';
-__EOF__
-					if [ $? -ne 0 ]; then
-						exit 1
-					fi
-				fi
-				l=$(( $l + 1 ))
-			done
-			k=$(( $k + 1 ))
-		done
-		j=$(( $j + 1 ))
-	done
-	i=$(( $i + 1 ))
-done
-
-$PSQL -c "SELECT pgxc_pool_reload();" || exit 1
-i=1
-for HOSTNAME in $HOSTNAMES; do
-	j=1
-	while [ $j -le $DNPN ]; do
-		$PSQL << __EOF__
-EXECUTE DIRECT ON (datanode_${i}_$j)
-'SELECT pgxc_pool_reload()';
-__EOF__
-		if [ $? -ne 0 ]; then
-			exit 1
-		fi
-		j=$(( $j + 1 ))
-	done
-	i=$(( $i + 1 ))
-done
-
-createdb $PGDATABASE || exit 1
+pgxc_ctl createdb $PGDATABASE || exit 1

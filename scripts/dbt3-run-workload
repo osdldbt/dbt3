@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # This file is released under the terms of the Artistic License.
 # Please see the file LICENSE, included in this package, for details.
@@ -6,7 +6,7 @@
 # Copyright (C) 2004-2006 Open Source Development Labs, Inc.
 #               2004-2006 Jenny Zhang
 #               2004-2014 Mark Wong
-#               2014      2ndQuadrant, Ltd.
+#               2014-2017 2ndQuadrant, Ltd.
 
 trap 'echo "Test was interrupted by Control-C."; \
 killall sar sadc pidstat dbt3-$DATABASE-dbstat' INT
@@ -57,7 +57,7 @@ RUN_LOAD_TEST=0
 RUN_POWER_TEST=0
 RUN_THROUGHPUT_TEST=0
 NO_REFRESH=0
-NODES=0
+NODES=${#datanodeMasterServers[@]}
 OUTPUT_DIR=""
 RESORT_ARG=""
 SCALE_FACTOR=1
@@ -135,10 +135,6 @@ while getopts "123a:c:CdD:ef:ghn:Oo:p:Pq:Rr:s:tuVz" opt; do
 			exit 1
 		fi
 		mkdir -p $OUTPUT_DIR
-		for HOSTNAME in $HOSTNAMES; do
-			ssh $HOSTNAME "mkdir -p $OUTPUT_DIR"
-			NODES=$(( $NODES + 1 ))
-		done
 		;;
 	P)
 		LINUXPERF_FLAG="-Y"
@@ -193,6 +189,10 @@ if [ "x$DATABASE" = "xpgxl" ]; then
 	TAG="pgsql"
 	MPP=1
 	MPP_ARG="-C $NODES"
+	. $HOME/pgxc_ctl/pgxc_ctl.conf
+	for HOSTNAME in ${datanodeMasterServers[*]}; do
+		ssh $HOSTNAME "mkdir -p $OUTPUT_DIR"
+	done
 else
 	TAG=$DATABASE
 fi
@@ -318,7 +318,7 @@ echo "dbms: $DATABASE" >> $OUTPUT_DIR/config.txt
 if [ $MPP -eq 1 ]; then
 	echo "mpp: yes" >> $OUTPUT_DIR/config.txt
 	echo "datanodes: $NODES" >> $OUTPUT_DIR/config.txt
-	echo "hostnames: $GTMHOST $HOSTNAMES" >> $OUTPUT_DIR/config.txt
+	echo "hostnames: $gtmMasterServer ${datanodeMasterServers[*]}" >> $OUTPUT_DIR/config.txt
 fi
 
 echo "Getting query times... "
@@ -329,7 +329,7 @@ dbt3-${DATABASE}-stop-db
 
 # Calculate metrics.
 echo "Post processing query results... "
-for HOSTNAME in $HOSTNAMES; do
+for HOSTNAME in ${datanodeMasterServers[*]}; do
 	rsync -av $HOSTNAME:$OUTPUT_DIR/ $OUTPUT_DIR/ &
 done
 wait

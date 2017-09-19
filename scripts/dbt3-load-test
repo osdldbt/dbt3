@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # This file is released under the terms of the Artistic License.
 # Please see the file LICENSE, included in this package, for details.
@@ -6,7 +6,7 @@
 # Copyright (C) 2002-2006 Open Source Development Labs, Inc.
 #               2002-2006 Jenny Zhang
 #               2005-2015 Mark Wong
-#               2015      2ndQuadrant, Ltd.
+#               2015-2017 2ndQuadrant, Ltd.
 #
 
 CHUNKS=1
@@ -51,10 +51,6 @@ while getopts "a:cC:df:g:lo:p:RtyY:" opt; do
 	o)
 		OUTPUT_DIR=$OPTARG
 		mkdir -p $OUTPUT_DIR
-		for HOSTNAME in $HOSTNAMES; do
-			ssh $HOSTNAME "mkdir -p $OUTPUT_DIR"
-			NODES=$(( $NODES + 1 ))
-		done
 		;;
 	p)
 		PARAMETERS_ARG="-p \"$OPTARG\""
@@ -82,6 +78,11 @@ if [ "x$DATABASE" = "x" ]; then
 	echo "Specify database management system with -a flag"
 	usage
 	exit 1
+elif [ "x$DATABASE" = "xpgxl" ]; then
+	. $HOME/pgxc_ctl/pgxc_ctl.conf
+	for HOSTNAME in ${datanodeMasterServers[*]}; do
+		ssh $HOSTNAME "mkdir -p $OUTPUT_DIR"
+	done
 fi
 
 which gzip > /dev/null 2>&1
@@ -201,7 +202,7 @@ fi
 
 # Brute force.
 if [ $MPP -eq 1 ]; then
-	for HOSTNAME in $GTMHOST $HOSTNAMES; do
+	for HOSTNAME in ${coordMasterServers[*]} ${datanodeMasterServers[*]}; do
 		ssh $HOSTNAME "killall -9 sar sadc pidstat"
 	done
 fi

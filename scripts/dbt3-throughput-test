@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # This file is released under the terms of the Artistic License.
 # Please see the file LICENSE, included in this package, for details.
@@ -6,7 +6,7 @@
 # Copyright (C) 2003-2006 Open Source Development Labs, Inc.
 #               2003-2006 Jenny Zhang
 #               2004-2015 Mark Wong
-#               2015      2ndQuadrant, Ltd.
+#               2015-2017 2ndQuadrant, Ltd.
 #
 
 MPP=0
@@ -31,9 +31,6 @@ while getopts "a:ef:n:o:p:s:yYz" opt; do
 		;;
 	o) OUTPUT_DIR=$OPTARG
 		mkdir -p $OUTPUT_DIR/results
-		for HOSTNAME in $HOSTNAMES; do
-			ssh $HOSTNAME "mkdir -p $OUTPUT_DIR/results"
-		done
 		;;
 	p)
 		PARAMETERS_ARG="-p \"$OPTARG\""
@@ -60,6 +57,10 @@ fi
 
 if [ "x$DATABASE" = "xpgxl" ]; then
 	TAG="pgsql"
+	. $HOME/pgxc_ctl/pgxc_ctl.conf
+	for HOSTNAME in ${datanodeMasterServers=[$i]}; do
+		ssh $HOSTNAME "mkdir -p $OUTPUT_DIR/results"
+	done
 else
 	TAG=$DATABASE
 fi

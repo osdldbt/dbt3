@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # This file is released under the terms of the Artistic License.
 # Please see the file LICENSE, included in this package, for details.
@@ -7,6 +7,8 @@
 #               2002-2015 Mark Wong
 #               2015      2ndQuadrant, Ltd.
 #
+
+. $HOME/pgxc_ctl/pgxc_ctl.conf
 
 load_table()
 {
@@ -17,7 +19,7 @@ load_table()
 			if [ "$table" = "nation" ] || [ "$table" = "region" ]; then
 					$PSQL -c "COPY $table FROM '$DSS_PATH/$file' USING DELIMITERS '|';" &
 			else
-				for i in `seq 1 $DATANODES`; do
+				for i in `seq 1 $NODES`; do
 					$PSQL -c "COPY $table FROM '$DSS_PATH/$file.$i' USING DELIMITERS '|';" &
 				done
 			fi
@@ -27,14 +29,14 @@ load_table()
 		elif [ "$table" = "lineitem" ]; then
 			FLAG="L"
 		elif [ "$table" = "nation" ]; then
-			$PSQL -c "COPY $table FROM PROGRAM 'dbgen -s $SCALE_FACTOR -T n -o' USING DELIMITERS '|';" &
+			$PSQL -c "COPY $table FROM PROGRAM 'DSS_CONFIG=$DSS_CONFIG dbgen -s $SCALE_FACTOR -T n -o' USING DELIMITERS '|';" &
 			return
 		elif [ "$table" = "orders" ]; then
 			FLAG="O"
 		elif [ "$table" = "part" ]; then
 			FLAG="P"
 		elif [ "$table" = "region" ]; then
-			$PSQL -c "COPY $table FROM PROGRAM 'dbgen -s $SCALE_FACTOR -T r -o' USING DELIMITERS '|';" &
+			$PSQL -c "COPY $table FROM PROGRAM 'DSS_CONFIG=$DSS_CONFIG dbgen -s $SCALE_FACTOR -T r -o' USING DELIMITERS '|';" &
 			return
 		elif [ "$table" = "supplier" ]; then
 			FLAG="s"
@@ -45,8 +47,8 @@ load_table()
 			return
 		fi
 
-		for i in `seq 1 $DATANODES`; do
-			$PSQL -c "COPY $table FROM PROGRAM 'dbgen -s $SCALE_FACTOR -T $FLAG -o -C $DATANODES -S $i' USING DELIMITERS '|';" &
+		for i in `seq 1 $NODES`; do
+			$PSQL -c "COPY $table FROM PROGRAM 'DSS_CONFIG=$DSS_CONFIG dbgen -s $SCALE_FACTOR -T $FLAG -o -C $NODES -S $i' USING DELIMITERS '|';" &
 		done
 	fi
 	wait
@@ -306,7 +308,7 @@ ALTER TABLE region ADD CONSTRAINT pk_region PRIMARY KEY USING INDEX pk_region;"
 }
 
 DIRECT_LOAD=0
-NODES=0
+NODES=${#datanodeMasterServers[@]}
 USE_TABLESPACES=0
 while getopts "C:dt" OPT; do
 	case ${OPT} in
@@ -323,11 +325,6 @@ while getopts "C:dt" OPT; do
 done
 
 PSQL="psql -v ON_ERROR_STOP=1 -X"
-
-for HOSTNAME in $HOSTNAMES; do
-	NODES=$(( $NODES + 1 ))
-done
-DATANODES=$(( $NODES * $DNPN ))
 
 echo "Loading tables `date`"
 
