@@ -154,7 +154,11 @@ $PSQL -c "SELECT indexname "`
 
 echo "$$" > $OUTPUT_DIR/dbstat.pid
 
-dbstat_init $GTMHOST coordinator &
+i=1
+for HOSTNAME in ${coordMasterServers[*]}; do
+	dbstat_init $HOSTNAME coordinator.$i ${coordPorts[$i]} &
+	i=$(( $i + 1 ))
+done
 
 i=1
 for HOSTNAME in ${datanodeMasterServers[*]}; do
@@ -165,7 +169,11 @@ done
 while [ 1 ]; do
 	sleep $SAMPLE_LENGTH
 
-	dbstat $GTMHOST coordinator &
+	i=1
+	for HOSTNAME in ${coordMasterServers[*]}; do
+		dbstat $HOSTNAME coordinator.$i ${coordPorts[$i]} &
+		i=$(( $i + 1 ))
+	done
 
 	i=1
 	for HOSTNAME in ${datanodeMasterServers[*]}; do
