@@ -1,0 +1,41 @@
+#!/bin/sh
+
+# Build a Docker image with the DBT-3 kit install.
+
+which docker > /dev/null 2>&1
+if [ $? -ne 0 ]; then
+	echo "docker not in path"
+	exit 1
+fi
+
+DBMS="pgsql"
+PGVERSION=14
+
+which jq > /dev/null 2>&1
+if [ $? -eq 0 ]; then
+	PGORG="https://www.postgresql.org/versions.json"
+	PGVERSION=`curl -s $PGORG | jq -r 'sort | .[].major' | tail -n 1`
+fi
+echo "Using PostgreSQL Major Version $PGVERSION"
+
+TOPDIR=`dirname $0`
+
+# Use the return code from `docker inspect` to determine if the docker image
+# needs to be created.
+docker inspect dbt3-base > /dev/null
+if [ $? -ne 0 ]; then
+	${TOPDIR}/prepare-image || exit 1
+fi
+
+TOPDIR="${TOPDIR}/.."
+docker build -t dbt3-${DBMS} \
+		--build-arg PGVERSION=$PGVERSION \
+		--build-arg DBMS=$DBMS \
+		-f Dockerfile.database $TOPDIR
+if [ $? -ne 0 ]; then
+	echo "usage: $0 [DBMS]"
+	echo
+	echo "DBMS options: (default: pgsql)"
+	echo "  pgsql"
+	exit 1
+fi

@@ -1,0 +1,46 @@
+#!/bin/sh
+
+# Start a DBT-3 test.
+
+usage()
+{
+	echo "usage: $0 [DBMS [SCALE]]"
+}
+
+which docker > /dev/null 2>&1
+if [ $? -ne 0 ]; then
+	echo "docker not in path"
+	exit 1
+fi
+
+if [ $# -lt 1 ]; then
+	usage
+	exit 1
+fi
+
+DBMS=$1
+
+SCALE=1
+if [ $# -gt 1 ]; then
+	SCALE=$2
+fi
+
+DOCKER_NAME="dbt3-${DBMS}-0"
+DOCKER_TAG="dbt3-${DBMS}"
+DOCKERDIR=`dirname $0`
+
+# Use the return code from `docker inspect` to determine if the docker image
+# needs to be created.
+docker inspect $DOCKER_TAG > /dev/null
+if [ $? -ne 0 ]; then
+	${DOCKERDIR}/build-${DBMS} || exit 1
+fi
+
+DBT3PATH="/usr/local/src/dbt3"
+
+docker run --rm --name $DOCKER_NAME --shm-size=128m $DOCKER_TAG \
+		dbt3-run-workload -a $DBMS -f $SCALE -o /tmp/results
+if [ $? -ne 0 ]; then
+	usage
+	exit 1
+fi

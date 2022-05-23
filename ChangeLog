@@ -1,3 +1,7 @@
+vX.Y.X
+
+- Add Docker files to run DBT-3 against PostgreSQL.
+
 v1.10
 
 - Updated scripts to allow running against non-default ports for PostgreSQL.

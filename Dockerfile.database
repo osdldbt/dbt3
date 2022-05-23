@@ -1,0 +1,44 @@
+From dbt3-base
+
+ARG PGVERSION
+
+ENV PATH="/usr/lib/postgresql/${PGVERSION}/bin:$PATH"
+
+RUN apt-get install -y postgresql-${PGVERSION}
+
+COPY . /usr/local/src/dbt3
+
+ARG DBMS=pgsql
+
+# Install DBT Tools.
+
+ARG DBTTOOLSVER=0.1.0
+WORKDIR /tmp
+RUN curl -OL \
+    https://github.com/osdldbt/dbttools/archive/refs/tags/v${DBTTOOLSVER}.tar.gz
+RUN tar -C /usr/local/src -xvf /tmp/v${DBTTOOLSVER}.tar.gz
+WORKDIR /usr/local/src/dbttools-${DBTTOOLSVER}
+RUN cmake . && cmake --install .
+
+# Install DBT-3 for PostgreSQL.
+
+ENV DBT3PATH=/usr/local/src/dbt3
+
+WORKDIR ${DBT3PATH}
+RUN ./autogen.sh
+RUN ./configure --with-postgresql
+RUN make install
+
+RUN chmod 777 /opt
+
+USER postgres
+
+ENV DSS_PATH=/tmp/dss
+ENV DSS_CONFIG=${DBT3PATH}/src/dbgen
+ENV DSS_QUERY=${DBT3PATH}/queries/pgsql
+ENV DBGEN=${DBT3PATH}/src/dbgen/dbgen
+ENV QGEN=${DBT3PATH}/src/dbgen/qgen
+
+ENV PGDATA=/opt/pgdata
+ENV PGUSER=postgres
+ENV PGDATABASE=dbt3
