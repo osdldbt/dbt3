@@ -14,8 +14,6 @@ depcomp
 install-sh
 missing
 doc/dbt3-user-guide.html
-src/Makefile.in
-src/dbgen/Makefile.in
 scripts/sapdb/build_db.sh
 scripts/sapdb/create_db.sh
 scripts/sapdb/create_indexes.sh

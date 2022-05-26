@@ -155,7 +155,5 @@ AC_CONFIG_FILES([scripts/pgsql/Makefile])
 AC_CONFIG_FILES([scripts/pgxl/Makefile])
 AC_CONFIG_FILES([scripts/sapdb/Makefile])
 AC_CONFIG_FILES([scripts/virtuoso/Makefile])
-AC_CONFIG_FILES([src/Makefile])
-AC_CONFIG_FILES([src/dbgen/Makefile])
 
 AC_OUTPUT

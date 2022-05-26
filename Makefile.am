@@ -9,7 +9,7 @@
 
 AUTOMAKE_OPTIONS = foreign
 
-SUBDIRS = scripts src
+SUBDIRS = scripts
 
 EXTRA_DIST = \
 		doc/dbt3-user-guide.txt \
