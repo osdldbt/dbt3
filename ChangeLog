@@ -1,6 +1,10 @@
 vX.Y.X
 
 - Add Docker files to run DBT-3 against PostgreSQL.
+- Update reporting to generate HTML from ReStructuredText
+- Add separate PostgreSQL reporting script
+- Move seed generation back to after the load test
+- Save the time when the test starts in config.txt
 
 v1.10
 

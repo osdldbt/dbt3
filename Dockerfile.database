@@ -12,7 +12,7 @@ ARG DBMS=pgsql
 
 # Install DBT Tools.
 
-ARG DBTTOOLSVER=0.1.0
+ARG DBTTOOLSVER=0.3.0
 WORKDIR /tmp
 RUN curl -OL \
     https://github.com/osdldbt/dbttools/archive/refs/tags/v${DBTTOOLSVER}.tar.gz

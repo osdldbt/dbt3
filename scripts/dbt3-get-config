@@ -49,7 +49,8 @@ memory=`grep 'MemTotal' /proc/meminfo | awk -F: '{print $2 $3}'`
 
 shmmax_value=`/sbin/sysctl -e -a 2> /dev/null | grep shmmax | awk '{print $3}'`
 
-echo "node: $NODE" > $output_dir/config.txt
+echo "date: $(date)" > $output_dir/config.txt
+echo "node: $NODE" >> $output_dir/config.txt
 echo "kernel: $kernel" >> $output_dir/config.txt
 echo "distribution: $DISTRO" >> $output_dir/config.txt
 echo "dbver: $dbver">> $output_dir/config.txt

@@ -1,0 +1,135 @@
+#!/bin/sh
+#
+# This file is released under the terms of the Artistic License.
+# Please see the file LICENSE, included in this package, for details.
+#
+# Copyright (C) 2006      Open Source Development Labs, Inc.
+#               2014      2ndQuadrant, Ltd.
+#               2006-2022 Mark Wong
+#
+
+usage()
+{
+	echo "`basename $0` is the DBT-3 PostgreSQL Report Generator"
+	echo ""
+	echo "Usage:"
+	echo "  `basename $0` [OPTIONS]"
+	echo ""
+	echo "General options:"
+	echo "  -i PATH          results directory"
+}
+
+create_stat_page()
+{
+	TAG=$1
+
+	OUTDIR="${PIDSTATDIR}/$TAG"
+	mkdir -p $OUTDIR
+
+	cat > ${OUTDIR}/index.rst << __EOF__
+================================================================================
+Database Test 3 pidstat $TAG Charts
+================================================================================
+
+$(show_images $TAG)
+__EOF__
+}
+
+list_processes()
+{
+	for T in autovacum bgwriter checkpointer logger logical statscollector \
+			walwriter; do
+		create_stat_page $T
+		echo -n " \`$T <${DIRECTORY}/${T}/>\`__"
+	done
+	echo ""
+}
+
+make_plots()
+{
+	METRIC=$1
+	COMMAND=$2
+	TAG=$3
+
+	dbt-plot-pidstat -i $PIDSTATCSV -m $METRIC -c "$COMMAND" -t $TAG \
+			-o ${INDIR}/${DIRECTORY}/${TAG}
+}
+
+summarize()
+{
+	TITLE=$1
+	DIRECTORY=$2
+
+
+	cat << __EOF__
+$TITLE
+--------------------------------------------------------------------------------
+
+* \`Database Settings <${DIRECTORY}/param.txt>\`__
+__EOF__
+
+	PIDSTATCSV="${INDIR}/${DIRECTORY}/pidstat.csv"
+	PIDSTATDIR=$(dirname $PIDSTATCSV)
+
+	if [ -f "$PIDSTATCSV" ]; then
+		for M in X.CPU X.usr X.system X.wait VSZ RSS X.MEM kB_rd.s kB_wr.s \
+				iodelay cswch.s nvcswch.s threads fd.nr; do
+			make_plots $M "autovacuum" autovacum &
+			make_plots $M "background writer" bgwriter &
+			make_plots $M "checkpointer" checkpointer &
+			make_plots $M "logical replication" logical &
+			make_plots $M "logger" logger &
+			make_plots $M "stats collector" statscollector &
+			make_plots $M "walwriter" walwriter &
+		done
+		wait
+	fi
+
+	cat << __EOF__
+* Per Process Statistics: $(list_processes)
+__EOF__
+}
+
+show_images()
+{
+	TAG=$1
+
+	CHARTS=$(cd ${PIDSTATDIR}/${TAG} && ls -1v pidstat-${TAG}-*.png)
+	for CHART in $CHARTS; do
+		echo ".. image:: $CHART"
+		echo "   :target: $CHART"
+		echo "   :width: 100%"
+		echo ""
+	done
+}
+
+while getopts "hi:" opt; do
+	case $opt in
+	h)
+		usage
+		exit 1
+		;;
+	i)
+		INDIR="$OPTARG"
+		;;
+	\?)
+		exit 1
+		;;
+	esac
+done
+
+if [ "x${INDIR}" = "x" ]; then
+	echo "Specify dbt3 results directory with -i"
+	exit 1
+fi
+
+cat << __EOF__
+PostgreSQL Report
+=================
+
+$(summarize "Load Test" load)
+
+$(summarize "Power Test" power)
+
+$(summarize "Throughput Test" throughput)
+__EOF__

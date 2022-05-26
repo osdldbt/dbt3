@@ -11,8 +11,11 @@ RUN apt-get install -y autoconf \
                        gnupg \
                        locales \
                        lsb-release \
+                       pandoc \
                        pkg-config \
+                       python3-docutils \
                        r-base \
+                       sysstat \
                        texlive-latex-base \
                        texlive-latex-recommended
 RUN rm -rf /var/lib/apt/lists/* && \

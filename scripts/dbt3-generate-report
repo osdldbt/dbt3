@@ -1,961 +1,280 @@
-#!/bin/bash
+#!/bin/sh
 #
 # This file is released under the terms of the Artistic License.
 # Please see the file LICENSE, included in this package, for details.
 #
-# Copyright (C) 2005-2015 Mark Wong
-#               2014-2015 2ndQuadrant, Ltd.
+# Copyright (C) 2014-2015 2ndQuadrant, Ltd.
+#               2005-2022 Mark Wong
 #
 
-write_perf_page()
+usage() {
+	echo "usage: $(basename $0) is the DBT-2 report generator"
+	echo ""
+	echo "usage: $(basename $0) [OPTIONS]"
+	echo ""
+	echo "General Options:"
+	echo "  -i <path>    DBT-3 results directory"
+}
+
+create_stat_page()
 {
-	local FILE=$1
-	local DESC=$2
+	local TITLE=$1
+	local TAG=$2
+	local DIR=$3
+	local ODIR=$4
 
-	cat << __EOF__ > $FILE
-<html>
-<head>
-<title>Database Test 3 $DESC Perf Details</title>
-</head>
-<body>
-<h1>Database Test 3 $DESC Perf Details</h1>
-__EOF__
+	mkdir -p $ODIR
 
-	if [ "x$MPP" = "xyes" ]; then
-		cat << __EOF__ >> $FILE
-Reports are ordered by query number.
-__EOF__
+	cat > ${ODIR}/index.rst << __EOF__
+================================================================================
+Database Test 3 $TITLE $TAG Charts
+================================================================================
 
-		for HOST in $HOSTNAMES; do
-			cat << __EOF__ >> $FILE
-<h2>$HOST</h2>
-<ol>
-__EOF__
-
-			for i in `seq 1 22`; do
-				cat << __EOF__ >> $FILE
-  <li>
-    <a href="$i/perf-report-$HOST-q$i.txt.gz">report</a> |
-    <a href="$i/perf-annotate-$HOST-q$i.txt.gz">annotated source</a> |
-    <a href="$i/perf-trace-$HOST-q$i.txt.gz">trace</a>
-  </li>
-__EOF__
-			done
-			cat << __EOF__ >> $FILE
-</ol>
-__EOF__
-		done
-	else
-		cat << __EOF__ >> $FILE
-<h2>$DESC Query</h2>
-<ol>
-__EOF__
-		for i in `seq 1 22`; do
-			cat << __EOF__ >> $FILE
-  <li>
-    <a href="$i/q$i-perf-report.txt.gz">report</a> |
-    <a href="$i/q$i-perf-annotate.txt.gz">annotated source</a> |
-    <a href="$i/q$i-perf-trace.txt.gz">trace</a>
-  </li>
-__EOF__
-		done
-
-		cat << __EOF__ >> $FILE
-</ol>
-__EOF__
-	fi
-
-	cat << __EOF__ >> $FILE
-</body>
-</html>
+$(show_images $DIR $TAG)
 __EOF__
 }
 
-gen_db_chart_pages()
-{
-	local OUTDIR=$1
+display_sar_stats() {
+	STATSDIR=$1
 
-	if [ "x$DATABASE" = "xpgxl" ]; then
-		local DATABASE="pgsql"
+	if [ ! -f "${INDIR}/${STATSDIR}/sar_raw.out" ]; then
+		return
 	fi
 
-	if [ ! "x$MPP" = "xyes" ]; then
-		dbt-$DATABASE-generate-db-html "Database Test 3" $OUTDIR/db \
-				2> /dev/null
-		dbt-$DATABASE-generate-table-html "Database Test 3" \
-				$OUTDIR/db/table-list.txt $OUTDIR/db/tables 2> /dev/null
-		dbt-$DATABASE-generate-index-html "Database Test 3" \
-				$OUTDIR/db/index-list.txt $OUTDIR/db/indexes 2> /dev/null
-	else
-		for NODE in `ls -vd $OUTDIR/db/*/`; do
-			HOST=`basename $NODE`
-			dbt-$DATABASE-generate-db-html "Database Test 3 $HOST" $OUTDIR/db/$HOST
-			dbt-$DATABASE-generate-table-html "Database Test 3 $HOST" \
-					$OUTDIR/db/table-list.txt $OUTDIR/db/$HOST/tables
-			dbt-$DATABASE-generate-index-html "Database Test 3 $HOST" \
-					$OUTDIR/db/index-list.txt $OUTDIR/db/$HOST/indexes
-		done
-	fi
+	cat << __EOF__
+\`CPU <${STATSDIR}/cpu/>\`__ \`Memory <${STATSDIR}/mem/>\`__ \`Blockdev <${STATSDIR}/blockdev/>\`__ \`Network <${STATSDIR}/net/>\`__ \`Swap <${STATSDIR}/swap/>\`__
+__EOF__
+
+	THISDIR="${INDIR}/${STATSDIR}"
+	create_stat_page $STATSDIR cpu $THISDIR ${THISDIR}/cpu
+	create_stat_page $STATSDIR mem $THISDIR ${THISDIR}/mem
+	create_stat_page $STATSDIR blockdev $THISDIR ${THISDIR}/blockdev
+	create_stat_page $STATSDIR net $THISDIR ${THISDIR}/net
+	create_stat_page $STATSDIR swap $THISDIR ${THISDIR}/swap
 }
 
-gen_system_chart_pages()
+show_images()
 {
-	local OUTDIR=$1
-
-	if [ ! "x$MPP" = "xyes" ]; then
-		gen_system_stat_page $OUTDIR sar-cpu.html "Processor" "sar-cpu*"
-		gen_system_stat_page $OUTDIR sar-blockdev.html "Block Device" \
-				"sar-blockdev*"
-		gen_system_stat_page $OUTDIR sar-mem.html "Memory" "sar-mem*"
-		gen_system_stat_page $OUTDIR sar-swap.html "Swap" "sar-swap*"
-		gen_system_stat_page $OUTDIR sar-net.html "Network Device" "sar-net*"
-	else
-		for HOST in $HOSTNAMES; do
-			gen_system_stat_page $OUTDIR $HOST-sar-cpu.html "Processor" \
-					"sar-cpu*" $HOST
-			gen_system_stat_page $OUTDIR $HOST-sar-blockdev "Block Device" \
-					"sar-blockdev*" $HOST
-			gen_system_stat_page $OUTDIR $HOST-sar-mem.html "Memory" \
-					"sar-mem*" $HOST
-			gen_system_stat_page $OUTDIR $HOST-sar-swap.html "Swap" \
-					"sar-swap*" $HOST
-			gen_system_stat_page $OUTDIR $HOST-sar-net.html "Network Device" \
-					"sar-net*" $HOST
-		done
-	fi
-}
-
-gen_system_stat_page()
-{
-	local OUTDIR=$1
-	local FILENAME=$2
-	local TITLE=$3
-	local FILEGLOB=$4
-	local HOST=$5
-
-	local HTMLFILE=$OUTDIR/$FILENAME
-
-	if [ -z $HOST ]; then
-		local PNGDIR=$OUTDIR
-	else
-		local PNGDIR=$OUTDIR/$HOST
-		local URL="$HOST/"
-	fi
-
-	cat << __EOF__ > $HTMLFILE
-<html>
-<head>
-<title>Database Test 3 $HOST System $TITLE Charts</title>
-</head>
-<body>
-<h1>Database Test 3 $HOST $TITLE Charts</h1>
-__EOF__
-
-	local FILES=`ls -v $PNGDIR/$FILEGLOB.png 2> /dev/null`
-	if [ -n "$FILES" ]; then
-		for chart in $FILES; do
-			chart="$URL`basename $chart`"
-			cat << __EOF__ >> $HTMLFILE
-<p>
-$chart<br/>
-<a href="$chart"><img src="$chart" width="100%" /></a>
-</p>
-__EOF__
-		done
-	fi
-
-	cat << __EOF__ >> $HTMLFILE
-</body>
-</html>
-__EOF__
-}
-
-gen_results()
-{
-	local SUBDIR=$2
-
-	local OUTDIR=$INDIR/$SUBDIR
-	local SUBHTMLFILE=$OUTDIR/index.html
-
-	if [ ! "x$MPP" = "xyes" ]; then
-		make_db_charts $OUTDIR/db
-		make_system_charts $OUTDIR
-	else
-		for NODE in `ls -d $OUTDIR/db/*/`; do
-			make_db_charts $NODE
-		done
-
-		for HOSTNAME in $HOSTNAMES; do
-			make_system_charts $OUTDIR/$HOSTNAME
-		done
-	fi
-
-	cat << __EOF__ > $SUBHTMLFILE
-<html>
-<head>
-<title>Database Test 3 $1 Details</title>
-</head>
-<body>
-
-<h1>Database Test 3 $1 Details</h1>
-<h2>Kernel and Application Profiles</h2>
-<p>
-__EOF__
-
-	if [ -f "$OUTDIR/readprofile.txt" ]; then
-		cat << __EOF__ >> $SUBHTMLFILE
-<a href="readprofile.txt">readprofile</a><br />
-__EOF__
-	fi
-
-	if [ -d "$OUTDIR/oprofile" ]; then
-		cat << __EOF__ >> $SUBHTMLFILE
-<a href="oprofile/oprofile.txt">oprofile</a><br />
-<a href="oprofile/assembly.txt">annotated assembly</a><br />
-__EOF__
-	fi
-
-	if [ -d "$OUTDIR/perf" ]; then
-		if [ "x$SUBDIR" = "xpower" ]; then
-			PERFFILE=$OUTDIR/perf/index.html
-			cat << __EOF__ >> $SUBHTMLFILE
-[<a href="perf/index.html">Linux Perf Data</a> ]
-__EOF__
-			write_perf_page $PERFFILE "Power Test"
-		else
-			if [ ! "x$MPP" = "xyes" ]; then
-				cat << __EOF__ >> $SUBHTMLFILE
-[Linux perf: <a href="perf/perf-report.txt.gz">report</a> |
-<a href="perf/perf-annotate.txt.gz">annotated source</a> |
-<a href="perf/perf-trace.txt.gz">trace</a>]
-__EOF__
-			else
-				if [ "x$SUBDIR" = "xload" ]; then
-					cat << __EOF__ >> $SUBHTMLFILE
-<h3>Linux perf</h3>
-<ul>
-__EOF__
-
-					for HOST in $HOSTNAMES; do
-						cat << __EOF__ >> $SUBHTMLFILE
-  <li>$HOST: <a href="perf/perf-report-$HOST.txt.gz">report</a> |
-      <a href="perf/perf-annotate-$HOST.txt.gz">annotated source</a> |
-      <a href="perf/perf-trace-$HOST.txt.gz">trace</a>
-  </li>
-__EOF__
-					done
-
-					cat << __EOF__ >> $SUBHTMLFILE
-</ul>
-__EOF__
-				else
-					cat << __EOF__ >> $SUBHTMLFILE
-<p>
-Not collected for multi-node databases systems.
-</p>
-__EOF__
-				fi
-			fi
-		fi
-	fi
-
-	cat << __EOF__ >> $SUBHTMLFILE
-</p>
-
-<h2>Database Details</h2>
-<ul>
-__EOF__
-
-	if [ "x$DATABASE" = "xpgxl" ]; then
-		cat << __EOF__ >> $SUBHTMLFILE
-  <li><a href="gtm.log">GTM</a></li>
-  <li><a href="coordinator">Coordinator</a></li>
-  <li>
-__EOF__
-		for i in `seq 1 $NODE_COUNT`; do
-			cat << __EOF__ >> $SUBHTMLFILE
-    <a href="gtm_proxy_$i.log">GTM Proxy $i</a>
-__EOF__
-		done
-		cat << __EOF__ >> $SUBHTMLFILE
-  </li>
-  <li>
-__EOF__
-
-		for i in `seq 1 $NODE_COUNT`; do
-			cat << __EOF__ >> $SUBHTMLFILE
-    <a href="datanode_$i.log">Datanode $i</a>
-__EOF__
-		done
-		cat << __EOF__ >> $SUBHTMLFILE
-  </li>
-__EOF__
-		if [ -f "$OUTDIR/disaster.csv" ]; then
-			cat << __EOF__ >> $SUBHTMLFILE
-  <li><a href="disaster.csv">Disaster Report</a></li>
-__EOF__
-		fi
-		cat << __EOF__ >> $SUBHTMLFILE
-</ul>
-__EOF__
-	else
-		cat << __EOF__ >> $SUBHTMLFILE
-<p>
-<a href="dbt3.log">Log</a> |
-<a href="param.txt">Parameters</a>
-__EOF__
-
-	fi
-
-	if [ "x$SUBDIR" = "xpower" ]; then
-		if [ -f "$OUTDIR/disaster.csv" ]; then
-			if [ ! "x$MPP" = "xyes" ]; then
-			cat << __EOF__ >> $SUBHTMLFILE
-| <a href="disaster.csv">Disaster Report</a>
-__EOF__
-			fi
-		fi
-	cat << __EOF__ >> $SUBHTMLFILE
-</p>
-__EOF__
-	fi
-
-	if [ "x$SUBDIR" = "xpower" ]; then
-		cat << __EOF__ >> $SUBHTMLFILE
-</ul>
-
-<h3>Query Plans</h3>
-__EOF__
-		i=1
-		while [ $i -le 22 ]; do
-			cat << __EOF__ >> $SUBHTMLFILE
-<a href="plans/$i.txt">Q$i</a>
-__EOF__
-			i=$(( $i + 1 ))
-		done
-
-		cat << __EOF__ >> $SUBHTMLFILE
-<h3>Query Results</h3>
-__EOF__
-		i=1
-		while [ $i -le 22 ]; do
-			cat << __EOF__ >> $SUBHTMLFILE
-<a href="results/$i.txt">Q$i</a>
-__EOF__
-			i=$(( $i + 1 ))
-		done
-		if [ -f "$OUTDIR/results/rf1.txt" ]; then
-			cat << __EOF__ >> $SUBHTMLFILE
-<a href="results/rf1.txt">RF1</a>
-__EOF__
-		fi
-		if [ -f "$OUTDIR/results/rf2.txt" ]; then
-			cat << __EOF__ >> $SUBHTMLFILE
-<a href="results/rf2.txt">RF2</a>
-__EOF__
-		fi
-
-	fi
-
-	if [ "x$SUBDIR" = "xthroughput" ]; then
-		local DIRS=`ls -d $OUTDIR/results/*/ 2> /dev/null`
-
-		cat << __EOF__ >> $SUBHTMLFILE
-<h3>Stream Plans</h3>
-<ol>
-__EOF__
-		for DIR in $DIRS; do
-			local Q=`basename $DIR`
-			cat << __EOF__ >> $SUBHTMLFILE
-<li>
-__EOF__
-
-			i=1
-			while [ $i -le 22 ]; do
-				cat << __EOF__ >> $SUBHTMLFILE
-<a href="plans/$Q/$i.txt">Q$i</a>
-__EOF__
-				i=$(( $i + 1 ))
-			done
-
-			cat << __EOF__ >> $SUBHTMLFILE
-</li>
-__EOF__
-		done
-		cat << __EOF__ >> $SUBHTMLFILE
-</ol>
-__EOF__
-
-		cat << __EOF__ >> $SUBHTMLFILE
-<h3>Stream Results</h3>
-<ol>
-__EOF__
-		for DIR in $DIRS; do
-			local S=`basename $DIR`
-			cat << __EOF__ >> $SUBHTMLFILE
-<li>
-__EOF__
-
-			i=1
-			while [ $i -le 22 ]; do
-				cat << __EOF__ >> $SUBHTMLFILE
-<a href="results/$S/$i.txt">Q$i</a>
-__EOF__
-				i=$(( $i + 1 ))
-			done
-			if [ -f "$OUTDIR/results/$S/rf1.txt" ]; then
-				cat << __EOF__ >> $SUBHTMLFILE
-<a href="results/$S/rf1.txt">RF1</a>
-__EOF__
-			fi
-			if [ -f "$OUTDIR/results/$S/rf2.txt" ]; then
-				cat << __EOF__ >> $SUBHTMLFILE
-<a href="results/$S/rf2.txt">RF2</a>
-__EOF__
-			fi
-
-			cat << __EOF__ >> $SUBHTMLFILE
-</li>
-__EOF__
-		done
-		cat << __EOF__ >> $SUBHTMLFILE
-</ol>
-__EOF__
-
-		# Just check the first stream to see if perf data exists since there
-		# should always be at least 1 stream.
-		if [ -d $OUTDIR/results/1/perf ]; then
-			local DIRS=`ls -d $OUTDIR/results/* 2> /dev/null`
-
-			if [ ! "x$MPP" = "xyes" ]; then
-				cat << __EOF__ >> $SUBHTMLFILE
-<h3>Stream Linux Perf Reports</h3>
-__EOF__
-
-				for DIR in $DIRS; do
-					S=`basename $DIR`
-					local PERFFILE=$OUTDIR/results/$S/perf/index.html
-
-					write_perf_page $PERFFILE "Throughput Test Stream $S"
-					cat << __EOF__ >> $SUBHTMLFILE
-<a href="results/$S/perf/index.html">P$S</a>
-__EOF__
-				done
-			fi
-		fi
-
-		local FILES=`ls $OUTDIR/results/*/disaster.csv 2> /dev/null`
-		if [ $? -eq 0 ]; then
-			cat << __EOF__ >> $SUBHTMLFILE
-<h3>Stream Disaster Reports</h3>
-__EOF__
-			for FILE in $FILES; do
-				local DIR=`dirname $FILE`
-				local S=`basename $DIR`
-				cat << __EOF__ >> $SUBHTMLFILE
-<a href="results/$S/disaster.csv">S$S</a>
-__EOF__
-			done
-		fi
-	fi
-
-	gen_system_chart_pages $OUTDIR
-	gen_db_chart_pages $OUTDIR
-
-	cat << __EOF__ >> $SUBHTMLFILE
-<h2>Charts</h2>
-__EOF__
-
-	if [ ! "x$MPP" = "xyes" ]; then
-		cat << __EOF__ >> $SUBHTMLFILE
-<ul>
-  <li><a href="sar-cpu.html">Processor</a></li>
-  <li><a href="sar-blockdev.html">Block Devices</a></li>
-  <li><a href="sar-mem.html">Memory</a></li>
-  <li><a href="sar-swap.html">Swap</a></li>
-  <li><a href="sar-net.html">Network Devices</a></li>
-  <li><a href="db/db.html">Database</a></li>
-  <li>Tables</li>
-  <ul>
-__EOF__
-
-		for TABLE in `cat $OUTDIR/db/table-list.txt 2> /dev/null`; do
-			cat << __EOF__ >> $SUBHTMLFILE
-    <li><a href="db/tables/$TABLE-charts.html">$TABLE</a></li>
-__EOF__
-		done
-
-		cat << __EOF__ >> $SUBHTMLFILE
-  </ul>
-  <li>Table Metrics</li>
-  <ul>
-__EOF__
-
-		TABLEMETRICS=`(cd $OUTDIR/db/tables && ls *.png) 2> /dev/null \
-				| sed -e "s/table-stat-.*-//" | sed -e "s/.png$//" | sort \
-				| uniq`
-		for METRIC in $TABLEMETRICS; do
-			METRICCHARTFILE="t_$METRIC-charts.html"
-			cat << __EOF__ >> $SUBHTMLFILE
-    <li><a href="db/tables/$METRICCHARTFILE">$METRIC</a></li>
-__EOF__
-		done
-
-		cat << __EOF__ >> $SUBHTMLFILE
-  </ul>
-  <li>Indexes</li>
-  <ul>
-__EOF__
-
-		for INDEX in `cat $OUTDIR/db/index-list.txt 2> /dev/null`; do
-			cat << __EOF__ >> $SUBHTMLFILE
-    <li><a href="db/indexes/$INDEX-charts.html">$INDEX</a></li>
-__EOF__
-		done
-
-		cat << __EOF__ >> $SUBHTMLFILE
-  </ul>
-  <li>Index Metrics</li>
-  <ul>
-__EOF__
-
-		INDEXMETRICS=`(cd $OUTDIR/db/indexes && ls *.png) 2> /dev/null \
-				| sed -e "s/index-stat-.*-//" | sed -e "s/.png$//" | sort | uniq`
-		for METRIC in $INDEXMETRICS; do
-			METRICCHARTFILE="i_$METRIC-charts.html"
-			cat << __EOF__ >> $SUBHTMLFILE
-    <li><a href="db/indexes/$METRICCHARTFILE">$METRIC</a></li>
-__EOF__
-		done
-
-		cat << __EOF__ >> $SUBHTMLFILE
-  </ul>
-</ul>
-__EOF__
-	else
-		local NODES=`ls -vd $OUTDIR/db/*/`
-		local TABLELIST=`cat $OUTDIR/db/table-list.txt 2> /dev/null`
-		local INDEXLIST=`cat $OUTDIR/db/index-list.txt 2> /dev/null`
-		local TABLEMETRICS=`(ls $OUTDIR/db/*/tables/*.png) 2> /dev/null \
-				| xargs -n1 basename | sed -e "s/table-stat-.*-//" \
-				| sed -e "s/.png$//" | sort | uniq`
-		local INDEXMETRICS=`(ls $OUTDIR/db/*/indexes/*.png) 2> /dev/null \
-				| xargs -n1 basename 2> /dev/null \
-				| sed -e "s/index-stat-.*-//" | sed -e "s/.png$//" | sort \
-				| uniq`
-
-		cat << __EOF__ >> $SUBHTMLFILE
-<table>
-  <tr>
-    <th></th>
-    <th>Processor</th>
-    <th>Block Devices</th>
-    <th>Memory</th>
-    <th>Swap</th>
-    <th>Netowrk Devices</th>
-  </tr>
-__EOF__
-
-		for HOST in $HOSTNAMES; do
-			cat << __EOF__ >> $SUBHTMLFILE
-  <tr>
-    <td><b>$HOST</b></td>
-    <td><a href="$HOST-sar-cpu.html">.oOo.</a></td>
-    <td><a href="$HOST-sar-blockdev.html">.oOo.</a></td>
-    <td><a href="$HOST-sar-mem.html">.oOo.</a></td>
-    <td><a href="$HOST-sar-swap.html">.oOo.</a></td>
-    <td><a href="$HOST-sar-net.html">.oOo.</a></td>
-  </tr>
-__EOF__
-		done
-
-		cat << __EOF__ >> $SUBHTMLFILE
-</table>
-
-<h3>Database</h3>
-<ul>
-__EOF__
-
-		for NODE in $NODES; do
-			HOST=`basename $NODE`
-			cat << __EOF__ >> $SUBHTMLFILE
-  <li><a href="db/$HOST/db.html">$HOST</a></li>
-__EOF__
-		done
-
-		cat << __EOF__ >> $SUBHTMLFILE
-</ul>
-
-<h3>Tables</h3>
-<table>
-  <tr>
-    <th></th>
-__EOF__
-
-		for NODE in $NODES; do
-			cat << __EOF__ >> $SUBHTMLFILE
-    <th>`basename $NODE`</th>
-__EOF__
-		done
-
-		cat << __EOF__ >> $SUBHTMLFILE
-  </tr>
-__EOF__
-
-		for TABLE in $TABLELIST; do
-			cat << __EOF__ >> $SUBHTMLFILE
-  <tr>
-    <td><b>$TABLE</b></td>
-__EOF__
-
-			for NODE in $NODES; do
-				NODE=`basename $NODE`
-				cat << __EOF__ >> $SUBHTMLFILE
-    <td><a href="db/$NODE/tables/$TABLE-charts.html">.oOo.</a></td>
-__EOF__
-			done
-
-			cat << __EOF__ >> $SUBHTMLFILE
-  </tr>
-__EOF__
-		done
-
-		cat << __EOF__ >> $SUBHTMLFILE
-</table>
-
-<h3>Table Metrics</h3>
-<table>
-  <tr>
-    <th></th>
-__EOF__
-
-		for NODE in $NODES; do
-			cat << __EOF__ >> $SUBHTMLFILE
-    <th>`basename $NODE`</th>
-__EOF__
-		done
-
-		cat << __EOF__ >> $SUBHTMLFILE
-  </tr>
-__EOF__
-
-		for METRIC in $TABLEMETRICS; do
-			METRICCHARTFILE="t_$METRIC-charts.html"
-			cat << __EOF__ >> $SUBHTMLFILE
-  <tr>
-    <td><b>$METRIC</b></td>
-__EOF__
-
-			for NODE in $NODES; do
-				NODE=`basename $NODE`
-
-				cat << __EOF__ >> $SUBHTMLFILE
-    <td><a href="db/$NODE/tables/$METRICCHARTFILE">.oOo.</a></li>
-__EOF__
-			done
-			cat << __EOF__ >> $SUBHTMLFILE
-  </tr>
-__EOF__
-
-		done
-
-		cat << __EOF__ >> $SUBHTMLFILE
-</table>
-
-<h3>Indexes</h3>
-<table>
-  <tr>
-    <th></th>
-__EOF__
-
-		for NODE in $NODES; do
-			cat << __EOF__ >> $SUBHTMLFILE
-    <th>`basename $NODE`</th>
-__EOF__
-		done
-
-		for INDEX in $INDEXLIST; do
-			cat << __EOF__ >> $SUBHTMLFILE
-  <tr>
-    <td><b>$INDEX</b></td>
-__EOF__
-
-			for NODE in $NODES; do
-				NODE=`basename $NODE`
-				cat << __EOF__ >> $SUBHTMLFILE
-    <td><a href="db/$NODE/indexes/$INDEX-charts.html">.oOo.</a></td>
-__EOF__
-			done
-
-			cat << __EOF__ >> $SUBHTMLFILE
-  </tr>
-__EOF__
-		done
-		cat << __EOF__ >> $SUBHTMLFILE
-</table>
-__EOF__
-
-	fi
-
-	cat << __EOF__ >> $SUBHTMLFILE
-<h3>Index Metrics</h3>
-<table>
-  <tr>
-    <th></th>
-__EOF__
-
-		for NODE in $NODES; do
-			cat << __EOF__ >> $SUBHTMLFILE
-    <th>`basename $NODE`</th>
-__EOF__
-		done
-
-		cat << __EOF__ >> $SUBHTMLFILE
-  </tr>
-__EOF__
-
-		for METRIC in $INDEXMETRICS; do
-			METRICCHARTFILE="i_$METRIC-charts.html"
-			cat << __EOF__ >> $SUBHTMLFILE
-  <tr>
-    <td><b>$METRIC</b></td>
-__EOF__
-
-			for NODE in $NODES; do
-				NODE=`basename $NODE`
-
-				cat << __EOF__ >> $SUBHTMLFILE
-    <td><a href="db/$NODE/indexes/$METRICCHARTFILE">.oOo.</a></li>
-__EOF__
-			done
-			cat << __EOF__ >> $SUBHTMLFILE
-  </tr>
-__EOF__
-
-		done
-
-		cat << __EOF__ >> $SUBHTMLFILE
-</table>
-</body>
-</html>
-__EOF__
-}
-
-make_db_charts()
-{
-	if [ $FAST -eq 1 ]; then
-		return 0
-	fi
-
-	# Where the csv files are may be different than where the table/index lists
-	# are.
-	local CSVDIR=`dirname $1`/`basename $1`
-	local LISTDIR=$CSVDIR
-
-	if [ "x$DATABASE" = "xpgxl" ]; then
-		local DATABASE="pgsql"
-		local LISTDIR="$LISTDIR/.."
-	fi
-
-	dbt-$DATABASE-plot-database-stats $CSVDIR/pg_stat_databases.csv $CSVDIR \
-			2>> $ERRLOG
-
-	local OUTDIR=$CSVDIR/tables
-	mkdir -p $OUTDIR
-	for table in `cat $LISTDIR/table-list.txt 2> /dev/null`; do
-		dbt-$DATABASE-plot-table-stats $CSVDIR/pg_stat_tables.csv $table \
-				$OUTDIR 2>> $ERRLOG
-	done
-
-	local OUTDIR=$CSVDIR/indexes
-	mkdir -p $OUTDIR
-	for index in `cat $LISTDIR/index-list.txt 2> /dev/null`; do
-		dbt-$DATABASE-plot-index-stats $CSVDIR/pg_stat_indexes.csv $index \
-				$OUTDIR 2>> $ERRLOG
+	DIR=$1
+	TAG=$2
+
+	CHARTS=`(cd $DIR && find */ -name "sar-$TAG*.png")`
+	for CHART in $CHARTS; do
+		echo ".. image:: ../$CHART"
+		echo "   :target: ../$CHART"
+		echo "   :width: 100%"
+		echo ""
 	done
 }
 
-make_system_charts()
-{
-	local SARDIR=$1
+error() {
+	echo "ERROR: $@"
+	exit 1
+}
 
-	if [ $FAST -eq 1 ]; then
-		return 0
-	fi
-
-	dbt-plot-sar-cpu $SARDIR/sar-cpu.csv $SARDIR 2>> $ERRLOG
-	dbt-plot-sar-blockdev $SARDIR/sar-blockdev.csv $SARDIR 2>> $ERRLOG
-	dbt-plot-sar-mem $SARDIR/sar-mem2.csv $SARDIR 2>> $ERRLOG
-	dbt-plot-sar-swap $SARDIR/sar-swap.csv $SARDIR 2>> $ERRLOG
-	dbt-plot-sar-net $SARDIR/sar-net.csv $SARDIR 2>> $ERRLOG
+warning() {
+	echo "WARNING: $@"
 }
 
 # Use this to skip chart generation to help test just the HTML generation.
 FAST=0
 PLOT_OPTS=""
-while getopts fi:o:V f; do
-	case $f in
+while getopts fi:V OPT; do
+	case $OPT in
 		f) FAST=1;;
 		i) INDIR=$OPTARG;;
-		o) OUTDIR=$OPTARG;;
 		V) PLOT_OPTS="$PLOT_OPTS -V";;
-		\?) exit 1;;
+		\?) usage; exit 1;;
 	esac
 done
 
-if [ -z $INDIR ]; then
+if [ "x${INDIR}" = "x" ]; then
 	echo "Specify dbt3 results directory with -i"
 	exit 1
 fi
 
-if [ -z "$OUTDIR" ]; then
-	OUTDIR=$INDIR
-fi
+echo "Generating sar io charts..."
+for SARBLOCKDEVFILE in `find $INDIR -name sar-blockdev.csv`; do
+	DIRNAME="$(dirname $SARBLOCKDEVFILE)/sar"
+	mkdir -p $DIRNAME
+	dbt-plot-sar-blockdev $SARBLOCKDEVFILE $DIRNAME $BLKDEVICES \
+			> /dev/null 2>&1 || warning "Could not create sar blockdev charts" &
+done
 
-DATABASE=`grep "^dbms:" $INDIR/config.txt | cut -d " " -f 2`
+echo "Generating memory charts..."
+for SARMEMFILE in `find $INDIR -name sar-mem.csv`; do
+	DIRNAME="$(dirname $SARMEMFILE)/sar"
+	mkdir -p $DIRNAME
+	dbt-plot-sar-mem -i $SARMEMFILE -o $DIRNAME > /dev/null 2>&1 \
+			|| warning "Could not create sar mem charts from $SARMEMFILE" &
+done
 
-ERRLOG="$OUTDIR/gen-report.txt"
+echo "Generating processor utilization charts..."
+for SARCPUFILE in `find $INDIR -name sar-cpu.csv`; do
+	DIRNAME="$(dirname $SARCPUFILE)/sar"
+	mkdir -p $DIRNAME
+	dbt-plot-sar-cpu $SARCPUFILE $DIRNAME > /dev/null 2>&1 \
+			|| warning "Could not create sar cpu charts from $SARCPUFILE" &
+done
 
-OSVER=`grep "^kernel" $INDIR/config.txt | cut -d ' ' -f3-`
-DBVER=`grep "^dbver" $INDIR/config.txt | cut -d " " -f2-`
+echo "Generating swap charts..."
+for SARSWAPFILE in `find $INDIR -name sar-swap.csv`; do
+	DIRNAME="$(dirname $SARSWAPFILE)/sar"
+	mkdir -p $DIRNAME
+	dbt-plot-sar-swap $SARSWAPFILE $DIRNAME > /dev/null 2>&1 \
+			|| warning "Could not create sar swap charts from $SARSWAPFILE" &
+done
 
-CPU_MODEL=`grep "^model" $INDIR/config.txt | cut -d " " -f2-`
-CPUS=`grep CPUS $INDIR/config.txt | awk '{print $2}'`
-CPU_MHZ=`grep MHz $INDIR/config.txt | awk '{print $2}'`
-HOSTNAMES=`grep "^hostnames:" $INDIR/config.txt | cut -d " " -f2-`
-MPP=`grep "^mpp:" $INDIR/config.txt | cut -d " " -f 2`
-NODES=`grep "^datanodes:" $INDIR/config.txt`
-NODE_COUNT=`grep "^datanodes:" $INDIR/config.txt | cut -d " " -f 2`
-RAM=`grep memory $INDIR/config.txt | awk '{print $2}'`
+echo "Generating network charts..."
+for SARNETFILE in `find $INDIR -name sar-net.csv`; do
+	DIRNAME="$(dirname $SARNETFILE)/sar"
+	mkdir -p $DIRNAME
+	dbt-plot-sar-net $SARNETFILE $DIRNAME > /dev/null 2>&1 \
+			|| warning "Could not create sar net charts from $SARNETFILE" &
+done
 
-SF=`grep scale_factor $INDIR/config.txt | awk '{print $2}'`
-STREAMS=`grep num_stream $INDIR/config.txt | awk '{print $2}'`
+echo "Processing pidstat files..."
+for PIDSTATFILE in $(find $INDIR -name pidstat.txt); do
+	DIRNAME="$(dirname $PIDSTATFILE)"
+	(cd $DIRNAME && dbt-process-pidstat $PIDSTATFILE 2> /dev/null) &
+done
 
-LOADDIR=$INDIR/load
-if [ -d "$LOADDIR" ]; then
-	LOAD=`grep LOAD $INDIR/q_time.csv | awk -F, '{ print $5 }'`
+wait
+
+DATE=$(grep "^date" ${INDIR}/config.txt | cut -d ":" -f2-)
+DBMS=$(grep "^dbms" ${INDIR}/config.txt | awk '{print $2}')
+DBVER=$(grep "^dbver" ${INDIR}/config.txt | cut -d " " -f2-)
+OSVER=$(grep "^kernel" ${INDIR}/config.txt | cut -d ' ' -f3-)
+QTIMECSV="${INDIR}/q_time.csv"
+SF=$(grep scale_factor ${INDIR}/config.txt | awk '{print $2}')
+STREAMS=$(grep num_stream ${INDIR}/config.txt | awk '{print $2}')
+
+LOADDIR=${INDIR}/load
+if [ -d "${LOADDIR}" ]; then
+	LOAD=$(grep LOAD $INDIR/q_time.csv | awk -F, '{ print $5 }')
 	# Round to 2 decimal places, convert to hours.
-	LOAD_HOUR=`echo "scale=2; ${LOAD} / 3600" | bc -l`
-	LOAD_MIN=`echo "scale=2; ${LOAD} / 60" | bc -l`
+	LOAD_HOUR=$(echo "scale=2; ${LOAD} / 3600" | bc -l)
+	LOAD_MIN=$(echo "scale=2; ${LOAD} / 60" | bc -l)
 else
 	LOAD=0
 fi
-METRICS="$INDIR/metrics.txt"
-if [ -f "${METRICS}" ]; then
-	COMPOSITE=`grep composite ${METRICS} | awk '{printf("%0.0f", $3)}'`
-	POWER=`grep power ${METRICS} | awk '{printf("%0.0f", $3)}'`
-	THROUGHPUT=`grep throughput ${METRICS} | awk '{print $3}'`
+
+POWERDIR="power"
+if [ -d "${INDIR}/${POWERDIR}" ]; then
+	PLOT_OPTS="$PLOT_OPTS -2"
+	POWER=$(dbt3-power-score -i $QTIMECSV -s $SF)
 else
-	COMPOSITE="N/A"
 	POWER="N/A"
+fi
+
+THROUGHPUTDIR="throughput"
+if [ -d "${INDIR}/${THROUGHPUTDIR}" ]; then
+	PLOT_OPTS="$PLOT_OPTS -3"
+	THROUGHPUT=$(dbt3-throughput-score -i $QTIMECSV -s $SF -n $STREAMS)
+else
 	THROUGHPUT="N/A"
 fi
 
-LOADPARAMS=`grep "^load_parameters" $INDIR/config.txt | cut -d " " -f2-`
-POWERPARAMS=`grep "^power_parameters" $INDIR/config.txt | cut -d " " -f2-`
-THRUPARAMS=`grep "^throughput_parameters" $INDIR/config.txt | cut -d " " -f2-`
-
-# Generate individual Web pages for each test result directory.
-if [ -d "$INDIR/load" ]; then
-	gen_results "Load Test" "load"
-	LOADLINK="<p><a href="load/index.html">Load Test Details</a></p>"
+if [ ! "${POWER}" = "N/A" ] && [ ! "${THROUGHPUT}" = "N/A" ]; then
+	COMPOSITE=$(echo "scale=2; sqrt(${POWER} * ${THROUGHPUT})" | bc -l)
+else
+	COMPOSITE="N/A"
 fi
-
-POWERDIR="power"
-THROUGHPUTDIR="throughput"
-
-if [ -d "$INDIR/$POWERDIR" ]; then
-	PLOT_OPTS="$PLOT_OPTS -2"
-	gen_results "Power Test" $POWERDIR
-	POWERLINK="<p><a href="$POWERDIR/index.html">Power Test Details</a></p>"
-fi
-
-if [ -d "$INDIR/$THROUGHPUTDIR" ]; then
-	PLOT_OPTS="$PLOT_OPTS -3"
-	gen_results "Throughput Test" $THROUGHPUTDIR
-	THRULINK="<p><a href="$THROUGHPUTDIR/index.html">Throughput Test Details</a></p>"
-fi
-
-HTMLFILE=$INDIR/index.html
-
-cat << __EOF__ > $HTMLFILE
-<html>
-<head>
-<title>Database Test 3 Results</title>
-</head>
-<body>
-<h1>Database Test 3 Results</h1>
-
-<table border="1">
-<tr>
-<th>Software Version</th><th>Hardware Configuration</th><th>Workload Parameters</th>
-</tr>
-<tr>
-<td>Operating System: $OSVER</td><td>$CPUS CPUs @ $CPU_MHZ</td><td>Scale Factor: $SF</td>
-</tr>
-<tr>
-<td>Database Server: $DBVER</td><td>$CPU_MODEL</td><td>Streams: $STREAMS</td>
-</tr>
-<tr>
-<td></td><td>$RAM KB RAM</td><td></td>
-</tr>
-<tr>
-<td></td><td>$NODES</td><td></td>
-</tr>
-</table>
-
-<h2>Metrics</h2>
-<table border="0">
-
-<tr>
-<th></th>
-<th></th>
-<th>Runtime Parameters</th>
-</tr>
-
-<tr>
-<td align="right">Composite:</td><td align="right">$COMPOSITE</td>
-</tr>
-
-<tr>
-<td align="right">Load Time:</td>
-<td align="right">$LOAD_MIN Minutes / $LOAD_HOUR Hours</td>
-<td>$LOADLINK</td>
-<td>$LOADPARAMS</td>
-</tr>
-
-<tr>
-<td align="right">Query Processing Power:</td>
-<td align="right">$POWER</td>
-<td>$POWERLINK</td>
-<td>$POWERPARAMS</td>
-</tr>
-
-<tr>
-<td align="right">Throughput Numerical Quantity:</td>
-<td align="right">$THROUGHPUT</td>
-<td>$THRULINK</td>
-<td>$THRUPARAMS</td>
-</tr>
-</table>
-__EOF__
 
 # Plot a query results
-dbt3-plot-results -i $INDIR/q_time.csv -o $OUTDIR -f $SF $PLOT_OPTS \
-		2>> $ERRLOG || >&2 echo "Failed to plot query times..."
+dbt3-plot-results -i $QTIMECSV -o $INDIR -f $SF $PLOT_OPTS
 
-if [ -f "$INDIR/q_time.png" ]; then
-	cat << __EOF__ >> $HTMLFILE
-<h2>Query Times</h2>
-<p>
-(Click to view full size.)<br/>
-<a href="q_time.png"><img src="q_time.png" width="100%" /></a><br/>
-<a href="q_time.csv">CSV Version</a>
-</p>
+REPORTFILE="${INDIR}/report.rst"
+cat > $REPORTFILE << __EOF__
+======================
+Database Test 3 Report
+======================
+
+**These results are not comparable to TPC Benchmark(TM) H Results.**
+
+Summary
+=======
+
+* Date: $DATE
+* Database Size: $SF GB
+* Database Manager: $DBVER
+* Operating System: $OSVER
+* Notes: $(cat ${INDIR}/comment.txt 2> /dev/null)
+
+Metrics
+=======
+
+======================  ============  ==========================================
+       Composite Score  $(printf "%12s" $COMPOSITE)
+Load Test Time (hours)  $(printf "%12s" $LOAD_HOUR)  $(display_sar_stats load)
+      Power Test Score  $(printf "%12s" $POWER)  $(display_sar_stats power)
+ Throughput Test Score  $(printf "%12s" $THROUGHPUT)  $(display_sar_stats throughput)
+======================  ============  ==========================================
+
+Query Times
+===========
+
+.. image:: q_time.png
+   :target: q_time.png
+   :width: 100%
+
+$(cat ${INDIR}/with-links-summary.rst)
+
+$(dbt3-${DBMS}-report -i $INDIR 2> /dev/null)
 __EOF__
+
+# Generate HTML and PDF files.
+
+RST2HTML5=""
+which rst2html5.py > /dev/null 2>&1
+if [ $? -eq 0 ]; then
+	RST2HTML5="rst2html5.py"
+fi
+which rst2html5 > /dev/null 2>&1
+if [ $? -eq 0 ]; then
+RST2HTML5="rst2html5"
 fi
 
-cat << __EOF__ >> $HTMLFILE
-</body>
-</html>
-__EOF__
+if [ ! "x${RST2HTML5}" = "x" ]; then
+# pandoc can't properly convert multi-cell table headings from rst but
+# Sphinx's rst2html can. Then pandoc can convert multi-cell table headings
+# from html to pdf.
+
+for RST in $(find $INDIR -name "*.rst"); do
+		NAME="${RST%.*}"
+		(cd $(dirname $RST) && \
+				$RST2HTML5 $(basename $RST) ${NAME}.html 2> /dev/null) &
+	done
+	wait
+
+	echo "Generated top level HTML reports:"
+	ls -1v ${INDIR}/*.html
+	echo ""
+
+	# A pdf could be produced other ways, but I believe pandoc produces the most
+	# minimally styled LaTeX looking document, as opposed to using rst2latex,
+	# with default settings.
+	which pandoc > /dev/null 2>&1
+	if [ $? -eq 0 ]; then
+		(cd $INDIR && \
+				pandoc -s report.html -f html -t pdf -o report.pdf \
+						2> /dev/null)
+		for HTML in $(find $INDIR -name "*.html"); do
+			NAME="${HTML%.*}"
+			(cd $(dirname $HTML) && \
+					pandoc -s $(basename $HTML) -f html -t pdf -o ${NAME}.pdf \
+							2> /dev/null) &
+		done
+		wait
+
+		echo "Generated top level PDF reports:"
+		ls -1v ${INDIR}/*.pdf
+		echo ""
+	else
+		echo "pandoc required to generate pdf report"
+		exit 1
+	fi
+else
+	echo "rst2html5 required to generate html report"
+	exit 1
+fi

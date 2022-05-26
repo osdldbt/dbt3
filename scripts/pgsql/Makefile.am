@@ -17,6 +17,7 @@ dist_bin_SCRIPTS = dbt3-pgsql-create-db \
 		dbt3-pgsql-get-version \
 		dbt3-pgsql-load-data \
 		dbt3-pgsql-plan-disaster \
+		dbt3-pgsql-report \
 		dbt3-pgsql-rf1 \
 		dbt3-pgsql-rf2 \
 		dbt3-pgsql-start-db \
