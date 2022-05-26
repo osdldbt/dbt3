@@ -93,7 +93,7 @@ do
 	if [ $DATABASE = "virtuoso" ]; then
 		# Can't have comments or transaction statments sent to explain().
 		# Escape single quotes for explain().
-		Q=`$QGEN -a -r $SEED -p 0 -s $SCALE_FACTOR -x $i | tail -n +2 | sed -e "s/'/''/g"`
+		Q=`$QGEN -a -r $SEED -p $num_stream -s $SCALE_FACTOR -x $i | tail -n +2 | sed -e "s/'/''/g"`
 	fi
 	$DBCMD<< __EOF__ > ${PLANDIR}/${N}.txt
 $ESTART

@@ -6,6 +6,7 @@ vX.Y.X
 - Move seed generation back to after the load test
 - Save the time when the test starts in config.txt
 - Remove TPC dbgen code for TPC EULA 2.2 compliance
+- Fix explain plan generation for throughput test
 
 v1.10
 
