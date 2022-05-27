@@ -23,7 +23,6 @@ scripts/sapdb/load_db.sh
 scripts/sapdb/sapdb_profile
 scripts/sapdb/update_statistics.sh
 src/Makefile
-src/dbgen/.deps/
-src/dbgen/Makefile
-src/dbgen/dbgen
-src/dbgen/qgen
+src/dbgen/
+
+.pc/

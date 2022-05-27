@@ -29,6 +29,9 @@ RUN ./autogen.sh
 RUN ./configure --with-postgresql
 RUN make install
 
+WORKDIR ${DBT3PATH}/src/dbgen
+RUN make -f Makefile.postgresql
+
 RUN chmod 777 /opt
 
 USER postgres

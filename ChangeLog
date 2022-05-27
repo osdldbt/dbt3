@@ -7,6 +7,9 @@ vX.Y.X
 - Save the time when the test starts in config.txt
 - Remove TPC dbgen code for TPC EULA 2.2 compliance
 - Fix explain plan generation for throughput test
+- Add instructions for how the user needs to add TPC dbgen manually
+- Make use of qgen and dbgen more consistent in scripts
+- Add patches that apply to dbgen for PostgreSQL support
 
 v1.10
 

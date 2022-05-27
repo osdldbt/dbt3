@@ -74,6 +74,11 @@ while getopts "a:cC:df:g:lo:p:RtyY:" opt; do
 	esac
 done
 
+if [ "x$DBGEN" = "x" ]; then
+	echo "set DBGEN environment variable to aboslute path to dbgen binary"
+	exit 1
+fi
+
 if [ "x$DATABASE" = "x" ]; then
 	echo "Specify database management system with -a flag"
 	usage
@@ -118,7 +123,7 @@ elif [ $GENERATE -ne 0 ] || [ $have_all_files -eq 0 ]; then
 	echo "`date` Generating data for scale factor $SF ..."
 	# DBGEN reads DSS_PATH env var to determine where to put the files
 	if [ $CHUNKS -eq 1 ]; then
-		dbgen -s $SF || exit 1
+		$DBGEN -s $SF || exit 1
 
 		if [ $RESORT -eq 1 ]; then
 			echo "`date` resorting data files..."
@@ -139,12 +144,12 @@ elif [ $GENERATE -ne 0 ] || [ $have_all_files -eq 0 ]; then
 		fi
 	else
 		i=1
-		dbgen -s $SF -T l &
+		$DBGEN -s $SF -T l &
 		while [ $i -le $CHUNKS ]; do
-			dbgen -s $SF -C $CHUNKS -S $i -T c &
-			dbgen -s $SF -C $CHUNKS -S $i -T o &
-			dbgen -s $SF -C $CHUNKS -S $i -T p &
-			dbgen -s $SF -C $CHUNKS -S $i -T s &
+			$DBGEN -s $SF -C $CHUNKS -S $i -T c &
+			$DBGEN -s $SF -C $CHUNKS -S $i -T o &
+			$DBGEN -s $SF -C $CHUNKS -S $i -T p &
+			$DBGEN -s $SF -C $CHUNKS -S $i -T s &
 			i=$(( $i + 1 ))
 		done
 	fi
