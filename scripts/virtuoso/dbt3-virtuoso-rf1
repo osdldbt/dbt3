@@ -19,7 +19,7 @@ DATASET=`$ISQL BANNER=OFF << __
 SELECT sequence_next('dataset');
 __
 `
-dbgen -s $SCALE_FACTOR -U $DATASET -S $DATASET || exit 1
+$DBGEN -s $SCALE_FACTOR -U $DATASET -S $DATASET || exit 1
 
 echo "`date`: Stream $DATASET : Starting Refresh Stream 1..."
 s_time=`date +%s`

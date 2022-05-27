@@ -39,7 +39,7 @@ fi
 DBT3PATH="/usr/local/src/dbt3"
 
 docker run --rm --name $DOCKER_NAME --shm-size=128m $DOCKER_TAG \
-		dbt3-run-workload -a $DBMS -f $SCALE -o /tmp/results
+		dbt3-run-workload -a $DBMS -f $SCALE -o /tmp/results -d
 if [ $? -ne 0 ]; then
 	usage
 	exit 1

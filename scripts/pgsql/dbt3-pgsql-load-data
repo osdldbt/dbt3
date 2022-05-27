@@ -53,13 +53,13 @@ __EOF__
 		if [ $CHUNKS -eq 1 ] || [ "$table" = "nation" ] || \
 				[ "$table" = "region" ]; then
 			$PSQL << __EOF__ &
-COPY $table FROM PROGRAM 'dbgen -s $SCALE_FACTOR -T $FLAG -o' USING DELIMITERS '|';
+COPY $table FROM PROGRAM '$DBGEN -s $SCALE_FACTOR -T $FLAG -o' USING DELIMITERS '|';
 __EOF__
 		else
 			i=1
 			while [ $i -le $CHUNKS ]; do
 				$PSQL << __EOF__ &
-COPY $table FROM PROGRAM 'dbgen -s $SCALE_FACTOR -T $FLAG -o -C $CHUNKS -S $i' USING DELIMITERS '|';
+COPY $table FROM PROGRAM '$DBGEN -s $SCALE_FACTOR -T $FLAG -o -C $CHUNKS -S $i' USING DELIMITERS '|';
 __EOF__
 				i=$(( $i + 1 ))
 			done

@@ -28,7 +28,7 @@ WHERE id = 1;
 COMMIT;
 __EOF__
 `
-dbgen -s $scale_factor -U $set_num -S $set_num || exit 1
+$DBGEN -s $scale_factor -U $set_num -S $set_num || exit 1
 
 echo "`date`: Stream ${set_num} : Starting Refresh Stream 1..."
 s_time=`date +%s`
