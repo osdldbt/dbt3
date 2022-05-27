@@ -22,6 +22,7 @@ Apply the supplied patches to dbgen (in the suggested order)::
 
     patch -p1 < patches/dbt3-TPC-H_Tools_v3.0.0-postgresql.diff
     patch -p1 < patches/dbt3-TPC-H_Tools_v3.0.0-stdout.diff
+    patch -p1 < patches/dbt3-TPC-H_Tools_v3.0.0-mysql.diff
 
 Patch descriptions:
 
@@ -29,3 +30,5 @@ Patch descriptions:
    qgen for PostgreSQL.
 * `dbt3-TPC-H_Tools_v3.0.0-stdout.diff` gives dbgen the ability to write to
   stdout when generating data.
+* `dbt3-TPC-H_Tools_v3.0.0-mysql.diff` add support for building dbgen and qgen
+  for MySQL.
