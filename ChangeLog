@@ -13,6 +13,7 @@ vX.Y.X
 - Parallelize PostgreSQL data load by number of detected processors, and load
   by table
 - Add PostgreSQL query templates for EXPLAIN ANALYZE output
+- Adopt Artistic License 2.0
 
 v1.10
 
