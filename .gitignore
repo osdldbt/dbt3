@@ -3,16 +3,22 @@
 
 *.o
 
+# cmake
+CMakeCache.txt
+CMakeFiles
+cmake_install.cmake
+install_manifest.txt
 Makefile
-config.log
-config.status
-Makefile.in
-aclocal.m4
-autom4te.cache/
-configure
-depcomp
-install-sh
-missing
+
+# cpack
+builds/
+_CPack_Packages/
+CPackSourceConfig.cmake
+*.Z
+*.xz
+*.gz
+*.bz2
+
 doc/dbt3-user-guide.html
 scripts/sapdb/build_db.sh
 scripts/sapdb/create_db.sh
@@ -22,7 +28,6 @@ scripts/sapdb/drop_tables.sh
 scripts/sapdb/load_db.sh
 scripts/sapdb/sapdb_profile
 scripts/sapdb/update_statistics.sh
-src/Makefile
 src/dbgen/
 
 tags

@@ -25,9 +25,7 @@ RUN cmake . && cmake --install .
 ENV DBT3PATH=/usr/local/src/dbt3
 
 WORKDIR ${DBT3PATH}
-RUN ./autogen.sh
-RUN ./configure --with-postgresql
-RUN make install
+RUN cmake . && cmake --install .
 
 WORKDIR ${DBT3PATH}/src/dbgen
 RUN make -f Makefile.postgresql

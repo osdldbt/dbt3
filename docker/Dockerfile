@@ -1,8 +1,7 @@
 FROM debian:stable-slim
 
 RUN apt-get update
-RUN apt-get install -y autoconf \
-                       bc \
+RUN apt-get install -y bc \
                        build-essential \
                        ca-certificates \
                        cmake \

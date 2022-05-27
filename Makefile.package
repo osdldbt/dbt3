@@ -1,0 +1,7 @@
+default:
+	git checkout-index --prefix=builds/ -a
+	cmake -Hbuilds -Bbuilds
+	cd builds && make package_source
+
+clean:
+	-rm -rf builds
