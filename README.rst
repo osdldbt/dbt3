@@ -24,6 +24,7 @@ Apply the supplied patches to dbgen (in the suggested order)::
     patch -p1 < patches/dbt3-TPC-H_Tools_v3.0.0-stdout.diff
     patch -p1 < patches/dbt3-TPC-H_Tools_v3.0.0-mysql.diff
     patch -p1 < patches/dbt3-TPC-H_Tools_v3.0.0-virtuoso.diff
+    patch -p1 < patches/dbt3-TPC-H_Tools_v3.0.0-monetdb.diff
 
 Patch descriptions:
 
@@ -35,3 +36,5 @@ Patch descriptions:
   for MySQL.
 * `dbt3-TPC-H_Tools_v3.0.0-virtuoso.diff` add support for building dbgen and
   qgen for Virtuoso.
+* `dbt3-TPC-H_Tools_v3.0.0-monetdb.diff` add support for building dbgen and
+  qgen for MonetDB.
