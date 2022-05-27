@@ -12,6 +12,7 @@ vX.Y.X
 - Add patches that apply to dbgen for PostgreSQL support
 - Parallelize PostgreSQL data load by number of detected processors, and load
   by table
+- Add PostgreSQL query templates for EXPLAIN ANALYZE output
 
 v1.10
 
