@@ -1,4 +1,4 @@
-vX.Y.X
+v1.11.0
 
 - Add Docker files to run DBT-3 against PostgreSQL.
 - Update reporting to generate HTML from ReStructuredText
