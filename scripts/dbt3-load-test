@@ -9,7 +9,6 @@
 #               2015-2017 2ndQuadrant, Ltd.
 #
 
-CHUNKS=1
 DIRECT_LOAD=0
 DIRECT_LOAD_ARG=""
 GENERATE=0
@@ -90,6 +89,18 @@ elif [ "x$DATABASE" = "xpgxl" ]; then
 	done
 fi
 
+# Automatically parallelize to the number of available processors if not
+# specified otherwise.
+if [ "x${CHUNKS}" = "x" ]; then
+	if [ -f "/proc/stat" ]; then
+		CPUS=`grep cpu /proc/stat | wc -l`
+		CHUNKS=$(( $CPUS - 1 ))
+		echo "detected $CHUNKS processors for parallel loading"
+	else
+		CHUNKS=1
+	fi
+fi
+
 which gzip > /dev/null 2>&1
 if [ $? -eq 0 ]; then
 	GZIP=gzip
@@ -145,12 +156,12 @@ elif [ $GENERATE -ne 0 ] || [ $have_all_files -eq 0 ]; then
 	else
 		i=1
 		$DBGEN -s $SF -T l &
-		while [ $i -le $CHUNKS ]; do
-			$DBGEN -s $SF -C $CHUNKS -S $i -T c &
-			$DBGEN -s $SF -C $CHUNKS -S $i -T o &
-			$DBGEN -s $SF -C $CHUNKS -S $i -T p &
-			$DBGEN -s $SF -C $CHUNKS -S $i -T s &
-			i=$(( $i + 1 ))
+		for TABLE in c o p s; do
+			while [ $i -le $CHUNKS ]; do
+				$DBGEN -s $SF -C $CHUNKS -S $i -T $TABLE &
+				i=$(( $i + 1 ))
+			done
+			wait
 		done
 	fi
 	wait

@@ -10,6 +10,8 @@ vX.Y.X
 - Add instructions for how the user needs to add TPC dbgen manually
 - Make use of qgen and dbgen more consistent in scripts
 - Add patches that apply to dbgen for PostgreSQL support
+- Parallelize PostgreSQL data load by number of detected processors, and load
+  by table
 
 v1.10
 

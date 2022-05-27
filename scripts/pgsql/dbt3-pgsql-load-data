@@ -317,7 +317,6 @@ ALTER TABLE region ADD CONSTRAINT pk_region PRIMARY KEY USING INDEX pk_region;"
 	$PSQL -c "VACUUM ANALYZE region;"
 }
 
-CHUNKS=1
 DIRECT_LOAD=0
 NODES=0
 USE_TABLESPACES=0
@@ -335,20 +334,30 @@ while getopts "C:dt" OPT; do
 	esac
 done
 
+# Automatically parallelize to the number of available processors if not
+# specified otherwise.
+if [ "x${CHUNKS}" = "x" ]; then
+	if [ -f "/proc/stat" ]; then
+		CPUS=`grep cpu /proc/stat | wc -l`
+		CHUNKS=$(( $CPUS - 1 ))
+		echo "detected $CHUNKS processors for parallel loading"
+	else
+		CHUNKS=1
+	fi
+fi
+
 PSQL="psql -v ON_ERROR_STOP=1 -X"
 
 echo "Loading tables `date`"
 
-supplier &
-part &
-partsupp &
-customer &
-orders &
-lineitem &
-nation &
-region &
-
-wait
+supplier
+part
+partsupp
+customer
+orders
+lineitem
+nation
+region
 
 echo "Building indexes `date`"
 
