@@ -25,4 +25,6 @@ scripts/sapdb/update_statistics.sh
 src/Makefile
 src/dbgen/
 
+tags
+
 .pc/
