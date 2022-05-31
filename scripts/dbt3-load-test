@@ -5,22 +5,57 @@
 #
 # Copyright (C) 2002-2006 Open Source Development Labs, Inc.
 #               2002-2006 Jenny Zhang
-#               2005-2015 Mark Wong
 #               2015-2017 2ndQuadrant, Ltd.
+#               2005-2022 Mark Wong
 #
+
+usage()
+{
+	echo
+	echo "`basename $0` is the DBT-3 load tester"
+	echo ""
+	echo "Usage:"
+	echo "  `basename $0` [OPTIONS]"
+	echo
+	echo "Generate options:"
+	echo "  -a DBMS         database management system to test"
+	echo "  -c              resort tables after loading"
+	echo "  -C              number of chunks to load"
+	echo "  -d              direct data load"
+	echo "  -f SCALE        database scale factor, default 1"
+	echo "  -g              generate flat files"
+	echo "  -h              this help message"
+	echo "  -l              only load data"
+	echo "  -o DIRECTORY    path to store test results"
+	echo "  -R              materialized view mode"
+	echo "  -U              run test as an unprivileged user"
+	echo "  -y              enable oprofile (Linux only)"
+	echo "  -Y              enable linux perf (Linux only)"
+	echo ""
+	echo "DBMS options are:"
+	echo "  monetdb         MonetDB"
+	echo "  mysql           MySQL"
+	echo "  pgsql           PostgreSQL"
+	echo "  pgxl            Postgres-XL"
+	echo "  virtuoso        Virtuoso"
+	echo ""
+	echo "PostgreSQL specific options:"
+	echo "  -p              database parameters for the load test"
+}
 
 DIRECT_LOAD=0
 DIRECT_LOAD_ARG=""
 GENERATE=0
 MPP=0
 ONLY_LOAD=0
+PRIVILEGED=1
 RESORT=0
 SF=0
 USE_OPROFILE=0
 USE_LINUXPERF=0
 WORKLOAD="H"
 
-while getopts "a:cC:df:g:lo:p:RtyY:" opt; do
+while getopts "a:cC:df:g:lo:p:RtUyY:" opt; do
 	case $opt in
 	a)
 		DATABASE=$OPTARG
@@ -60,6 +95,10 @@ while getopts "a:cC:df:g:lo:p:RtyY:" opt; do
 		;;
 	t)
 		TABLESPACE_FLAG="-t -b"
+		;;
+	U)
+		PRIVILEGED=0
+		UNPRIVILEGED_ARG="-U"
 		;;
 	y)
 		USE_OPROFILE=1
@@ -175,7 +214,9 @@ fi
 # Start collecting system statistics.
 dbt3-sysstats --outdir $OUTPUT_DIR --sample 60 --mpp $MPP || exit 1
 
-eval dbt3-$DATABASE-create-db -o $OUTPUT_DIR $PARAMETERS_ARG
+if [ $PRIVILEGED -eq 1 ]; then
+	eval dbt3-$DATABASE-create-db -o $OUTPUT_DIR $PARAMETERS_ARG
+fi
 
 dbt3-$DATABASE-drop-tables || exit 1
 dbt3-$DATABASE-create-tables $TABLESPACE_FLAG || exit 1
@@ -202,7 +243,7 @@ if [ $USE_LINUXPERF -eq 1 ]; then
 	PERFCOMMAND="perf record -a -g -s -F 100 -o $PERFDIR/perf.data"
 fi
 
-eval $PERFCOMMAND dbt3-$DATABASE-load-data -C $CHUNKS $DIRECT_LOAD_ARG || exit 1
+eval $PERFCOMMAND dbt3-${DATABASE}-load-data -C $CHUNKS $DIRECT_LOAD_ARG $UNPRIVILEGED_ARG || exit 1
 
 dbt3-$DATABASE-time-statistics -e -n LOAD || exit 1
 e_time=`date +%s`

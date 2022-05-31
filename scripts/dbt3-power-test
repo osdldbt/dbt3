@@ -5,8 +5,8 @@
 #
 # Copyright (C) 2003-2006 Open Source Development Labs, Inc.
 #               2003-2006 Jenny Zhang
-#               2004-2015 Mark Wong
 #               2015      2ndQuadrant, Ltd.
+#               2004-2022 Mark Wong
 
 EXPLAIN=0
 EXPLAIN_ARG=
@@ -14,54 +14,85 @@ USE_OPROFILE=0
 USE_LINUXPERF=0
 NO_REFRESH=0
 MPP=0
+PRIVILEGED=1
 
 usage()
 {
-	echo "Usage: `basename $0` -a <DBMS> -f <SCALE_FACTOR> [-o outdir]"
-	echo "    -e -p <db_params> -y]"
+	echo
+	echo "`basename $0` is the DBT-3 power tester"
+	echo ""
+	echo "Usage:"
+	echo "  `basename $0` [OPTIONS]"
+	echo
+	echo "Generate options:"
+	echo "  -a DBMS         database management system to test"
+	echo "  -d              direct data load"
+	echo "  -f SCALE        database scale factor, default 1"
+	echo "  -g              generate flat files"
+	echo "  -h              this help message"
+	echo "  -l              only load data"
+	echo "  -o DIRECTORY    path to store test results"
+	echo "  -s SEED         seed to use for power and throughput tests"
+	echo "  -y              enable oprofile (Linux only)"
+	echo "  -Y              enable linux perf (Linux only)"
+	echo "  -z              do not run refresh streams"
+	echo ""
+	echo "DBMS options are:"
+	echo "  monetdb         MonetDB"
+	echo "  mysql           MySQL"
+	echo "  pgsql           PostgreSQL"
+	echo "  pgxl            Postgres-XL"
+	echo "  virtuoso        Virtuoso"
+	echo ""
+	echo "PostgreSQL specific options:"
+	echo "  -e              EXPLAIN ANALYZE"
+	echo "  -p              database parameters for the load test"
 }
 
 # process the command line parameters
-while getopts "a:ef:o:p:s:yYz" opt; do
+while getopts "a:ef:o:p:s:UyYz" opt; do
 	case $opt in
-		a)
-			DATABASE=$OPTARG
-			if [ "x$DATABASE" = "xpgxl" ]; then
-				MPP=1
-			fi
-			;;
-		e)
-			EXPLAIN=1
-			EXPLAIN_ARG="-y"
-			;;
-		f)
-			SCALE_FACTOR=$OPTARG
-			;;
-		o)
-			OUTPUT_DIR=$OPTARG
-			RESULTSDIR="${OUTPUT_DIR}/results"
-			mkdir -p ${RESULTSDIR}
-			;;
-		p)
-			PARAMETERS_ARG="-p \"$OPTARG\""
-			;;
-		s)
-			SEED_FILE=$OPTARG
-			;;
-		y)
-			USE_OPROFILE=1
-			;;
-		Y)
-			USE_LINUXPERF=1
-			;;
-		z)
-			NO_REFRESH=1
-			;;
-		\?)
-			usage
-			exit 1
-			;;
-		esac
+	a)
+		DATABASE=$OPTARG
+		if [ "x$DATABASE" = "xpgxl" ]; then
+			MPP=1
+		fi
+		;;
+	e)
+		EXPLAIN=1
+		EXPLAIN_ARG="-y"
+		;;
+	f)
+		SCALE_FACTOR=$OPTARG
+		;;
+	o)
+		OUTPUT_DIR=$OPTARG
+		RESULTSDIR="${OUTPUT_DIR}/results"
+		mkdir -p ${RESULTSDIR}
+		;;
+	p)
+		PARAMETERS_ARG="-p \"$OPTARG\""
+		;;
+	s)
+		SEED_FILE=$OPTARG
+		;;
+	U)
+		PRIVILEGED=0
+		;;
+	y)
+		USE_OPROFILE=1
+		;;
+	Y)
+		USE_LINUXPERF=1
+		;;
+	z)
+		NO_REFRESH=1
+		;;
+	\?)
+		usage
+		exit 1
+		;;
+	esac
 done
 
 if [ "x$QGEN" = "x" ]; then
@@ -139,8 +170,10 @@ __EOF__
 	i=$(( $i + 1 ))
 done
 
-dbt3-$DATABASE-stop-db
-eval dbt3-$DATABASE-start-db -o $OUTPUT_DIR $PARAMETERS_ARG || exit 1
+if [ $PRIVILEGED -eq 1 ]; then
+	dbt3-$DATABASE-stop-db
+	eval dbt3-$DATABASE-start-db -o $OUTPUT_DIR $PARAMETERS_ARG || exit 1
+fi
 
 # Start collecting system statistics.
 dbt3-sysstats --outdir $OUTPUT_DIR --sample 60 --mpp $MPP || exit 1
@@ -261,7 +294,9 @@ if [ $MPP -eq 1 ]; then
 	done
 fi
 
-dbt3-$DATABASE-stop-db || exit 1
+if [ $PRIVILEGED -eq 1 ]; then
+	dbt3-$DATABASE-stop-db || exit 1
+fi
 
 if [ -f /proc/profile ]; then
 	profname="Power_Test"

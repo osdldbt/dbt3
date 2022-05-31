@@ -15,34 +15,46 @@ killall sar sadc pidstat dbt3-$DATABASE-dbstat' TERM
 
 usage()
 {
-	echo "usage: `basename $0` [-123adeghoPRuz] [-c comment] [-f scale factor] "
-	echo "  [-l database port] [-n streams] [-s seed]"
-	echo "  [-p load test database parameters]"
-	echo "  [-q power test database parameters]"
-	echo "  [-r throughput test database parameters]"
-	echo "options:"
-	echo " 1 - run load test"
-	echo " 2 - run power test"
-	echo " 3 - run throughput test"
-	echo " a - dbms under test (monetdb, mysql, pgsql, sapdb)"
-	echo " c - comment about the test"
-	echo " C - flag to resort data load files"
-	echo " d - direct data load"
-	echo " e - EXPLAIN ANALYZE (PostgreSQL only)"
-	echo " g - generate flat files"
-	echo " h - this help message"
-	echo " l - database port"
-	echo " n - number of throughput streams"
-	echo " o - output directory"
-	echo " O - enable oprofile (Linux only)"
-	echo " P - enable linux perf (Linux only)"
-	echo " p - database parameters for the load test (PostgreSQL only)"
-	echo " q - database parameters for the power test (PostgreSQL only)"
-	echo " R - materialized view mode"
-	echo " r - database parameters for the throughput test (PostgreSQL only)"
-	echo " s - seed"
-	echo " u - use tablespaces"
-	echo " z - do not run refresh streams"
+	echo
+	echo "`basename $0` is the DBT-3 workload runner"
+	echo ""
+	echo "Usage:"
+	echo "  `basename $0` [OPTIONS]"
+	echo
+	echo "Generate options:"
+	echo "  -1              only run load test"
+	echo "  -2              only run power test"
+	echo "  -3              only run throughput test"
+	echo "  -a DBMS         database management system to test"
+	echo "  -c              comment about the test"
+	echo "  -C              flag to resort data load files"
+	echo "  -d              direct data load"
+	echo "  -f SCALE        database scale factor, default 1"
+	echo "  -g              generate flat files"
+	echo "  -h              this help message"
+	echo "  -l PORT         database port"
+	echo "  -n STREAMS      number of throughput streams"
+	echo "  -o DIRECTORY    path to store test results"
+	echo "  -O              enable oprofile (Linux only)"
+	echo "  -P              enable linux perf (Linux only)"
+	echo "  -R              materialized view mode"
+	echo "  -s SEED         seed to use for power and throughput tests"
+	echo "  -u              use tablespaces"
+	echo "  -U              run test as an unprivileged user"
+	echo "  -z              do not run refresh streams"
+	echo ""
+	echo "DBMS options are:"
+	echo "  monetdb         MonetDB"
+	echo "  mysql           MySQL"
+	echo "  pgsql           PostgreSQL"
+	echo "  pgxl            Postgres-XL"
+	echo "  virtuoso        Virtuoso"
+	echo ""
+	echo "PostgreSQL specific options:"
+	echo "  -e - EXPLAIN ANALYZE"
+	echo "  -p   database parameters for the load test"
+	echo "  -q   database parameters for the power test"
+	echo "  -r   database parameters for the throughput test"
 }
 
 make_sar_csv() {
@@ -66,6 +78,7 @@ FLAG_POWER_TEST=""
 FLAG_THROUGHPUT_TEST=""
 GENERATE=0
 MPP=0
+PRIVILEGED=1
 RUN_ALL_TESTS=1
 RUN_LOAD_TEST=0
 RUN_POWER_TEST=0
@@ -90,7 +103,7 @@ if [ -n "$DEFAULT_THROUGHPUT_PARAMETERS" ]; then
 	THROUGHPUT_PARAMETERS="$DEFAULT_THROUGHPUT_PARAMETERS"
 fi
 
-while getopts "123a:c:CdD:ef:ghn:Oo:p:Pq:Rr:s:tuVz" opt; do
+while getopts "123a:c:CdD:ef:ghn:Oo:p:Pq:Rr:s:tuUVz" opt; do
 	case $opt in
 	1)
 		RUN_LOAD_TEST=1
@@ -175,6 +188,10 @@ while getopts "123a:c:CdD:ef:ghn:Oo:p:Pq:Rr:s:tuVz" opt; do
 	u)
 		TABLESPACES_FLAG="-t"
 		;;
+	U)
+		PRIVILEGED=0
+		UNPRIVILEGED_ARG="-U"
+		;;
 	V)
 		VERT_FLAG="-V"
 		;;
@@ -251,6 +268,7 @@ if [ ${RUN_LOAD_TEST} -eq 1 ]; then
 			$MPP_ARG \
 			$DIRECT_LOAD_ARG \
 			$CHUNK_ARG \
+			$UNPRIVILEGED_ARG \
 			${TABLESPACES_FLAG} || exit 1
 else
 	#
@@ -258,7 +276,9 @@ else
 	# be cleared out.  Otherwise the data collection will be
 	# incomprehensible with duplicate data.
 	#
-	dbt3-${DATABASE}-start-db -o $OUTPUT_DIR
+	if [ $PRIVILEGED -eq 1 ]; then
+		dbt3-${DATABASE}-start-db -o $OUTPUT_DIR
+	fi
 	dbt3-$TAG-time-statistics -c
 fi
 
@@ -289,6 +309,7 @@ if [ ${RUN_POWER_TEST} -eq 1 ]; then
 			-s ${SEED_FILE} \
 			${OPROFILE_FLAG} \
 			${LINUXPERF_FLAG} \
+			$UNPRIVILEGED_ARG \
 			${NO_REFRESH_FLAG}
 	if [ $? -eq 1 ] ; then
 		echo "power test problem!"
@@ -306,6 +327,7 @@ if [ ${RUN_THROUGHPUT_TEST} -eq 1 ]; then
 			-s ${SEED_FILE} \
 			${OPROFILE_FLAG} \
 			${LINUXPERF_FLAG} \
+			$UNPRIVILEGED_ARG \
 			${NO_REFRESH_FLAG}
 	if [ $? -eq 1 ] ; then
 		echo "throughput test problem!"
@@ -322,7 +344,9 @@ fi
 
 # Make sure the database is started, which it might be depending on what parts
 # of the workload are executed.
-dbt3-${DATABASE}-start-db -o $OUTPUT_DIR
+if [ $PRIVILEGED -eq 1 ]; then
+	dbt3-${DATABASE}-start-db -o $OUTPUT_DIR
+fi
 
 # Get system details.
 echo "Getting system configuration... "
@@ -339,7 +363,9 @@ echo "Getting query times... "
 dbt3-$TAG-get-query-time > $OUTPUT_DIR/q_time.csv || exit 1
 
 # Stop the database at the end of the test.
-dbt3-${DATABASE}-stop-db
+if [ $PRIVILEGED -eq 1 ]; then
+	dbt3-${DATABASE}-stop-db
+fi
 
 # Calculate metrics.
 echo "Post processing query results... "

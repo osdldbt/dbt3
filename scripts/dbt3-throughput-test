@@ -5,18 +5,52 @@
 #
 # Copyright (C) 2003-2006 Open Source Development Labs, Inc.
 #               2003-2006 Jenny Zhang
-#               2004-2015 Mark Wong
 #               2015-2017 2ndQuadrant, Ltd.
+#               2004-2022 Mark Wong
 #
 
 MPP=0
 NO_REFRESH=0
 NO_REFRESH_FLAG=
+PRIVILEGED=1
 TEST_ARGS=
 USE_OPROFILE=0
 USE_LINUXPERF=0
 
-while getopts "a:ef:n:o:p:s:yYz" opt; do
+usage()
+{
+	echo
+	echo "`basename $0` is the DBT-3 throughput runner"
+	echo ""
+	echo "Usage:"
+	echo "  `basename $0` [OPTIONS]"
+	echo
+	echo "Generate options:"
+	echo "  -a DBMS         database management system to test"
+	echo "  -f SCALE        database scale factor, default 1"
+	echo "  -h              this help message"
+	echo "  -n STREAMS      number of throughput streams"
+	echo "  -o DIRECTORY    path to store test results"
+	echo "  -s SEED         seed to use for power and throughput tests"
+	echo "  -u              use tablespaces"
+	echo "  -U              run test as an unprivileged user"
+	echo "  -y              enable oprofile (Linux only)"
+	echo "  -Y              enable linux perf (Linux only)"
+	echo "  -z              do not run refresh streams"
+	echo ""
+	echo "DBMS options are:"
+	echo "  monetdb         MonetDB"
+	echo "  mysql           MySQL"
+	echo "  pgsql           PostgreSQL"
+	echo "  pgxl            Postgres-XL"
+	echo "  virtuoso        Virtuoso"
+	echo ""
+	echo "PostgreSQL specific options:"
+	echo "  -e              EXPLAIN ANALYZE"
+	echo "  -p              database parameters for the load test"
+}
+
+while getopts "a:ef:hn:o:p:s:UyYz" opt; do
 	case $opt in
 	a) DATABASE=$OPTARG
 		if [ "x$DATABASE" = "xpgxl" ]; then
@@ -27,6 +61,9 @@ while getopts "a:ef:n:o:p:s:yYz" opt; do
 		;;
 	f) scale_factor=$OPTARG
 		;;
+	h) usage
+		exit 0
+		;;
 	n) num_stream=$OPTARG
 		;;
 	o) OUTPUT_DIR=$OPTARG
@@ -36,6 +73,8 @@ while getopts "a:ef:n:o:p:s:yYz" opt; do
 		PARAMETERS_ARG="-p \"$OPTARG\""
 		;;
 	s) SEED_FILE=$OPTARG
+		;;
+	U) PRIVILEGED=0
 		;;
 	y) USE_OPROFILE=1
 		;;
@@ -94,8 +133,10 @@ if [ $MPP -eq 0 ] && [ $USE_LINUXPERF -eq 1 ]; then
 	PERFCOMMAND="perf record -a -g -s -F 100 -o $PERFDIR/perf.data"
 fi
 
-dbt3-$DATABASE-stop-db
-eval dbt3-$DATABASE-start-db -o $OUTPUT_DIR $PARAMETERS_ARG || exit 1
+if [ $PRIVILEGED -eq 1 ]; then
+	dbt3-$DATABASE-stop-db
+	eval dbt3-$DATABASE-start-db -o $OUTPUT_DIR $PARAMETERS_ARG || exit 1
+fi
 
 dbt3-$TAG-time-statistics -s -n PERF.THRUPUT || exit 1
 
@@ -127,7 +168,9 @@ fi
 dbt3-$TAG-time-statistics -e -n PERF.THRUPUT || exit 1
 
 # Stop the database after the test.
-dbt3-$DATABASE-stop-db
+if [ $PRIVILEGED -eq 1 ]; then
+	dbt3-$DATABASE-stop-db
+fi
 
 if [ -f /proc/profile ]; then
 	profname="Throughput_Test"
