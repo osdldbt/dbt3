@@ -110,23 +110,25 @@ fi
 
 mkdir -p $DSS_PATH || exit 1
 
-# Check to see if we have the files. If we don't have them - create them.
-have_all_files=1
-for f in customer lineitem nation orders partsupp part region supplier; do
-	if [ $CHUNKS -eq 1 ] || [ "$f" = "nation" ] || [ "$f" = "region" ]; then
-		if ! test -f $DSS_PATH/$f.tbl ; then
-			have_all_files=0
-		fi
-	else
-		i=1
-		while [ $i -le $CHUNKS ]; do
-			if ! test -f $DSS_PATH/$f.tbl.$i ; then
+# Check to see if we have the files. If we don't have them then create them.
+if [ $DIRECT_LOAD -ne 1 ]; then
+	have_all_files=1
+	for f in customer lineitem nation orders partsupp part region supplier; do
+		if [ $CHUNKS -eq 1 ] || [ "$f" = "nation" ] || [ "$f" = "region" ]; then
+			if ! test -f $DSS_PATH/$f.tbl ; then
 				have_all_files=0
 			fi
-			i=$(( $i + 1 ))
-		done
-	fi
-done
+		else
+			i=1
+			while [ $i -le $CHUNKS ]; do
+				if ! test -f $DSS_PATH/$f.tbl.$i ; then
+					have_all_files=0
+				fi
+				i=$(( $i + 1 ))
+			done
+		fi
+	done
+fi
 
 if [ $DIRECT_LOAD -eq 1 ]; then
 	echo "Creating the database with a direct load from dbgen."
@@ -155,11 +157,12 @@ elif [ $GENERATE -ne 0 ] || [ $have_all_files -eq 0 ]; then
 		fi
 	else
 		i=1
-		$DBGEN -s $SF -T l &
-		for TABLE in c o p s; do
-			while [ $i -le $CHUNKS ]; do
+		$DBGEN -s $SF -T n &
+		$DBGEN -s $SF -T r &
+		wait
+		for TABLE in c O L P S s; do
+			for i in $(seq 1 ${CHUNKS}); do
 				$DBGEN -s $SF -C $CHUNKS -S $i -T $TABLE &
-				i=$(( $i + 1 ))
 			done
 			wait
 		done
