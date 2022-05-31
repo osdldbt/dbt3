@@ -13,6 +13,7 @@ Makefile
 # cpack
 builds/
 _CPack_Packages/
+CPackConfig.cmake
 CPackSourceConfig.cmake
 *.Z
 *.xz
