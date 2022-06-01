@@ -51,7 +51,7 @@ usage()
 	echo "  virtuoso        Virtuoso"
 	echo ""
 	echo "PostgreSQL specific options:"
-	echo "  -e - EXPLAIN ANALYZE"
+	echo "  -e   EXPLAIN ANALYZE"
 	echo "  -p   database parameters for the load test"
 	echo "  -q   database parameters for the power test"
 	echo "  -r   database parameters for the throughput test"
@@ -64,8 +64,8 @@ make_sar_csv() {
 
 	$SADF -P ALL $FILE > ${DIR}/sar-cpu.csv
 	$SADF $FILE -- -B > ${DIR}/sar-paging.csv
-	$SADF $FILE -- -d -p > ${DIR}/sar-blockdev.csv
-	$SADF $FILE -- -R > ${DIR}/sar-mem1.csv
+	$SADF $FILE -- -d -p > ${DIR}/sar-blockdev.csv 2> /dev/null
+	$SADF $FILE -- -R > ${DIR}/sar-mem1.csv 2> /dev/null
 	$SADF $FILE -- -r > ${DIR}/sar-mem2.csv
 	$SADF $FILE -- -W > ${DIR}/sar-swap.csv
 	$SADF $FILE -- -n DEV > ${DIR}/sar-net.csv
@@ -90,7 +90,7 @@ RESORT_ARG=""
 SCALE_FACTOR=1
 SEED=0
 STREAMS=1
-TEST_ARGS=""
+EXTRA_ARGS=""
 WORKLOAD="H"
 
 if [ -n "$DEFAULT_LOAD_PARAMETERS" ]; then
@@ -136,8 +136,7 @@ while getopts "123a:c:CdD:ef:ghn:Oo:p:Pq:Rr:s:tuUVz" opt; do
 		CHUNK_ARG="-C $OPTARG"
 		;;
 	e)
-		# PostgreSQL only.
-		TEST_ARGS="$TEST_ARGS -e"
+		EXTRA_ARGS="$EXTRA_ARGS -e"
 		;;
 	f)
 		export SCALE_FACTOR=$OPTARG
@@ -305,7 +304,7 @@ if [ ${RUN_POWER_TEST} -eq 1 ]; then
 			-f ${SCALE_FACTOR} \
 			-o ${OUTPUT_DIR}/power \
 			${POWER_PARAMETERS_ARG}\
-			${TEST_ARGS} \
+			$EXTRA_ARGS \
 			-s ${SEED_FILE} \
 			${OPROFILE_FLAG} \
 			${LINUXPERF_FLAG} \
@@ -323,7 +322,7 @@ if [ ${RUN_THROUGHPUT_TEST} -eq 1 ]; then
 			-f ${SCALE_FACTOR} \
 			-o ${OUTPUT_DIR}/throughput \
 			${THROUGHPUT_PARAMETERS_ARG} \
-			${TEST_ARGS} \
+			$EXTRA_ARGS \
 			-s ${SEED_FILE} \
 			${OPROFILE_FLAG} \
 			${LINUXPERF_FLAG} \

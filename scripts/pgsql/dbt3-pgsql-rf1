@@ -4,25 +4,58 @@
 # Please see the file LICENSE, included in this package, for details.
 #
 # Copyright (C) 2003      Open Source Development Lab, Inc.
-#               2005-2014 Mark Wong
 #               2014      2ndQuadrant, Ltd.
+#               2005-2022 Mark Wong
 
-if [ $# -ne 1 ]; then
-        echo "Usage: $0 <scale factor>"
-        exit 1
-fi
+usage()
+{
+	echo
+	echo "`basename $0` is the DBT-3 PostgreSQL Refresh Stream 1 runner"
+	echo ""
+	echo "Usage:"
+	echo "  `basename $0` [OPTIONS]"
+	echo
+	echo "Generate options:"
+	echo "  -e              EXPLAIN ANALYZE"
+	echo "  -f SCALE        database scale factor"
+	echo "  -h              this help message"
+}
 
-SCALE_FACTOR=$1
+EXPLAIN=0
+
+while getopts "ef:h" OPT; do
+	case $OPT in
+	e)
+		EXPLAIN=1
+		;;
+	f)
+		SCALE_FACTOR=$OPTARG
+		;;
+	h)
+		usage
+		exit 0
+		;;
+	\?)
+		usage
+		exit 1
+		;;
+	esac
+done
 
 PSQL="psql -X -v ON_ERROR_STOP=1"
 
 DATASET=`${PSQL} -A -t -c "SELECT nextval('dataset');"`
 $DBGEN -s ${SCALE_FACTOR} -U ${DATASET} -S ${DATASET} || exit 1
 
+if [ $EXPLAIN -eq 1 ]; then
+	SQL_EXTRA=$(cat ${DSS_QUERY}/explain-analyze.sql)
+fi
+
 echo "`date`: Stream ${DATASET} : Starting Refresh Stream 1..."
 s_time=`date +%s`
 
 ${PSQL} << __EOF__
+$SQL_EXTRA
 BEGIN;
 COPY lineitem
 FROM '${DSS_PATH}/lineitem.tbl.u${DATASET}'

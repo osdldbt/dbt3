@@ -5,40 +5,73 @@
 #
 # Copyright (C) 2003      Open Source Development Lab, Inc.
 #               2003      Jenny Zhang
-#               2005-2014 Mark Wong
 #               2014      2ndQuadrant, Ltd.
+#               2005-2022 Mark Wong
 #
 
-if [ $# -ne 1 ]; then
-        echo "Usage: $0 <dataset>"
-        exit 1
-fi
+usage()
+{
+	echo
+	echo "`basename $0` is the DBT-3 PostgreSQL Refresh Stream 2 runner"
+	echo ""
+	echo "Usage:"
+	echo "  `basename $0` [OPTIONS]"
+	echo
+	echo "Generate options:"
+	echo "  -e              EXPLAIN ANALYZE"
+	echo "  -s NUMBER       data set number"
+	echo "  -h              this help message"
+}
 
-set_num=$1
+EXPLAIN=0
+
+while getopts "ehs:" OPT; do
+	case $OPT in
+	e)
+		EXPLAIN=1
+		;;
+	h)
+		usage
+		exit 0
+		;;
+	s)
+		SET_NUM=$OPTARG
+		;;
+	\?)
+		usage
+		exit 1
+		;;
+	esac
+done
 
 PSQL="psql -v ON_ERROR_STOP=1 -X"
 
-echo "`date`: Stream ${set_num} : Starting Refresh Stream 2..."
+if [ $EXPLAIN -eq 1 ]; then
+	SQL_EXTRA=$(cat ${DSS_QUERY}/explain-analyze.sql)
+fi
+
+echo "`date`: Stream $SET_NUM : Starting Refresh Stream 2..."
 s_time=`date +%s`
 
 ${PSQL} << __EOF__
+$SQL_EXTRA
 BEGIN;
-CREATE TEMPORARY TABLE tmp_orderkey$set_num (orderkey integer);
-COPY tmp_orderkey$set_num
-FROM '${DSS_PATH}/delete.$set_num' USING DELIMITERS '|';
+CREATE TEMPORARY TABLE tmp_orderkey${SET_NUM} (orderkey integer);
+COPY tmp_orderkey${SET_NUM}
+FROM '${DSS_PATH}/delete.${SET_NUM}' USING DELIMITERS '|';
 CREATE INDEX
-ON tmp_orderkey$set_num (orderkey);
-ANALYZE tmp_orderkey$set_num;
+ON tmp_orderkey${SET_NUM} (orderkey);
+ANALYZE tmp_orderkey${SET_NUM};
 DELETE FROM lineitem
-USING tmp_orderkey$set_num
+USING tmp_orderkey${SET_NUM}
 WHERE l_orderkey = orderkey;
 DELETE FROM orders
-USING tmp_orderkey$set_num
+USING tmp_orderkey${SET_NUM}
 WHERE o_orderkey = orderkey;
 COMMIT;
 __EOF__
 
 e_time=`date +%s`
-echo "`date`: Stream ${set_num} : Refresh Stream 2 completed."
+echo "`date`: Stream $SET_NUM : Refresh Stream 2 completed."
 diff_time=$(( $e_time - $s_time ))
-echo "Stream ${set_num} : Elapsed time for Refresh Stream 2 : $diff_time seconds"
+echo "Stream $SET_NUM : Elapsed time for Refresh Stream 2 : $diff_time seconds"

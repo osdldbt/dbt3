@@ -13,7 +13,7 @@ MPP=0
 NO_REFRESH=0
 NO_REFRESH_FLAG=
 PRIVILEGED=1
-TEST_ARGS=
+EXTRA_ARGS=
 USE_OPROFILE=0
 USE_LINUXPERF=0
 
@@ -57,7 +57,7 @@ while getopts "a:ef:hn:o:p:s:UyYz" opt; do
 			MPP=1
 		fi
 		;;
-	e) TEST_ARGS="$TEST_ARGS -e"
+	e) EXTRA_ARGS="$EXTRA_ARGS -e"
 		;;
 	f) scale_factor=$OPTARG
 		;;
@@ -148,7 +148,7 @@ dbt3-$DATABASE-dbstat ${OUTPUT_DIR} &
 
 # Start the streams.
 eval $PERFCOMMAND dbt3-throughput-stream-wrapper -f $scale_factor \
-		-n $num_stream $TEST_ARGS -o $OUTPUT_DIR -s $SEED_FILE \
+		-n $num_stream $EXTRA_ARGS -o $OUTPUT_DIR -s $SEED_FILE \
 		$NO_REFRESH_FLAG $LINUXPERF_FLAG || exit 1
 
 # Stop collecting system statistics.

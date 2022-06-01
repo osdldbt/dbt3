@@ -8,8 +8,8 @@
 #               2015      2ndQuadrant, Ltd.
 #               2004-2022 Mark Wong
 
-EXPLAIN=0
-EXPLAIN_ARG=
+EXTRA=0
+EXTRA_ARGS=
 USE_OPROFILE=0
 USE_LINUXPERF=0
 NO_REFRESH=0
@@ -59,8 +59,9 @@ while getopts "a:ef:o:p:s:UyYz" opt; do
 		fi
 		;;
 	e)
-		EXPLAIN=1
-		EXPLAIN_ARG="-y"
+		EXTRA=1
+		EXTRA_ARGS="-e"
+		QGEN_ARG="-i ${DSS_QUERY}/explain-analyze.sql"
 		;;
 	f)
 		SCALE_FACTOR=$OPTARG
@@ -200,7 +201,7 @@ dbt3-$TAG-time-statistics -s -n $TASK || exit 1
 if [ $NO_REFRESH -eq 0 ]; then
 	echo "`date`: Power Test : Starting Refresh Stream 1"
 	s_time=`date +%s`
-	dbt3-$TAG-rf1 $SCALE_FACTOR > $RESULTSDIR/rf1.txt 2>&1
+	dbt3-${TAG}-rf1 $EXTRA_ARGS -f $SCALE_FACTOR > ${RESULTSDIR}/rf1.txt 2>&1
 	DATASET=$?
 	if [ $DATASET -lt 1 ]; then
 		exit 1
@@ -214,7 +215,7 @@ dbt3-$TAG-time-statistics -e -n $TASK || exit 1
 # Execute the queries.
 i=1
 while [ ${i} -le 22 ]; do
-	Q=`$QGEN -c -r ${SEED} -p 0 -s ${SCALE_FACTOR} ${EXPLAIN_ARG} ${i}`
+	Q=`$QGEN -c -r $SEED -p 0 -s $SCALE_FACTOR $QGEN_ARG $i`
 	N=`echo ${Q} | sed -n -r 's/.*\(#\)([[:digit:]]+)\..*/\1/p'`
 	if [ $USE_LINUXPERF -eq 1 ]; then
 		PERFDIR=$OUTPUT_DIR/perf/$N
@@ -234,11 +235,11 @@ __EOF__
 	dbt3-$TAG-time-statistics -s -n $TASK || exit 1
 	if [ $MPP -eq 0 ]; then
 		eval $PERFCOMMAND $DBCMD << __EOF__ \
-				>> $RESULTSDIR/$N.txt 2>> $OUTPUT_DIR/power.txt
+				>> $RESULTSDIR/$N.txt 2>&1
 ${Q}
 __EOF__
 	else
-		$DBCMD << __EOF__ > $RESULTSDIR/$N.txt 2>> $OUTPUT_DIR/power.txt
+		$DBCMD << __EOF__ > $RESULTSDIR/$N.txt 2>&1
 ${Q}
 __EOF__
 	fi
@@ -260,7 +261,8 @@ if [ $NO_REFRESH -eq 0 ]; then
 	# Refresh Stream 2
 	echo "`date`: Power Test : Starting Refresh Stream 2"
 	s_time=`date +%s`
-	dbt3-$TAG-rf2 $DATASET > $RESULTSDIR/rf2.txt 2>&1 || exit 1
+	dbt3-${TAG}-rf2 $EXTRA_ARGS -s $DATASET > \
+			${RESULTSDIR}/rf2.txt 2>&1 || exit 1
 	e_time=`date +%s`
 	echo "`date`: Power Test : Refresh Stream 2 completed."
 	diff_time=$(( $e_time - $s_time ))
@@ -350,15 +352,4 @@ __EOF__
 		done
 	wait
 	fi
-fi
-
-if [ $EXPLAIN -eq 1 ]; then
-	# Generate plan disaster report only if EXPLAIN ANALYZE is used.
-	DISASTERCSV=$OUTPUT_DIR/disaster.csv
-	i=1
-	while [ $i -le 22 ]; do
-		dbt3-$TAG-plan-disaster $RESULTSDIR/$i.txt >> $DISASTERCSV
-		i=$(( $i + 1 ))
-	done
-	sort -n -t "," -k 2 -r -o $DISASTERCSV $DISASTERCSV
 fi

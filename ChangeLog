@@ -2,6 +2,8 @@ vX.Y.X
 
 - Fix logic for generating data files in load test script
 - Add flag to run test as an unprivileged database super user
+- Refactor getting PostgreSQL EXPLAIN ANALYZE output by using auto_explain
+  extension and qgen facilities instead of duplicate query templates
 
 v1.11.0
 

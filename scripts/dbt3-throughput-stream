@@ -5,20 +5,21 @@
 #
 # Copyright (C) 2003-2006 Open Source Development Labs, Inc.
 #               2003-2006 Jenny Zhang
-#               2005-2014 Mark Wong
 #               2014      2ndQuadrant, Ltd.
+#               2005-2022 Mark Wong
 #
 
-EXPLAIN=0
 MPP=0
 USE_LINUXPERF=0
 
-while getopts "a:f:n:o:s:t:yY" opt; do
+while getopts "a:ef:n:o:s:t:Y" opt; do
 	case $opt in
 	a) DATABASE=$OPTARG
 		if [ "x$DATABASE" = "xpgxl" ]; then
 			MPP=1
 		fi
+		;;
+	e) EXTRA_ARGS="-i ${DSS_QUERY}/explain-analyze.sql"
 		;;
 	f) SCALE_FACTOR=$OPTARG;;
 	n) num_stream=$OPTARG;;
@@ -27,9 +28,6 @@ while getopts "a:f:n:o:s:t:yY" opt; do
 		;;
 	s) SEED_FILE=$OPTARG;;
 	t) stream_num=$OPTARG;;
-	y) EXPLAIN=1
-		EXPLAIN_ARG="-y"
-		;;
 	Y) USE_LINUXPERF=1;;
 	\?) exit 1;;
 	esac
@@ -95,7 +93,7 @@ do
 		# Escape single quotes for explain().
 		Q=`$QGEN -a -r $SEED -p $num_stream -s $SCALE_FACTOR -x $i | tail -n +2 | sed -e "s/'/''/g"`
 	fi
-	$DBCMD<< __EOF__ > ${PLANDIR}/${N}.txt
+	$DBCMD<< __EOF__ > ${PLANDIR}/${N}.txt 2>&1
 $ESTART
 ${Q}
 $EEND
@@ -110,7 +108,7 @@ STREAMTASK="PERF.THRUPUT.QS${stream_num}.ALL"
 dbt3-$TAG-time-statistics -s -n $STREAMTASK || exit 1
 i=1
 while [ ${i} -le 22 ]; do
-	Q=`$QGEN -c -r $SEED -p $stream_num -s $SCALE_FACTOR $EXPLAIN_ARG $i`
+	Q=`$QGEN -c -r $SEED -p $stream_num -s $SCALE_FACTOR $EXTRA_ARGS $i`
 	N=`echo ${Q} | sed -n -r 's/.*\(#\)([[:digit:]]+)\..*/\1/p'`
 	if [ $MPP -eq 0 ] && [ $USE_LINUXPERF -eq 1 ]; then
 		PERFDIR=$RESULTSDIR/perf/$N
@@ -119,21 +117,10 @@ while [ ${i} -le 22 ]; do
 	fi
 	TASK="PERF.THRUPUT.QS${stream_num}.Q${N}"
 	dbt3-$TAG-time-statistics -s -n $TASK || exit 1
-	eval $PERFCOMMAND $DBCMD << __EOF__ > $RESULTSDIR/$N.txt
+	eval $PERFCOMMAND $DBCMD << __EOF__ > $RESULTSDIR/$N.txt 2>&1
 $Q
 __EOF__
 	dbt3-$TAG-time-statistics -e -n $TASK || exit 1
 	i=$(( ${i} + 1 ))
 done
 dbt3-$TAG-time-statistics -e -n $STREAMTASK || exit 1
-
-if [ $EXPLAIN -eq 1 ]; then
-	# Generate plan disaster report only if EXPLAIN ANALYZE is used.
-	DISASTERCSV=$RESULTSDIR/disaster.csv
-	i=1
-	while [ $i -le 22 ]; do
-		dbt3-$TAG-plan-disaster $RESULTSDIR/$i.txt >> $DISASTERCSV
-		i=$(( $i + 1 ))
-	done
-	sort -n -t "," -k 2 -r -o $DISASTERCSV $DISASTERCSV
-fi
