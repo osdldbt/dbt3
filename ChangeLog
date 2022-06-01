@@ -4,6 +4,7 @@ vX.Y.X
 - Add flag to run test as an unprivileged database super user
 - Refactor getting PostgreSQL EXPLAIN ANALYZE output by using auto_explain
   extension and qgen facilities instead of duplicate query templates
+- Add reporting of table and index stats back to PostgreSQL report
 
 v1.11.0
 

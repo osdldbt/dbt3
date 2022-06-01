@@ -35,6 +35,48 @@ $(show_images $TAG)
 __EOF__
 }
 
+links_index_metrics()
+{
+	NAME=$1
+
+	INDEXMETRICS=`(cd ${INDIR}/${NAME}/indexes && ls *.png) \
+			| sed -e "s/index-stat-.*-//" | sed -e "s/.png$//" | sort | uniq`
+
+	for METRIC in $INDEXMETRICS; do
+		echo -n "\`$METRIC <${NAME}/indexes/i_$METRIC/>\`__ "
+	done
+}
+
+links_indexes()
+{
+	NAME=$1
+
+	for INDEX in $(cat ${INDIR}/${NAME}/db/index-list.txt); do
+		echo -n "\`$INDEX <${NAME}/indexes/${INDEX}/>\`__ "
+	done
+}
+
+links_table_metrics()
+{
+	NAME=$1
+
+	TABLEMETRICS=`(cd ${INDIR}/${NAME}/tables && ls *.png) | \
+			sed -e "s/table-stat-.*-//" | sed -e "s/.png$//" | sort | uniq`
+
+	for METRIC in $TABLEMETRICS; do
+		echo -n "\`$METRIC <${NAME}/tables/t_${METRIC}/>\`__ "
+	done
+}
+
+links_tables()
+{
+	NAME=$1
+
+	for TABLE in $(cat ${INDIR}/${NAME}/db/table-list.txt); do
+		echo -n "\`$TABLE <${NAME}/tables/${TABLE}/>\`__ "
+	done
+}
+
 list_processes()
 {
 	for T in autovacum bgwriter checkpointer logger logical statscollector \
@@ -60,14 +102,6 @@ summarize()
 	TITLE=$1
 	DIRECTORY=$2
 
-
-	cat << __EOF__
-$TITLE
---------------------------------------------------------------------------------
-
-* \`Database Settings <${DIRECTORY}/param.txt>\`__
-__EOF__
-
 	PIDSTATCSV="${INDIR}/${DIRECTORY}/pidstat.csv"
 	PIDSTATDIR=$(dirname $PIDSTATCSV)
 
@@ -85,8 +119,73 @@ __EOF__
 		wait
 	fi
 
+	# Create additional HTML pages for the database charts.
+	TABLEDIR=${INDIR}/${DIRECTORY}/tables
+	INDEXDIR=${INDIR}/${DIRECTORY}/indexes
+	mkdir -p $TABLEDIR || exit 1
+	mkdir -p $INDEXDIR || exit 1
+
+	which dbt-pgsql-plot-database-stats > /dev/null 2>&1
+	if [ $? -eq 0 ]; then
+		dbt-pgsql-plot-database-stats \
+				-i ${INDIR}/${DIRECTORY}/db/pg_stat_databases.csv \
+				-n dbt3 -o ${INDIR}/${DIRECTORY}/stats \
+				> ${INDIR}/${DIRECTORY}/db/r.log 2>&1 &
+	fi
+	which dbt-pgsql-plot-table-stats > /dev/null 2>&1
+	if [ $? -eq 0 ]; then
+		for TABLENAME in $(cat ${INDIR}/${DIRECTORY}/db/table-list.txt); do
+			dbt-pgsql-plot-table-stats \
+					-i ${INDIR}/${DIRECTORY}/db/pg_stat_tables.csv \
+					-n $TABLENAME -o $TABLEDIR >> ${TABLEDIR}/r.log 2>&1 &
+		done
+	fi
+	which dbt-pgsql-plot-index-stats > /dev/null 2>&1
+	if [ $? -eq 0 ]; then
+		for INDEXNAME in $(cat ${INDIR}/${DIRECTORY}/db/index-list.txt); do
+			dbt-pgsql-plot-index-stats \
+					-i ${INDIR}/${DIRECTORY}/db/pg_stat_indexes.csv \
+					-n $INDEXNAME -o $INDEXDIR >> ${INDEXDIR}/r.log 2>&1 &
+		done
+	fi
+	wait
+
+	which dbt-pgsql-generate-db-report > /dev/null 2>&1
+	if [ $? -eq 0 ]; then
+		dbt-pgsql-generate-db-report -t "Database Test 3" \
+				-i ${INDIR}/${DIRECTORY}/stats &
+	fi
+	which dbt-pgsql-generate-table-report > /dev/null 2>&1
+	if [ $? -eq 0 ]; then
+		dbt-pgsql-generate-table-report -t "Database Test 3" \
+				-i ${INDIR}/${DIRECTORY}/db/table-list.txt -o $TABLEDIR &
+	fi
+	which dbt-pgsql-generate-index-report > /dev/null 2>&1
+	if [ $? -eq 0 ]; then
+		dbt-pgsql-generate-index-report -t "Database Test 3" \
+				-i ${INDIR}/${DIRECTORY}/db/index-list.txt -o $INDEXDIR &
+	fi
+
 	cat << __EOF__
+$TITLE
+--------------------------------------------------------------------------------
+
+* \`Database Settings <${DIRECTORY}/param.txt>\`__
 * Per Process Statistics: $(list_processes)
+
+.. list-table::
+
+   * - \`Database Stats Charts <${DIRECTORY}/stats/>\`__
+     -
+   * - Database Table Stats Charts:
+     - $(links_tables ${DIRECTORY})
+   * - Database Index Stats Charts:
+     - $(links_indexes ${DIRECTORY})
+   * - Database Tables by Metric:
+     - $(links_table_metrics ${DIRECTORY})
+   * - Database Indexs by Metric:
+     - $(links_index_metrics ${DIRECTORY})
+
 __EOF__
 }
 
