@@ -8,6 +8,7 @@ vX.Y.X
 - Add header to PostgreSQL captured settings
 - Generate only 1 memory file from sar if only 1 memory output format is
   recognized
+- Add ignore file for Docker
 
 v1.11.0
 
