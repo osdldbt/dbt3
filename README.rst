@@ -12,9 +12,9 @@ The TPC currently restricts redistribution of their code but it can be freely
 downloaded from:
 https://www.tpc.org/tpc_documents_current_versions/current_specifications5.asp
 
-After downloading and unpacking the TPC supplied code, rename and move the
-resulting directory as the `src/` subdirectory of this kit, such that the
-`dbgen` directory is now at `src/dbgen`.
+After downloading and unpacking the TPC supplied code, unpack the code under
+the top level directory of this kit such that `TPC-H_Tools_v3.0.0` is a
+subdirectory of this kit.
 
 The TPC source code needs to be patched to be used for this kit.
 

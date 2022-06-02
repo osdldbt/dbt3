@@ -1,7 +1,7 @@
-Index: dbt3/src/dbgen/Makefile.mysql
+Index: dbt3/TPC-H_Tools_v3.0.0/dbgen/Makefile.mysql
 ===================================================================
 --- /dev/null
-+++ dbt3/src/dbgen/Makefile.mysql
++++ dbt3/TPC-H_Tools_v3.0.0/dbgen/Makefile.mysql
 @@ -0,0 +1,198 @@
 +#
 +# $Id: makefile.suite,v 1.25 2009/10/22 19:10:21 jms Exp $
@@ -201,10 +201,10 @@ Index: dbt3/src/dbgen/Makefile.mysql
 +rnd$(OBJ): rnd.h
 +$(OBJ1): $(HDR1)
 +$(OBJ2): dss.h tpcd.h config.h rng64.h release.h
-Index: dbt3/src/dbgen/tpcd.h
+Index: dbt3/TPC-H_Tools_v3.0.0/dbgen/tpcd.h
 ===================================================================
---- dbt3.orig/src/dbgen/tpcd.h
-+++ dbt3/src/dbgen/tpcd.h
+--- dbt3.orig/TPC-H_Tools_v3.0.0/dbgen/tpcd.h
++++ dbt3/TPC-H_Tools_v3.0.0/dbgen/tpcd.h
 @@ -76,6 +76,15 @@
  #define SET_DBASE       "database %s ;\n"
  #endif

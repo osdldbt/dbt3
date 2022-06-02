@@ -1,7 +1,7 @@
-Index: dbt3/src/dbgen/bm_utils.c
+Index: dbt3/TPC-H_Tools_v3.0.0/dbgen/bm_utils.c
 ===================================================================
---- dbt3.orig/src/dbgen/bm_utils.c
-+++ dbt3/src/dbgen/bm_utils.c
+--- dbt3.orig/TPC-H_Tools_v3.0.0/dbgen/bm_utils.c
++++ dbt3/TPC-H_Tools_v3.0.0/dbgen/bm_utils.c
 @@ -386,6 +386,9 @@ tbl_open(int tbl, char *mode)
      struct stat fstats;
      int      retcode;
@@ -12,10 +12,10 @@ Index: dbt3/src/dbgen/bm_utils.c
  
      if (*tdefs[tbl].name == PATH_SEP)
          strcpy(fullpath, tdefs[tbl].name);
-Index: dbt3/src/dbgen/driver.c
+Index: dbt3/TPC-H_Tools_v3.0.0/dbgen/driver.c
 ===================================================================
---- dbt3.orig/src/dbgen/driver.c
-+++ dbt3/src/dbgen/driver.c
+--- dbt3.orig/TPC-H_Tools_v3.0.0/dbgen/driver.c
++++ dbt3/TPC-H_Tools_v3.0.0/dbgen/driver.c
 @@ -386,6 +386,7 @@ usage (void)
  	fprintf (stderr, "Basic Options\n===========================\n");
  	fprintf (stderr, "-C <n> -- separate data set into <n> chunks (requires -S, default: 1)\n");
@@ -51,10 +51,10 @@ Index: dbt3/src/dbgen/driver.c
  	force = 0;
      insert_segments=0;
      delete_segments=0;
-Index: dbt3/src/dbgen/dss.h
+Index: dbt3/TPC-H_Tools_v3.0.0/dbgen/dss.h
 ===================================================================
---- dbt3.orig/src/dbgen/dss.h
-+++ dbt3/src/dbgen/dss.h
+--- dbt3.orig/TPC-H_Tools_v3.0.0/dbgen/dss.h
++++ dbt3/TPC-H_Tools_v3.0.0/dbgen/dss.h
 @@ -273,6 +273,7 @@ EXTERN int refresh;
  EXTERN int resume;
  EXTERN long verbose;

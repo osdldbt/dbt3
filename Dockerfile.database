@@ -27,7 +27,8 @@ ENV DBT3PATH=/usr/local/src/dbt3
 WORKDIR ${DBT3PATH}
 RUN cmake . && cmake --install .
 
-WORKDIR ${DBT3PATH}/src/dbgen
+ENV KIT="TPC-H_Tools_v3.0.0"
+WORKDIR ${DBT3PATH}/${KIT}/dbgen
 RUN make -f Makefile.postgresql
 
 RUN chmod 777 /opt
@@ -35,10 +36,10 @@ RUN chmod 777 /opt
 USER postgres
 
 ENV DSS_PATH=/tmp/dss
-ENV DSS_CONFIG=${DBT3PATH}/src/dbgen
+ENV DSS_CONFIG=${DBT3PATH}/${KIT}/dbgen
 ENV DSS_QUERY=${DBT3PATH}/queries/pgsql
-ENV DBGEN=${DBT3PATH}/src/dbgen/dbgen
-ENV QGEN=${DBT3PATH}/src/dbgen/qgen
+ENV DBGEN=${DBT3PATH}/${KIT}/dbgen/dbgen
+ENV QGEN=${DBT3PATH}/${KIT}/dbgen/qgen
 
 ENV PGDATA=/opt/pgdata
 ENV PGUSER=postgres
