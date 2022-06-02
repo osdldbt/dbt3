@@ -65,7 +65,13 @@ make_sar_csv() {
 	$SADF -P ALL $FILE > ${DIR}/sar-cpu.csv
 	$SADF $FILE -- -B > ${DIR}/sar-paging.csv
 	$SADF $FILE -- -d -p > ${DIR}/sar-blockdev.csv 2> /dev/null
-	$SADF $FILE -- -R > ${DIR}/sar-mem1.csv 2> /dev/null
+	$SADF 1 1 -- -R > /dev/null 2>&1
+	if [ $? -eq 0 ]; then
+		$SADF $FILE -- -R > ${DIR}/sar-mem1.csv
+		$SADF $FILE -- -r > ${DIR}/sar-mem2.csv
+	else
+		$SADF $FILE -- -r > ${DIR}/sar-mem.csv
+	fi
 	$SADF $FILE -- -r > ${DIR}/sar-mem2.csv
 	$SADF $FILE -- -W > ${DIR}/sar-swap.csv
 	$SADF $FILE -- -n DEV > ${DIR}/sar-net.csv

@@ -6,6 +6,8 @@ vX.Y.X
   extension and qgen facilities instead of duplicate query templates
 - Add reporting of table and index stats back to PostgreSQL report
 - Add header to PostgreSQL captured settings
+- Generate only 1 memory file from sar if only 1 memory output format is
+  recognized
 
 v1.11.0
 
