@@ -5,6 +5,7 @@ vX.Y.X
 - Refactor getting PostgreSQL EXPLAIN ANALYZE output by using auto_explain
   extension and qgen facilities instead of duplicate query templates
 - Add reporting of table and index stats back to PostgreSQL report
+- Add header to PostgreSQL captured settings
 
 v1.11.0
 
