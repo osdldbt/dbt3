@@ -1,4 +1,4 @@
-vX.Y.X
+v1.11.1
 
 - Fix logic for generating data files in load test script
 - Add flag to run test as an unprivileged database super user
