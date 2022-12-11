@@ -1,3 +1,8 @@
+vX.Y.Z
+
+- Fix post processing RST table format error when seed is too longer than 9
+  digits
+
 v1.11.1
 
 - Fix logic for generating data files in load test script

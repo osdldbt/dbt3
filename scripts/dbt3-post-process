@@ -94,29 +94,29 @@ cat("---------------\n")
 cat("\n")
 cat("Stream execution summary:\n")
 cat("\n")
-cat("+---------+---------+----------------------+----------------------+----------------------+\n")
-cat("|Stream   |Duration |Query Start Time      |RF1 Start Time        |RF2 Start Time        |\n")
-cat("+---------+(seconds)+----------------------+----------------------+----------------------+\n")
-cat("|Seed     |         |Query End Time        |RF1 End Time          |RF2 End Time          |\n")
-cat("+=========+=========+======================+======================+======================+\n")
+cat("+----------+---------+----------------------+----------------------+----------------------+\n")
+cat("|Stream    |Duration |Query Start Time      |RF1 Start Time        |RF2 Start Time        |\n")
+cat("+----------+(seconds)+----------------------+----------------------+----------------------+\n")
+cat("|Seed      |         |Query End Time        |RF1 End Time          |RF2 End Time          |\n")
+cat("+==========+=========+======================+======================+======================+\n")
 for (stream in 1:${STREAMS}) {
     str <- paste("PERF.THRUPUT.QS", stream, ".ALL", sep="")
     str2 <- paste("PERF.THRUPUT.QS", stream, ".Q\\\\d$", sep="")
     str3 <- paste("PERF.THRUPUT.RFST", stream, ".RF1", sep="")
     str4 <- paste("PERF.THRUPUT.RFST", stream, ".RF2", sep="")
-    cat(sprintf("|%9d|%9.2f|%22s|%22s|%22s|\n",
+    cat(sprintf("|%10d|%9.2f|%22s|%22s|%22s|\n",
                 stream,
                 df[df\$task_name == str,]\$seconds,
                 strtrim(min(df[grep(str2, df\$task_name),]\$s_time), 22),
                 strtrim(df[df\$task_name == str3,]\$s_time, 22),
                 strtrim(df[df\$task_name == str4,]\$s_time, 22)))
-    cat("+---------+         +----------------------+----------------------+----------------------+\n")
-    cat(sprintf("|%9d|         |%22s|%22s|%22s|\n",
+    cat("+----------+         +----------------------+----------------------+----------------------+\n")
+    cat(sprintf("|%10d|         |%22s|%22s|%22s|\n",
                 $SEED + stream,
                 strtrim(min(df[grep(str2, df\$task_name),]\$e_time), 22),
                 strtrim(df[df\$task_name == str3,]\$e_time, 22),
                 strtrim(df[df\$task_name == str4,]\$e_time, 22)))
-    cat("+---------+---------+----------------------+----------------------+----------------------+\n")
+    cat("+----------+---------+----------------------+----------------------+----------------------+\n")
 }
 cat("\n")
 cat("Query execution duration (seconds):\n")
@@ -310,29 +310,29 @@ cat("---------------\n")
 cat("\n")
 cat("Stream execution summary:\n")
 cat("\n")
-cat("+---------+---------+----------------------+----------------------+----------------------+\n")
-cat("|Stream   |Duration |Query Start Time      |RF1 Start Time        |RF2 Start Time        |\n")
-cat("+---------+(seconds)+----------------------+----------------------+----------------------+\n")
-cat("|Seed     |         |Query End Time        |RF1 End Time          |RF2 End Time          |\n")
-cat("+=========+=========+======================+======================+======================+\n")
+cat("+----------+---------+----------------------+----------------------+----------------------+\n")
+cat("|Stream    |Duration |Query Start Time      |RF1 Start Time        |RF2 Start Time        |\n")
+cat("+----------+(seconds)+----------------------+----------------------+----------------------+\n")
+cat("|Seed      |         |Query End Time        |RF1 End Time          |RF2 End Time          |\n")
+cat("+==========+=========+======================+======================+======================+\n")
 for (stream in 1:${STREAMS}) {
     str <- paste("PERF.THRUPUT.QS", stream, ".ALL", sep="")
     str2 <- paste("PERF.THRUPUT.QS", stream, ".Q\\\\d$", sep="")
     str3 <- paste("PERF.THRUPUT.RFST", stream, ".RF1", sep="")
     str4 <- paste("PERF.THRUPUT.RFST", stream, ".RF2", sep="")
-    cat(sprintf("|%9d|%9.2f|%22s|%22s|%22s|\n",
+    cat(sprintf("|%10d|%9.2f|%22s|%22s|%22s|\n",
                 stream,
                 df[df\$task_name == str,]\$seconds,
                 strtrim(min(df[grep(str2, df\$task_name),]\$s_time), 22),
                 strtrim(df[df\$task_name == str3,]\$s_time, 22),
                 strtrim(df[df\$task_name == str4,]\$s_time, 22)))
-    cat("+---------+         +----------------------+----------------------+----------------------+\n")
-    cat(sprintf("|%9d|         |%22s|%22s|%22s|\n",
+    cat("+----------+         +----------------------+----------------------+----------------------+\n")
+    cat(sprintf("|%10d|         |%22s|%22s|%22s|\n",
                 $SEED + stream,
                 strtrim(min(df[grep(str2, df\$task_name),]\$e_time), 22),
                 strtrim(df[df\$task_name == str3,]\$e_time, 22),
                 strtrim(df[df\$task_name == str4,]\$e_time, 22)))
-    cat("+---------+---------+----------------------+----------------------+----------------------+\n")
+    cat("+----------+---------+----------------------+----------------------+----------------------+\n")
 }
 cat("\n")
 cat("Query execution duration (seconds) (Click **P** for plans and **R** for results):\n")
