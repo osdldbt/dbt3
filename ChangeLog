@@ -3,6 +3,7 @@ vX.Y.Z
 - Fix post processing RST table format error when seed is too longer than 9
   digits
 - Add updated TPC-H Tools patches for v3.0.1
+- Remove TPC-H Tools patches for v3.0.0
 
 v1.11.1
 
