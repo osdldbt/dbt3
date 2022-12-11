@@ -19,11 +19,12 @@ usage()
 	echo "  -e              EXPLAIN ANALYZE"
 	echo "  -f SCALE        database scale factor"
 	echo "  -h              this help message"
+	echo "  -U              run as an unprivileged user"
 }
 
 EXPLAIN=0
 
-while getopts "ef:h" OPT; do
+while getopts "ef:hU" OPT; do
 	case $OPT in
 	e)
 		EXPLAIN=1
@@ -34,6 +35,9 @@ while getopts "ef:h" OPT; do
 	h)
 		usage
 		exit 0
+		;;
+	U)
+		COPYPREFIX="\\"
 		;;
 	\?)
 		usage
@@ -57,12 +61,8 @@ s_time=`date +%s`
 ${PSQL} << __EOF__
 $SQL_EXTRA
 BEGIN;
-COPY lineitem
-FROM '${DSS_PATH}/lineitem.tbl.u${DATASET}'
-USING DELIMITERS '|';
-COPY orders
-FROM '${DSS_PATH}/orders.tbl.u${DATASET}'
-USING DELIMITERS '|';
+${COPYPREFIX}COPY lineitem FROM '${DSS_PATH}/lineitem.tbl.u${DATASET}' USING DELIMITERS '|';
+${COPYPREFIX}COPY orders FROM '${DSS_PATH}/orders.tbl.u${DATASET}' USING DELIMITERS '|';
 COMMIT;
 __EOF__
 

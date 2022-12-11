@@ -21,11 +21,12 @@ usage()
 	echo "  -e              EXPLAIN ANALYZE"
 	echo "  -s NUMBER       data set number"
 	echo "  -h              this help message"
+	echo "  -U              run as an unprivileged user"
 }
 
 EXPLAIN=0
 
-while getopts "ehs:" OPT; do
+while getopts "ehs:U" OPT; do
 	case $OPT in
 	e)
 		EXPLAIN=1
@@ -36,6 +37,9 @@ while getopts "ehs:" OPT; do
 		;;
 	s)
 		SET_NUM=$OPTARG
+		;;
+	U)
+		COPYPREFIX="\\"
 		;;
 	\?)
 		usage
@@ -57,8 +61,7 @@ ${PSQL} << __EOF__
 $SQL_EXTRA
 BEGIN;
 CREATE TEMPORARY TABLE tmp_orderkey${SET_NUM} (orderkey integer);
-COPY tmp_orderkey${SET_NUM}
-FROM '${DSS_PATH}/delete.${SET_NUM}' USING DELIMITERS '|';
+${COPYPREFIX}COPY tmp_orderkey${SET_NUM} FROM '${DSS_PATH}/delete.${SET_NUM}' USING DELIMITERS '|';
 CREATE INDEX
 ON tmp_orderkey${SET_NUM} (orderkey);
 ANALYZE tmp_orderkey${SET_NUM};

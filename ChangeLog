@@ -4,6 +4,8 @@ vX.Y.Z
   digits
 - Add updated TPC-H Tools patches for v3.0.1
 - Remove TPC-H Tools patches for v3.0.0
+- Fix PostgreSQL refresh streams scripts to run against remote as well as local
+  database systems
 
 v1.11.1
 

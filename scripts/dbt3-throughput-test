@@ -75,6 +75,7 @@ while getopts "a:ef:hn:o:p:s:UyYz" opt; do
 	s) SEED_FILE=$OPTARG
 		;;
 	U) PRIVILEGED=0
+		UNPRIVILEGED_ARG="-U"
 		;;
 	y) USE_OPROFILE=1
 		;;
@@ -149,7 +150,7 @@ dbt3-$DATABASE-dbstat ${OUTPUT_DIR} &
 # Start the streams.
 eval $PERFCOMMAND dbt3-throughput-stream-wrapper -f $scale_factor \
 		-n $num_stream $EXTRA_ARGS -o $OUTPUT_DIR -s $SEED_FILE \
-		$NO_REFRESH_FLAG $LINUXPERF_FLAG || exit 1
+		$NO_REFRESH_FLAG $LINUXPERF_FLAG $UNPRIVILEGED_ARG || exit 1
 
 # Stop collecting system statistics.
 read SARPIDS < $OUTPUT_DIR/sar.pid

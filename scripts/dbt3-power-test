@@ -33,6 +33,7 @@ usage()
 	echo "  -l              only load data"
 	echo "  -o DIRECTORY    path to store test results"
 	echo "  -s SEED         seed to use for power and throughput tests"
+	echo "  -U              run as an unprivileged user"
 	echo "  -y              enable oprofile (Linux only)"
 	echo "  -Y              enable linux perf (Linux only)"
 	echo "  -z              do not run refresh streams"
@@ -79,6 +80,7 @@ while getopts "a:ef:o:p:s:UyYz" opt; do
 		;;
 	U)
 		PRIVILEGED=0
+		UNPRIVILEGED_ARG="-U"
 		;;
 	y)
 		USE_OPROFILE=1
@@ -201,7 +203,8 @@ dbt3-$TAG-time-statistics -s -n $TASK || exit 1
 if [ $NO_REFRESH -eq 0 ]; then
 	echo "`date`: Power Test : Starting Refresh Stream 1"
 	s_time=`date +%s`
-	dbt3-${TAG}-rf1 $EXTRA_ARGS -f $SCALE_FACTOR > ${RESULTSDIR}/rf1.txt 2>&1
+	eval "dbt3-${TAG}-rf1" "$UNPRIVILEGED_ARG" "$EXTRA_ARGS" \
+			-f "$SCALE_FACTOR" > "${RESULTSDIR}/rf1.txt" 2>&1
 	DATASET=$?
 	if [ $DATASET -lt 1 ]; then
 		exit 1
@@ -261,8 +264,8 @@ if [ $NO_REFRESH -eq 0 ]; then
 	# Refresh Stream 2
 	echo "`date`: Power Test : Starting Refresh Stream 2"
 	s_time=`date +%s`
-	dbt3-${TAG}-rf2 $EXTRA_ARGS -s $DATASET > \
-			${RESULTSDIR}/rf2.txt 2>&1 || exit 1
+	eval "dbt3-${TAG}-rf2" "$UNPRIVILEGED_ARG" "$EXTRA_ARGS" -s "$DATASET" > \
+			"${RESULTSDIR}/rf2.txt" 2>&1 || exit 1
 	e_time=`date +%s`
 	echo "`date`: Power Test : Refresh Stream 2 completed."
 	diff_time=$(( $e_time - $s_time ))

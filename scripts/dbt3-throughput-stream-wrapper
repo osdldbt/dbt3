@@ -10,7 +10,7 @@
 #
 
 NO_REFRESH=0
-while getopts "a:ef:n:o:s:Yz" opt; do
+while getopts "a:ef:n:o:s:UYz" opt; do
 	case $opt in
 	a) DATABASE=$OPTARG
 		;;
@@ -23,6 +23,8 @@ while getopts "a:ef:n:o:s:Yz" opt; do
 	o) OUTPUT_DIR=$OPTARG
 		;;
 	s) SEED_FILE=$OPTARG
+		;;
+	U) UNPRIVILEGED_ARG="-U"
 		;;
 	Y) LINUXPERF_ARG="-Y"
 		;;
@@ -78,7 +80,8 @@ while [ $stream_num -le $num_stream ]; do
 	if [ $NO_REFRESH -eq 0 ]; then
 		echo "`date`: Throughput Stream $stream_num: Starting RF 1..."
 		s_time_rf1=`date +%s`
-		dbt3-${TAG}-rf1 $EXTRA_ARGS -f $scale_factor > $RF1OUT 2>&1
+		eval "dbt3-${TAG}-rf1" "$UNPRIVILEGED_ARG" "$EXTRA_ARGS" \
+				-f "$scale_factor" > "$RF1OUT" 2>&1
 		DATASET=$?
 		if [ $DATASET -lt 1 ]; then
 			exit 1
@@ -93,7 +96,8 @@ while [ $stream_num -le $num_stream ]; do
 	s_time_rf2=`date +%s`
 	dbt3-$TAG-time-statistics -s -n $RF2TASK || exit 1
 	if [ $NO_REFRESH -eq 0 ]; then
-		dbt3-${TAG}-rf2 $EXTRA_ARGS -s $DATASET > $RF2OUT 2>&1 || exit 1
+		eval "dbt3-${TAG}-rf2" "$UNPRIVILEGED_ARG" "$EXTRA_ARGS" \
+				-s "$DATASET" > "$RF2OUT" 2>&1 || exit 1
 		e_time_rf2=`date +%s`
 		diff_time_rf2=$(( $e_time_rf2 - $s_time_rf2 ))
 		echo "Throughput Steam $stream_num: Elapsed time for RF 2: $diff_time_rf2 seconds"
