@@ -1,0 +1,87 @@
+#!/bin/sh
+
+# Run a DBT-3 test.
+
+usage()
+{
+	echo "usage: $0 [DBMS [SCALE]]"
+}
+
+if [ "$ENGINE" = "" ]; then
+	ENGINE="podman"
+fi
+if ! which "$ENGINE" > /dev/null 2>&1; then
+	ENGINE="docker"
+	if ! which $ENGINE > /dev/null 2>&1; then
+		echo "podman nor docker in path"
+	fi
+fi
+
+if [ $# -lt 1 ]; then
+	usage
+	exit 1
+fi
+
+DBMS=$1
+
+SCALE=1
+if [ $# -gt 1 ]; then
+	SCALE=$2
+fi
+
+if [ "${SCALE}" -lt 10 ]; then
+	STREAMS=2
+elif [ "${SCALE}" -lt 30 ]; then
+	STREAMS=3
+elif [ "${SCALE}" -lt 100 ]; then
+	STREAMS=4
+elif [ "${SCALE}" -lt 300 ]; then
+	STREAMS=5
+elif [ "${SCALE}" -lt 1000 ]; then
+	STREAMS=6
+elif [ "${SCALE}" -lt 3000 ]; then
+	STREAMS=7
+elif [ "${SCALE}" -lt 10000 ]; then
+	STREAMS=8
+elif [ "${SCALE}" -lt 30000 ]; then
+	STREAMS=9
+elif [ "${SCALE}" -lt 100000 ]; then
+	STREAMS=10
+else
+	STREAMS=11
+fi
+
+CONTAINER_NAME="dbt3-${DBMS}-0"
+CONTAINER_TAG="dbt3-${DBMS}"
+CONTAINERDIR=$(dirname "$(readlink -f "$0")")
+
+RESULTSDIR="${CONTAINERDIR}/results"
+mkdir -p "$RESULTSDIR"
+
+if [ -d "${RESULTSDIR}/sf${SCALE}" ]; then
+	echo "ERROR: move or delete ${RESULTSDIR}/sf${SCALE} before test can run"
+	exit 1
+fi
+
+# In order to test stats collection with sar on fedora, we need systemd to be
+# running.  So start the container with systemd, execute the test, then stop
+# the container.
+
+$ENGINE run \
+		-d \
+		--name "$CONTAINER_NAME" \
+		--rm \
+		--shm-size=2048m \
+		"$CONTAINER_TAG"
+
+$ENGINE exec \
+		-it \
+		-u postgres \
+		"$CONTAINER_NAME" \
+		dbt3-run-workload -a "$DBMS" -d -e -f "$SCALE" -n "$STREAMS" \
+				-o "/home/postgres/sf${SCALE}"
+
+$ENGINE cp "$CONTAINER_NAME:/home/postgres/sf${SCALE}" "$RESULTSDIR"
+echo "copied results from container to $RESULTSDIR/sf${SCALE}"
+
+$ENGINE stop "$CONTAINER_NAME"
