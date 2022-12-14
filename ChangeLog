@@ -6,6 +6,7 @@ vX.Y.Z
 - Remove TPC-H Tools patches for v3.0.0
 - Fix PostgreSQL refresh streams scripts to run against remote as well as local
   database systems
+- Update/rename docker scripts to also support podman
 
 v1.11.1
 

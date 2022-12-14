@@ -2,7 +2,6 @@
 **/*.sw?
 **/*.so
 **/*.bc
-**/tags
 
 _CPack_Packages/
 builds/
@@ -11,9 +10,11 @@ CMakeCache.txt
 CPackConfig.cmake
 CPackSourceConfig.cmake
 
-docker/**
-Dockerfile
+container/
+Containerfile*
 .dockerignore
 .git
 .gitignore
+.hgignore
 install_manifest.txt
+.vscode

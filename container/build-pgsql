@@ -1,0 +1,50 @@
+#!/bin/sh
+
+TPCFILE="$1"
+
+if [ ! -f "$TPCFILE" ]; then
+	SCRIPT=$(basename "$0")
+	echo "usage: $SCRIPT <tpc-h-tool.zip>"
+	exit 1
+fi
+
+if [ "$ENGINE" = "" ]; then
+	ENGINE="podman"
+fi
+if ! which "$ENGINE" > /dev/null 2>&1; then
+	ENGINE="docker"
+	if ! which $ENGINE > /dev/null 2>&1; then
+		echo "podman nor docker in path"
+	fi
+fi
+
+if [ "$ENGINE" = "docker" ]; then
+	IMAGE="fedora"
+elif [ "$ENGINE" = "podman" ]; then
+	ENGINEARGS="--isolation=chroot --ignorefile .dockerignore"
+	IMAGE="quay.io/fedora/fedora"
+fi
+
+CONTAINER_DIR=$(dirname "$(readlink -f "$0")")
+
+# TODO: Allow the user to specify the PostgreSQL version to use.
+PGORG="https://www.postgresql.org/versions.json"
+PGVER=$(curl -s $PGORG | jq -r 'sort | .[] | "\(.major).\(.latestMinor)"' | tail -n 1)
+
+# Copy the tpc-h tools archive temporarily into the directory, since it might
+# be stored elsewhere, because the build command can only work with files in
+# the current tree.
+
+TMPFILE=$(mktemp -u tmp.XXXX)
+cp -p "${TPCFILE}" "$CONTAINER_DIR/${TMPFILE}"
+
+$ENGINE build \
+		$ENGINEARGS \
+		--build-arg IMAGE="$IMAGE" \
+		--build-arg PGVER="$PGVER" \
+		--build-arg TPCFILE="$TMPFILE" \
+		-t dbt3-pgsql \
+		-f Containerfile.pgsql \
+		"$CONTAINER_DIR/.."
+
+rm -f "$CONTAINER_DIR/$TMPFILE"
