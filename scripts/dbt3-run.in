@@ -83,6 +83,7 @@ make_sar_csv() {
 
 DATABASE=""
 DIRECT_LOAD_ARG=""
+
 COMMENT=""
 FLAG_POWER_TEST=""
 FLAG_THROUGHPUT_TEST=""
@@ -173,7 +174,6 @@ while [ "${#}" -gt 0 ] ; do
 			echo "The directory \"$OUTPUT_DIR\" already exists, specify a different location."
 			exit 1
 		fi
-		mkdir -p $OUTPUT_DIR
 		;;
 	(-P)
 		LINUXPERF_FLAG="-Y"
@@ -238,6 +238,7 @@ if [ "x${OUTPUT_DIR}" = "x" ]; then
 	>&2 echo "Error: use -o to set output directory"
 	exit 1
 fi
+mkdir -p "${OUTPUT_DIR}"
 
 if [ "x$DATABASE" = "xpgxl" ]; then
 	TAG="pgsql"

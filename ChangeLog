@@ -12,6 +12,7 @@ vX.Y.Z
 - Add dbt3-build-dbgen script to build dbgen with applied patches
 - Add ability to create an AppImage
 - Rename run-workload script to "run"
+- Don't create output directory until closer to starting the test
 
 v1.11.1
 
