@@ -1,0 +1,3 @@
+#!/bin/sh
+@SHELLOPTIONS@
+pg_config --version

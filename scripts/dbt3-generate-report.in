@@ -1,0 +1,281 @@
+#!/bin/sh
+@SHELLOPTIONS@
+#
+# This file is released under the terms of the Artistic License.
+# Please see the file LICENSE, included in this package, for details.
+#
+# Copyright (C) 2014-2015 2ndQuadrant, Ltd.
+#               2005-2022 Mark Wong
+#
+
+usage() {
+	echo "usage: $(basename $0) is the DBT-2 report generator"
+	echo ""
+	echo "usage: $(basename $0) [OPTIONS]"
+	echo ""
+	echo "General Options:"
+	echo "  -i <path>    DBT-3 results directory"
+}
+
+create_stat_page()
+{
+	local TITLE=$1
+	local TAG=$2
+	local DIR=$3
+	local ODIR=$4
+
+	mkdir -p $ODIR
+
+	cat > ${ODIR}/index.rst << __EOF__
+================================================================================
+Database Test 3 $TITLE $TAG Charts
+================================================================================
+
+$(show_images $DIR $TAG)
+__EOF__
+}
+
+display_sar_stats() {
+	STATSDIR=$1
+
+	if [ ! -f "${INDIR}/${STATSDIR}/sar_raw.out" ]; then
+		return
+	fi
+
+	cat << __EOF__
+\`CPU <${STATSDIR}/cpu/>\`__ \`Memory <${STATSDIR}/mem/>\`__ \`Blockdev <${STATSDIR}/blockdev/>\`__ \`Network <${STATSDIR}/net/>\`__ \`Swap <${STATSDIR}/swap/>\`__
+__EOF__
+
+	THISDIR="${INDIR}/${STATSDIR}"
+	create_stat_page $STATSDIR cpu $THISDIR ${THISDIR}/cpu
+	create_stat_page $STATSDIR mem $THISDIR ${THISDIR}/mem
+	create_stat_page $STATSDIR blockdev $THISDIR ${THISDIR}/blockdev
+	create_stat_page $STATSDIR net $THISDIR ${THISDIR}/net
+	create_stat_page $STATSDIR swap $THISDIR ${THISDIR}/swap
+}
+
+show_images()
+{
+	DIR=$1
+	TAG=$2
+
+	CHARTS=`(cd $DIR && find */ -name "sar-$TAG*.png")`
+	for CHART in $CHARTS; do
+		echo ".. image:: ../$CHART"
+		echo "   :target: ../$CHART"
+		echo "   :width: 100%"
+		echo ""
+	done
+}
+
+error() {
+	echo "ERROR: $@"
+	exit 1
+}
+
+warning() {
+	echo "WARNING: $@"
+}
+
+# Use this to skip chart generation to help test just the HTML generation.
+FAST=0
+PLOT_OPTS=""
+while getopts fi:V OPT; do
+	case $OPT in
+		f) FAST=1;;
+		i) INDIR=$OPTARG;;
+		V) PLOT_OPTS="$PLOT_OPTS -V";;
+		\?) usage; exit 1;;
+	esac
+done
+
+if [ "x${INDIR}" = "x" ]; then
+	echo "Specify dbt3 results directory with -i"
+	exit 1
+fi
+
+echo "Generating sar io charts..."
+for SARBLOCKDEVFILE in `find $INDIR -name sar-blockdev.csv`; do
+	DIRNAME="$(dirname $SARBLOCKDEVFILE)/sar"
+	mkdir -p $DIRNAME
+	dbt-plot-sar-blockdev $SARBLOCKDEVFILE $DIRNAME $BLKDEVICES \
+			> /dev/null 2>&1 || warning "Could not create sar blockdev charts" &
+done
+
+echo "Generating memory charts..."
+for SARMEMFILE in `find $INDIR -name sar-mem.csv`; do
+	DIRNAME="$(dirname $SARMEMFILE)/sar"
+	mkdir -p $DIRNAME
+	dbt-plot-sar-mem -i $SARMEMFILE -o $DIRNAME > /dev/null 2>&1 \
+			|| warning "Could not create sar mem charts from $SARMEMFILE" &
+done
+
+echo "Generating processor utilization charts..."
+for SARCPUFILE in `find $INDIR -name sar-cpu.csv`; do
+	DIRNAME="$(dirname $SARCPUFILE)/sar"
+	mkdir -p $DIRNAME
+	dbt-plot-sar-cpu $SARCPUFILE $DIRNAME > /dev/null 2>&1 \
+			|| warning "Could not create sar cpu charts from $SARCPUFILE" &
+done
+
+echo "Generating swap charts..."
+for SARSWAPFILE in `find $INDIR -name sar-swap.csv`; do
+	DIRNAME="$(dirname $SARSWAPFILE)/sar"
+	mkdir -p $DIRNAME
+	dbt-plot-sar-swap $SARSWAPFILE $DIRNAME > /dev/null 2>&1 \
+			|| warning "Could not create sar swap charts from $SARSWAPFILE" &
+done
+
+echo "Generating network charts..."
+for SARNETFILE in `find $INDIR -name sar-net.csv`; do
+	DIRNAME="$(dirname $SARNETFILE)/sar"
+	mkdir -p $DIRNAME
+	dbt-plot-sar-net $SARNETFILE $DIRNAME > /dev/null 2>&1 \
+			|| warning "Could not create sar net charts from $SARNETFILE" &
+done
+
+echo "Processing pidstat files..."
+for PIDSTATFILE in $(find $INDIR -name pidstat.txt); do
+	DIRNAME="$(dirname $PIDSTATFILE)"
+	(cd $DIRNAME && dbt-process-pidstat $PIDSTATFILE 2> /dev/null) &
+done
+
+wait
+
+DATE=$(grep "^date" ${INDIR}/config.txt | cut -d ":" -f2-)
+DBMS=$(grep "^dbms" ${INDIR}/config.txt | awk '{print $2}')
+DBVER=$(grep "^dbver" ${INDIR}/config.txt | cut -d " " -f2-)
+OSVER=$(grep "^kernel" ${INDIR}/config.txt | cut -d ' ' -f3-)
+QTIMECSV="${INDIR}/q_time.csv"
+SF=$(grep scale_factor ${INDIR}/config.txt | awk '{print $2}')
+STREAMS=$(grep num_stream ${INDIR}/config.txt | awk '{print $2}')
+
+LOADDIR=${INDIR}/load
+if [ -d "${LOADDIR}" ]; then
+	LOAD=$(grep LOAD $INDIR/q_time.csv | awk -F, '{ print $5 }')
+	# Round to 2 decimal places, convert to hours.
+	LOAD_HOUR=$(echo "scale=2; ${LOAD} / 3600" | bc -l)
+	LOAD_MIN=$(echo "scale=2; ${LOAD} / 60" | bc -l)
+else
+	LOAD=0
+fi
+
+POWERDIR="power"
+if [ -d "${INDIR}/${POWERDIR}" ]; then
+	PLOT_OPTS="$PLOT_OPTS -2"
+	POWER=$(dbt3-power-score -i $QTIMECSV -s $SF)
+else
+	POWER="N/A"
+fi
+
+THROUGHPUTDIR="throughput"
+if [ -d "${INDIR}/${THROUGHPUTDIR}" ]; then
+	PLOT_OPTS="$PLOT_OPTS -3"
+	THROUGHPUT=$(dbt3-throughput-score -i $QTIMECSV -s $SF -n $STREAMS)
+else
+	THROUGHPUT="N/A"
+fi
+
+if [ ! "${POWER}" = "N/A" ] && [ ! "${THROUGHPUT}" = "N/A" ]; then
+	COMPOSITE=$(echo "scale=2; sqrt(${POWER} * ${THROUGHPUT})" | bc -l)
+else
+	COMPOSITE="N/A"
+fi
+
+# Plot a query results
+dbt3-plot-results -i $QTIMECSV -o $INDIR -f $SF $PLOT_OPTS
+
+REPORTFILE="${INDIR}/report.rst"
+cat > $REPORTFILE << __EOF__
+======================
+Database Test 3 Report
+======================
+
+**These results are not comparable to TPC Benchmark(TM) H Results.**
+
+Summary
+=======
+
+* Date: $DATE
+* Database Size: $SF GB
+* Database Manager: $DBVER
+* Operating System: $OSVER
+* Notes: $(cat ${INDIR}/comment.txt 2> /dev/null)
+
+Metrics
+=======
+
+======================  ============  ==========================================
+       Composite Score  $(printf "%12s" $COMPOSITE)
+Load Test Time (hours)  $(printf "%12s" $LOAD_HOUR)  $(display_sar_stats load)
+      Power Test Score  $(printf "%12s" $POWER)  $(display_sar_stats power)
+ Throughput Test Score  $(printf "%12s" $THROUGHPUT)  $(display_sar_stats throughput)
+======================  ============  ==========================================
+
+Query Times
+===========
+
+.. image:: q_time.png
+   :target: q_time.png
+   :width: 100%
+
+$(cat ${INDIR}/with-links-summary.rst)
+
+$(dbt3-${DBMS}-report -i $INDIR 2> /dev/null)
+__EOF__
+
+# Generate HTML and PDF files.
+
+RST2HTML5=""
+which rst2html5.py > /dev/null 2>&1
+if [ $? -eq 0 ]; then
+	RST2HTML5="rst2html5.py"
+fi
+which rst2html5 > /dev/null 2>&1
+if [ $? -eq 0 ]; then
+RST2HTML5="rst2html5"
+fi
+
+if [ ! "x${RST2HTML5}" = "x" ]; then
+# pandoc can't properly convert multi-cell table headings from rst but
+# Sphinx's rst2html can. Then pandoc can convert multi-cell table headings
+# from html to pdf.
+
+for RST in $(find $INDIR -name "*.rst"); do
+		NAME="${RST%.*}"
+		(cd $(dirname $RST) && \
+				$RST2HTML5 $(basename $RST) ${NAME}.html 2> /dev/null) &
+	done
+	wait
+
+	echo "Generated top level HTML reports:"
+	ls -1v ${INDIR}/*.html
+	echo ""
+
+	# A pdf could be produced other ways, but I believe pandoc produces the most
+	# minimally styled LaTeX looking document, as opposed to using rst2latex,
+	# with default settings.
+	which pandoc > /dev/null 2>&1
+	if [ $? -eq 0 ]; then
+		(cd $INDIR && \
+				pandoc -s report.html -f html -t pdf -o report.pdf \
+						2> /dev/null)
+		for HTML in $(find $INDIR -name "*.html"); do
+			NAME="${HTML%.*}"
+			(cd $(dirname $HTML) && \
+					pandoc -s $(basename $HTML) -f html -t pdf -o ${NAME}.pdf \
+							2> /dev/null) &
+		done
+		wait
+
+		echo "Generated top level PDF reports:"
+		ls -1v ${INDIR}/*.pdf
+		echo ""
+	else
+		echo "pandoc required to generate pdf report"
+		exit 1
+	fi
+else
+	echo "rst2html5 required to generate html report"
+	exit 1
+fi

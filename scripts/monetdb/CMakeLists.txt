@@ -1,19 +1,82 @@
-set (CWD "${CMAKE_SOURCE_DIR}/scripts/monetdb")
+configure_file(
+    dbt3-monetdb-create-db.in
+    ${CMAKE_BINARY_DIR}/dbt3-monetdb-create-db
+    @ONLY
+)
+configure_file(
+    dbt3-monetdb-create-tables.in
+    ${CMAKE_BINARY_DIR}/dbt3-monetdb-create-tables
+    @ONLY
+)
+configure_file(
+    dbt3-monetdb-dbstat.in
+    ${CMAKE_BINARY_DIR}/dbt3-monetdb-dbstat
+    @ONLY
+)
+configure_file(
+    dbt3-monetdb-drop-tables.in
+    ${CMAKE_BINARY_DIR}/dbt3-monetdb-drop-tables
+    @ONLY
+)
+configure_file(
+    dbt3-monetdb-get-query-time.in
+    ${CMAKE_BINARY_DIR}/dbt3-monetdb-get-query-time
+    @ONLY
+)
+configure_file(
+    dbt3-monetdb-get-version.in
+    ${CMAKE_BINARY_DIR}/dbt3-monetdb-get-version
+    @ONLY
+)
+configure_file(
+    dbt3-monetdb-load-data.in
+    ${CMAKE_BINARY_DIR}/dbt3-monetdb-load-data
+    @ONLY
+)
+configure_file(
+    dbt3-monetdb-load-test.in
+    ${CMAKE_BINARY_DIR}/dbt3-monetdb-load-test
+    @ONLY
+)
+configure_file(
+    dbt3-monetdb-rf1.in
+    ${CMAKE_BINARY_DIR}/dbt3-monetdb-rf1
+    @ONLY
+)
+configure_file(
+    dbt3-monetdb-rf2.in
+    ${CMAKE_BINARY_DIR}/dbt3-monetdb-rf2
+    @ONLY
+)
+configure_file(
+    dbt3-monetdb-start-db.in
+    ${CMAKE_BINARY_DIR}/dbt3-monetdb-start-db
+    @ONLY
+)
+configure_file(
+    dbt3-monetdb-stop-db.in
+    ${CMAKE_BINARY_DIR}/dbt3-monetdb-stop-db
+    @ONLY
+)
+configure_file(
+    dbt3-monetdb-time-statistics.in
+    ${CMAKE_BINARY_DIR}/dbt3-monetdb-time-statistics
+    @ONLY
+)
 
 install (
-    PROGRAMS
-    ${CWD}/dbt3-monetdb-create-db
-    ${CWD}/dbt3-monetdb-create-tables
-    ${CWD}/dbt3-monetdb-dbstat
-    ${CWD}/dbt3-monetdb-drop-tables
-    ${CWD}/dbt3-monetdb-get-query-time
-    ${CWD}/dbt3-monetdb-get-version
-    ${CWD}/dbt3-monetdb-load-data
-    ${CWD}/dbt3-monetdb-load-test
-    ${CWD}/dbt3-monetdb-rf1
-    ${CWD}/dbt3-monetdb-rf2
-    ${CWD}/dbt3-monetdb-start-db
-    ${CWD}/dbt3-monetdb-stop-db
-    ${CWD}/dbt3-monetdb-time-statistics
+    PROGRAMS ${CMAKE_BINARY_DIR}/dbt3-monetdb-create-db
+             ${CMAKE_BINARY_DIR}/dbt3-monetdb-create-tables
+             ${CMAKE_BINARY_DIR}/dbt3-monetdb-dbstat
+             ${CMAKE_BINARY_DIR}/dbt3-monetdb-drop-tables
+             ${CMAKE_BINARY_DIR}/dbt3-monetdb-get-query-time
+             ${CMAKE_BINARY_DIR}/dbt3-monetdb-get-version
+             ${CMAKE_BINARY_DIR}/dbt3-monetdb-load-data
+             ${CMAKE_BINARY_DIR}/dbt3-monetdb-load-test
+             ${CMAKE_BINARY_DIR}/dbt3-monetdb-rf1
+             ${CMAKE_BINARY_DIR}/dbt3-monetdb-rf2
+             ${CMAKE_BINARY_DIR}/dbt3-monetdb-start-db
+             ${CMAKE_BINARY_DIR}/dbt3-monetdb-stop-db
+             ${CMAKE_BINARY_DIR}/dbt3-monetdb-time-statistics
     DESTINATION "bin"
 )

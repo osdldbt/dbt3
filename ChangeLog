@@ -11,6 +11,7 @@ vX.Y.Z
 - Convert documentation to reStructuredText
 - Add dbt3-build-dbgen script to build dbgen with applied patches
 - Add ability to create an AppImage
+- Rename run-workload script to "run"
 
 v1.11.1
 

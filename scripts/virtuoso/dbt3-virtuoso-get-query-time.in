@@ -1,0 +1,22 @@
+#!/bin/sh
+@SHELLOPTIONS@
+#
+# This file is released under the terms of the Artistic License.  Please see
+# the file LICENSE, included in this package, for details.
+#
+# Copyright (C) 2015      Mark Wong
+#               2015      2ndQuadrant, Ltd.
+#
+
+# FIXME: Using a temp file to fake csv output.  Maybe there is a better way?
+
+ISQL="isql PROMPT=OFF ERRORS=STDOUT VERBOSE=OFF"
+TMPFILE="$$.$RANDOM.tmp"
+$ISQL << __EOF__ > $TMPFILE
+SELECT task_name, ',' || s_time || '', ',' || e_time || '', ',,',
+       e_time - s_time
+FROM time_statistics;
+__EOF__
+echo "task_name,s_time,e_time,diff_time,seconds"
+tail -n +5 $TMPFILE | tr -d " "
+rm $TMPFILE

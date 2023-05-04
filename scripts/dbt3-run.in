@@ -1,0 +1,455 @@
+#!/bin/bash
+@SHELLOPTIONS@
+#
+# This file is released under the terms of the Artistic License.
+# Please see the file LICENSE, included in this package, for details.
+#
+# Copyright (C) 2004-2006 Open Source Development Labs, Inc.
+#               2004-2006 Jenny Zhang
+#               2014-2017 2ndQuadrant, Ltd.
+#               2004-2022 Mark Wong
+
+trap 'echo "Test was interrupted by Control-C."; \
+killall sar sadc pidstat dbt3-$DATABASE-dbstat' INT
+trap 'echo "Test was interrupted. Got TERM signal."; \
+killall sar sadc pidstat dbt3-$DATABASE-dbstat' TERM
+
+usage()
+{
+	echo
+	echo "`basename $0` is the DBT-3 workload runner"
+	echo ""
+	echo "Usage:"
+	echo "  `basename $0` [OPTIONS]"
+	echo
+	echo "Generate options:"
+	echo "  -1              only run load test"
+	echo "  -2              only run power test"
+	echo "  -3              only run throughput test"
+	echo "  -a DBMS         database management system to test"
+	echo "  -c              comment about the test"
+	echo "  -C              flag to resort data load files"
+	echo "  -d              direct data load"
+	echo "  -f SCALE        database scale factor, default 1"
+	echo "  -g              generate flat files"
+	echo "  -h              this help message"
+	echo "  -l PORT         database port"
+	echo "  -n STREAMS      number of throughput streams"
+	echo "  -o DIRECTORY    path to store test results"
+	echo "  -O              enable oprofile (Linux only)"
+	echo "  -P              enable linux perf (Linux only)"
+	echo "  -R              materialized view mode"
+	echo "  -s SEED         seed to use for power and throughput tests"
+	echo "  -u              use tablespaces"
+	echo "  -U              run test as an unprivileged user"
+	echo "  -z              do not run refresh streams"
+	echo ""
+	echo "DBMS options are:"
+	echo "  monetdb         MonetDB"
+	echo "  mysql           MySQL"
+	echo "  pgsql           PostgreSQL"
+	echo "  pgxl            Postgres-XL"
+	echo "  virtuoso        Virtuoso"
+	echo ""
+	echo "PostgreSQL specific options:"
+	echo "  -e   EXPLAIN ANALYZE"
+	echo "  -p   database parameters for the load test"
+	echo "  -q   database parameters for the power test"
+	echo "  -r   database parameters for the throughput test"
+}
+
+make_sar_csv() {
+	local FILE=$1
+
+	local DIR=`dirname $FILE`
+
+	$SADF -P ALL $FILE > ${DIR}/sar-cpu.csv
+	$SADF $FILE -- -B > ${DIR}/sar-paging.csv
+	$SADF $FILE -- -d -p > ${DIR}/sar-blockdev.csv 2> /dev/null
+	$SADF 1 1 -- -R > /dev/null 2>&1
+	if [ $? -eq 0 ]; then
+		$SADF $FILE -- -R > ${DIR}/sar-mem1.csv
+		$SADF $FILE -- -r > ${DIR}/sar-mem2.csv
+	else
+		$SADF $FILE -- -r > ${DIR}/sar-mem.csv
+	fi
+	$SADF $FILE -- -r > ${DIR}/sar-mem2.csv
+	$SADF $FILE -- -W > ${DIR}/sar-swap.csv
+	$SADF $FILE -- -n DEV > ${DIR}/sar-net.csv
+}
+
+DATABASE=""
+DIRECT_LOAD_ARG=""
+COMMENT=""
+FLAG_POWER_TEST=""
+FLAG_THROUGHPUT_TEST=""
+GENERATE=0
+MPP=0
+PRIVILEGED=1
+RUN_ALL_TESTS=1
+RUN_LOAD_TEST=0
+RUN_POWER_TEST=0
+RUN_THROUGHPUT_TEST=0
+NO_REFRESH=0
+NODES=${#datanodeMasterServers[@]}
+OUTPUT_DIR=""
+RESORT_ARG=""
+SCALE_FACTOR=1
+SEED=0
+STREAMS=1
+EXTRA_ARGS=""
+WORKLOAD="H"
+
+if [ -n "$DEFAULT_LOAD_PARAMETERS" ]; then
+	LOAD_PARAMETERS="$DEFAULT_LOAD_PARAMETERS"
+fi
+if [ -n "$DEFAULT_POWER_PARAMETERS" ]; then
+	POWER_PARAMETERS="$DEFAULT_POWER_PARAMETERS"
+fi
+if [ -n "$DEFAULT_THROUGHPUT_PARAMETERS" ]; then
+	THROUGHPUT_PARAMETERS="$DEFAULT_THROUGHPUT_PARAMETERS"
+fi
+
+while getopts "123a:c:CdD:ef:ghn:Oo:p:Pq:Rr:s:tuUVz" opt; do
+	case $opt in
+	1)
+		RUN_LOAD_TEST=1
+		RUN_ALL_TESTS=0
+		;;
+	2)
+		RUN_POWER_TEST=1
+		FLAG_POWER_TEST="-2"
+		RUN_ALL_TESTS=0
+		;;
+	3)
+		RUN_THROUGHPUT_TEST=1
+		FLAG_THROUGHPUT_TEST="-3"
+		RUN_ALL_TESTS=0
+		;;
+	a)
+		DATABASE=${OPTARG}
+		export DATABASE=${DATABASE}
+		;;
+	c)
+		COMMENT=${OPTARG}
+		;;
+	C)
+		RESORT_ARG="-c"
+		;;
+	d)
+		DIRECT_LOAD_ARG="-d"
+		;;
+	D)
+		CHUNK_ARG="-C $OPTARG"
+		;;
+	e)
+		EXTRA_ARGS="$EXTRA_ARGS -e"
+		;;
+	f)
+		export SCALE_FACTOR=$OPTARG
+		;;
+	g)
+		GENERATE=1
+		;;
+	h)
+		usage
+		exit 1
+		;;
+	n)
+		STREAMS=$OPTARG
+		;;
+	O)
+		OPROFILE_FLAG="-y"
+		;;
+	o)
+		OUTPUT_DIR="${OPTARG}"
+		if [ -d "$OUTPUT_DIR" ]; then
+			echo "The directory \"$OUTPUT_DIR\" already exists, specify a different location."
+			exit 1
+		fi
+		mkdir -p $OUTPUT_DIR
+		;;
+	P)
+		LINUXPERF_FLAG="-Y"
+		;;
+	p)
+		# PostgreSQL only.
+		LOAD_PARAMETERS="$LOAD_PARAMETERS $OPTARG"
+		;;
+	q)
+		# PostgreSQL only.
+		POWER_PARAMETERS="$POWER_PARAMETERS $OPTARG"
+		;;
+	R)
+		WORKLOAD="R"
+		WORKLOAD_ARG="-R"
+		;;
+	r)
+		# PostgreSQL only.
+		THROUGHPUT_PARAMETERS="$THROUGHPUT_PARAMETERS $OPTARG"
+		;;
+	s)
+		SEED=$OPTARG
+		;;
+	u)
+		TABLESPACES_FLAG="-t"
+		;;
+	U)
+		PRIVILEGED=0
+		UNPRIVILEGED_ARG="-U"
+		;;
+	V)
+		VERT_FLAG="-V"
+		;;
+	z)
+		NO_REFRESH_FLAG="-z"
+		NO_REFRESH=1
+		;;
+	\?)
+		usage
+		exit 1
+		;;
+	esac
+done
+
+if [ "x${DSS_PATH}" = "x" ]; then
+	>&2 echo "Error: DSS_PATH environment variable not set"
+	exit 1
+fi
+
+if [ "x${OUTPUT_DIR}" = "x" ]; then
+	>&2 echo "Error: use -o to set output directory"
+	exit 1
+fi
+
+if [ "x$DATABASE" = "xpgxl" ]; then
+	TAG="pgsql"
+	MPP=1
+	MPP_ARG="-C $NODES"
+	. $HOME/pgxc_ctl/pgxc_ctl.conf
+	for HOSTNAME in ${datanodeMasterServers[*]}; do
+		ssh $HOSTNAME "mkdir -p $OUTPUT_DIR"
+	done
+else
+	TAG=$DATABASE
+fi
+
+if [ -n "$LOAD_PARAMETERS" ]; then
+	LOAD_PARAMETERS_ARG="-p \"$LOAD_PARAMETERS\""
+fi
+if [ -n "$POWER_PARAMETERS" ]; then
+	POWER_PARAMETERS_ARG="-p \"$POWER_PARAMETERS\""
+fi
+if [ -n "$THROUGHPUT_PARAMETERS" ]; then
+	THROUGHPUT_PARAMETERS_ARG="-p \"$THROUGHPUT_PARAMETERS\""
+fi
+
+echo "SCALE: $SCALE_FACTOR"
+
+# Reset the flags to make the logic later in the script easier.
+if [ ${RUN_ALL_TESTS} -eq 1 ]; then
+	RUN_LOAD_TEST=1
+	RUN_POWER_TEST=1
+	RUN_THROUGHPUT_TEST=1
+	FLAG_POWER_TEST="-2"
+	FLAG_THROUGHPUT_TEST="-3"
+fi
+
+if [ "x${COMMENT}" != "x" ]; then
+	echo ${COMMENT} > ${OUTPUT_DIR}/comment.txt
+fi
+
+# Load Test
+if [ ${RUN_LOAD_TEST} -eq 1 ]; then
+	eval dbt3-load-test \
+			-a $DATABASE \
+			-o $OUTPUT_DIR/load \
+			${LOAD_PARAMETERS_ARG} \
+			${OPROFILE_FLAG} \
+			${LINUXPERF_FLAG} \
+			-f $SCALE_FACTOR \
+			-g $GENERATE \
+			${WORKLOAD_ARG} \
+			$RESORT_ARG \
+			$MPP_ARG \
+			$DIRECT_LOAD_ARG \
+			$CHUNK_ARG \
+			$UNPRIVILEGED_ARG \
+			${TABLESPACES_FLAG} || exit 1
+else
+	#
+	# If the load test wasn't performed the time statistics needs to
+	# be cleared out.  Otherwise the data collection will be
+	# incomprehensible with duplicate data.
+	#
+	if [ $PRIVILEGED -eq 1 ]; then
+		dbt3-${DATABASE}-start-db -o $OUTPUT_DIR
+	fi
+	dbt3-$TAG-time-statistics -c
+fi
+
+# Set the seed file.
+SEED_FILE=$OUTPUT_DIR/seed
+if [ $SEED -eq 0 ]; then
+	# generate the initial seed according to cluse 2.1.3.3
+	# the initial seed is the time stamp of the end of the database load time
+	# expressed in the format mmddhhmms.
+	date +%-m%d%H%M%S > $SEED_FILE
+else
+	echo $SEED > $SEED_FILE
+fi
+echo "Using seed: `cat $SEED_FILE`"
+
+if [ ${RUN_POWER_TEST} -eq 1 ] || [ ${RUN_THROUGHPUT_TEST} -eq 1 ]; then
+	# Start time of the Performance Test (Power and Throughput).
+	s_time=`date +%s`
+fi
+
+if [ ${RUN_POWER_TEST} -eq 1 ]; then
+	eval dbt3-power-test \
+			-a $DATABASE \
+			-f ${SCALE_FACTOR} \
+			-o ${OUTPUT_DIR}/power \
+			${POWER_PARAMETERS_ARG}\
+			$EXTRA_ARGS \
+			-s ${SEED_FILE} \
+			${OPROFILE_FLAG} \
+			${LINUXPERF_FLAG} \
+			$UNPRIVILEGED_ARG \
+			${NO_REFRESH_FLAG}
+	if [ $? -eq 1 ] ; then
+		echo "power test problem!"
+		exit 1
+	fi
+fi
+
+if [ ${RUN_THROUGHPUT_TEST} -eq 1 ]; then
+	eval dbt3-throughput-test \
+			-n ${STREAMS} \
+			-f ${SCALE_FACTOR} \
+			-o ${OUTPUT_DIR}/throughput \
+			${THROUGHPUT_PARAMETERS_ARG} \
+			$EXTRA_ARGS \
+			-s ${SEED_FILE} \
+			${OPROFILE_FLAG} \
+			${LINUXPERF_FLAG} \
+			$UNPRIVILEGED_ARG \
+			${NO_REFRESH_FLAG}
+	if [ $? -eq 1 ] ; then
+		echo "throughput test problem!"
+		exit 1
+	fi
+fi
+
+if [ ${RUN_POWER_TEST} -eq 1 ] || [ ${RUN_THROUGHPUT_TEST} -eq 1 ]; then
+	# End time of the Performance Test.
+	e_time=`date +%s`
+	diff_time=$(( $e_time - $s_time ))
+	echo "Elapsed time for performance test: $diff_time seconds"
+fi
+
+# Make sure the database is started, which it might be depending on what parts
+# of the workload are executed.
+if [ $PRIVILEGED -eq 1 ]; then
+	dbt3-${DATABASE}-start-db -o $OUTPUT_DIR
+fi
+
+# Get system details.
+echo "Getting system configuration... "
+dbt3-get-config $SCALE_FACTOR $STREAMS "$LOAD_PARAMETERS" "$POWER_PARAMETERS" \
+"$THROUGHPUT_PARAMETERS" $OUTPUT_DIR || exit 1
+echo "dbms: $DATABASE" >> $OUTPUT_DIR/config.txt
+if [ $MPP -eq 1 ]; then
+	echo "mpp: yes" >> $OUTPUT_DIR/config.txt
+	echo "datanodes: $NODES" >> $OUTPUT_DIR/config.txt
+	echo "hostnames: ${coordMasterServers[*]} ${datanodeMasterServers[*]}" >> $OUTPUT_DIR/config.txt
+fi
+
+echo "Getting query times... "
+dbt3-$TAG-get-query-time > $OUTPUT_DIR/q_time.csv || exit 1
+
+# Stop the database at the end of the test.
+if [ $PRIVILEGED -eq 1 ]; then
+	dbt3-${DATABASE}-stop-db
+fi
+
+# Calculate metrics.
+echo "Post processing query results... "
+for HOSTNAME in ${datanodeMasterServers[*]}; do
+	rsync -av $HOSTNAME:$OUTPUT_DIR/ $OUTPUT_DIR/ &
+done
+wait
+
+dbt3-post-process \
+		-i $OUTPUT_DIR \
+		-s $SCALE_FACTOR \
+		-n $STREAMS \
+		-o $OUTPUT_DIR/summary.rst \
+		$NO_REFRESH_FLAG \
+		$FLAG_POWER_TEST \
+		$FLAG_THROUGHPUT_TEST 2> $OUTPUT_DIR/post-process.txt
+
+which sadf > /dev/null 2>&1
+if [ $? -eq 0 ]; then
+	SADF="sadf -d -U"
+	$SADF 1 1 > /dev/null 2>&1
+	if [ $? -ne 0 ]; then
+		SADF="sadf -D"
+		$SADF 1 1 > /dev/null 2>&1
+		if [ $? -ne 0 ]; then
+			echo "WARNING: Was not able to determine proper sadf flags"
+			SADF="true"
+		fi
+	fi
+else
+	SADF=true
+fi
+
+for SARFILE in `find $OUTPUT_DIR -name sar_raw.out`; do
+	make_sar_csv $SARFILE
+done
+
+which R > /dev/null 2>&1
+if [ $? -eq 0 ]; then
+	echo "Generating a report... "
+	dbt3-generate-report -i $OUTPUT_DIR $VERT_FLAG
+fi
+
+LOADDIR=${OUTPUT_DIR}/load
+if [ -d "${LOADDIR}" ]; then
+	LOAD=$(grep LOAD ${OUTPUT_DIR}/q_time.csv | awk -F, '{ print $5 }')
+	# Round to 2 decimal places, convert to hours.
+	LOAD=$(echo "scale=2; ${LOAD} / 3600" | bc -l)
+else
+	LOAD="N/A"
+fi
+
+QTIMECSV="${OUTPUT_DIR}/q_time.csv"
+POWERDIR="power"
+if [ -d "${OUTPUT_DIR}/${POWERDIR}" ]; then
+	POWER=$(dbt3-power-score -i $QTIMECSV -s $SCALE_FACTOR)
+else
+	POWER="N/A"
+fi
+
+THROUGHPUTDIR="throughput"
+if [ -d "${OUTPUT_DIR}/${THROUGHPUTDIR}" ]; then
+	THROUGHPUT=$(dbt3-throughput-score -i $QTIMECSV -s $SCALE_FACTOR -n $STREAMS)
+else
+	THROUGHPUT="N/A"
+fi
+
+if [ ! "${POWER}" = "N/A" ] && [ ! "${THROUGHPUT}" = "N/A" ]; then
+	COMPOSITE=$(echo "scale=2; sqrt(${POWER} * ${THROUGHPUT})" | bc -l)
+else
+	COMPOSITE="N/A"
+fi
+
+echo ""
+echo "Composite score: " $COMPOSITE
+echo "Load time (hours): " $LOAD
+echo "Power score: " $POWER
+echo "Throughput Score: " $THROUGHPUT
+echo ""
+
+echo "Done!"

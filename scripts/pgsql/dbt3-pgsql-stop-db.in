@@ -1,0 +1,24 @@
+#!/bin/sh
+@SHELLOPTIONS@
+#
+# This file is released under the terms of the Artistic License.
+# Please see the file LICENSE, included in this package, for details.
+#
+# Copyright (C) 2002-2008 Open Source Development Labs, Inc.
+#               2002-2008 Rod Taylor
+#               2014      Mark Wong
+#               2014      2ndQuadrant, Ltd.
+
+if [ -z ${PGDATA} ]; then
+	echo "PGDATA not defined."
+	exit 1
+fi
+
+# We only need to stop the database if it's running.
+if [ -f "${PGDATA}/postmaster.pid" ]; then
+	# Wait 10 minutes until the stop timeout exceeds,
+	# becasue large amount of shared buffers and
+	# long checkpoint timeout take longer time to
+	# complete a checkpoint and shutdown.
+	pg_ctl -w -D ${PGDATA} -t 600 stop ${1}
+fi

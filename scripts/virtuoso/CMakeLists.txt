@@ -1,19 +1,82 @@
-set (CWD "${CMAKE_SOURCE_DIR}/scripts/virtuoso")
+configure_file(
+    dbt3-virtuoso-create-db.in
+    ${CMAKE_BINARY_DIR}/dbt3-virtuoso-create-db
+    @ONLY
+)
+configure_file(
+    dbt3-virtuoso-create-tables.in
+    ${CMAKE_BINARY_DIR}/dbt3-virtuoso-create-tables
+    @ONLY
+)
+configure_file(
+    dbt3-virtuoso-dbstat.in
+    ${CMAKE_BINARY_DIR}/dbt3-virtuoso-dbstat
+    @ONLY
+)
+configure_file(
+    dbt3-virtuoso-drop-tables.in
+    ${CMAKE_BINARY_DIR}/dbt3-virtuoso-drop-tables
+    @ONLY
+)
+configure_file(
+    dbt3-virtuoso-get-query-time.in
+    ${CMAKE_BINARY_DIR}/dbt3-virtuoso-get-query-time
+    @ONLY
+)
+configure_file(
+    dbt3-virtuoso-get-version.in
+    ${CMAKE_BINARY_DIR}/dbt3-virtuoso-get-version
+    @ONLY
+)
+configure_file(
+    dbt3-virtuoso-load-data.in
+    ${CMAKE_BINARY_DIR}/dbt3-virtuoso-load-data
+    @ONLY
+)
+configure_file(
+    dbt3-virtuoso-load-test.in
+    ${CMAKE_BINARY_DIR}/dbt3-virtuoso-load-test
+    @ONLY
+)
+configure_file(
+    dbt3-virtuoso-rf1.in
+    ${CMAKE_BINARY_DIR}/dbt3-virtuoso-rf1
+    @ONLY
+)
+configure_file(
+    dbt3-virtuoso-rf2.in
+    ${CMAKE_BINARY_DIR}/dbt3-virtuoso-rf2
+    @ONLY
+)
+configure_file(
+    dbt3-virtuoso-start-db.in
+    ${CMAKE_BINARY_DIR}/dbt3-virtuoso-start-db
+    @ONLY
+)
+configure_file(
+    dbt3-virtuoso-stop-db.in
+    ${CMAKE_BINARY_DIR}/dbt3-virtuoso-stop-db
+    @ONLY
+)
+configure_file(
+    dbt3-virtuoso-time-statistics.in
+    ${CMAKE_BINARY_DIR}/dbt3-virtuoso-time-statistics
+    @ONLY
+)
 
 install (
-    PROGRAMS
-    ${CWD}/dbt3-virtuoso-create-db
-    ${CWD}/dbt3-virtuoso-create-tables
-    ${CWD}/dbt3-virtuoso-dbstat
-    ${CWD}/dbt3-virtuoso-drop-tables
-    ${CWD}/dbt3-virtuoso-get-query-time
-    ${CWD}/dbt3-virtuoso-get-version
-    ${CWD}/dbt3-virtuoso-load-data
-    ${CWD}/dbt3-virtuoso-load-test
-    ${CWD}/dbt3-virtuoso-rf1
-    ${CWD}/dbt3-virtuoso-rf2
-    ${CWD}/dbt3-virtuoso-start-db
-    ${CWD}/dbt3-virtuoso-stop-db
-    ${CWD}/dbt3-virtuoso-time-statistics
+    PROGRAMS ${CMAKE_BINARY_DIR}/dbt3-virtuoso-create-db
+             ${CMAKE_BINARY_DIR}/dbt3-virtuoso-create-tables
+             ${CMAKE_BINARY_DIR}/dbt3-virtuoso-dbstat
+             ${CMAKE_BINARY_DIR}/dbt3-virtuoso-drop-tables
+             ${CMAKE_BINARY_DIR}/dbt3-virtuoso-get-query-time
+             ${CMAKE_BINARY_DIR}/dbt3-virtuoso-get-version
+             ${CMAKE_BINARY_DIR}/dbt3-virtuoso-load-data
+             ${CMAKE_BINARY_DIR}/dbt3-virtuoso-load-test
+             ${CMAKE_BINARY_DIR}/dbt3-virtuoso-rf1
+             ${CMAKE_BINARY_DIR}/dbt3-virtuoso-rf2
+             ${CMAKE_BINARY_DIR}/dbt3-virtuoso-start-db
+             ${CMAKE_BINARY_DIR}/dbt3-virtuoso-stop-db
+             ${CMAKE_BINARY_DIR}/dbt3-virtuoso-time-statistics
     DESTINATION "bin"
 )

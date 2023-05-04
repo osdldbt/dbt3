@@ -1,0 +1,141 @@
+#!/bin/sh
+@SHELLOPTIONS@
+#
+# This file is released under the terms of the Artistic License.
+# Please see the file LICENSE, included in this package, for details.
+#
+# Copyright (C) 2002-2006 Open Source Development Labs, Inc.
+#               2002-2006 Jenny Zhang
+#               2005-2015 Mark Wong
+#               2015      2ndQuadrant, Ltd.
+#
+
+GENERATE=0
+SF=0
+USE_OPROFILE=0
+USE_LINUXPERF=0
+
+ISQL="isql PROMPT=OFF ERRORS=STDOUT VERBOSE=OFF"
+
+while getopts "f:g:o:yY" opt; do
+	case $opt in
+	f)
+		SF=$OPTARG
+		;;
+	g)
+		GENERATE=$OPTARG
+		;;
+	o)
+		OUTPUT_DIR=$OPTARG
+		mkdir -p $OUTPUT_DIR
+		;;
+	y)
+		USE_OPROFILE=1
+		;;
+	Y)
+		USE_LINUXPERF=1
+		;;
+	\?)
+		echo "Usage: $0 [-o <dir> -p <db_param> -f <scale_factor>]"
+		exit 1
+	esac
+done
+
+which gzip > /dev/null 2>&1
+if [ $? -eq 0 ]; then
+	GZIP=gzip
+else
+	GZIP=true
+fi
+
+mkdir -p $DSS_PATH || exit 1
+
+# Check to see if we have the files. If we don't have them - create them.
+have_all_files=1
+for f in customer lineitem nation orders partsupp part region supplier; do
+	if ! test -f $DSS_PATH/$f.tbl ; then
+		have_all_files=0
+	fi
+done
+
+if [ $GENERATE -ne 0 ] || [ $have_all_files -eq 0 ]; then
+	echo "`date` Generating data for scale factor $SF..."
+	# DBGEN reads DSS_PATH env var to determine where to put the files
+	$DBGEN -s $SF || exit 1
+else
+	echo "Creating the database using existing data files."
+fi
+
+# Start collecting system statistics.
+dbt3-sysstats --outdir $OUTPUT_DIR --sample 60 || exit 1
+
+dbt3-virtuoso-create-db
+
+dbt3-virtuoso-drop-tables || exit 1
+dbt3-virtuoso-create-tables || exit 1
+
+echo "Load Test starting at `date`"
+s_time=`date +%s`
+dbt3-virtuoso-time-statistics -s -n "LOAD"
+
+# Collect database statistics
+dbt3-virtuoso-dbstat $OUTPUT_DIR 2> /dev/null &
+
+# Initialize profile counters.
+if [ -f /proc/profile ]; then
+	clearprof
+fi
+
+if [ $USE_OPROFILE -eq 1 ]; then
+	clearoprof
+fi
+
+if [ $USE_LINUXPERF -eq 1 ]; then
+	PERFDIR=$OUTPUT_DIR/perf
+	mkdir -p $PERFDIR
+	PERFCOMMAND="perf record -a -g -s -F 100 -o $PERFDIR/perf.data"
+fi
+
+eval $PERFCOMMAND dbt3-virtuoso-load-data || exit 1
+
+dbt3-virtuoso-time-statistics -e -n "LOAD"
+e_time=`date +%s`
+diff_time=`expr $e_time - $s_time`
+echo "Elapsed time for Load Test : $diff_time seconds"
+
+# Stop collecting system statistics.
+read SARPID < $OUTPUT_DIR/sar.pid
+kill $SARPID
+read PIDSTATPID < $OUTPUT_DIR/pidstat.pid
+kill $PIDSTATPID
+#read DBSTATPID < $OUTPUT_DIR/dbstat.pid
+#kill $DBSTATPID
+
+# Collect profile data.
+if [ -f /proc/profile ]; then
+	profname='Load_Test'
+	getprof
+fi
+
+if [ $USE_OPROFILE -eq 1 ]; then
+	profname='Load_Test'
+	getoprof
+fi
+
+if [ $USE_LINUXPERF -eq 1 ]; then
+	# Sometimes perf segfaults if it's running more than once.
+	echo "Generating Linux perf reports for load test..."
+	perf report -i $PERFDIR/perf.data -n > $PERFDIR/perf-report.txt \
+			2>> $OUTPUT_DIR/perf/report-output.txt
+	$GZIP $OUTPUT_DIR/perf/perf-report.txt
+
+	perf annotate -l -P -i $PERFDIR/perf.data > $PERFDIR/perf-annotate.txt \
+			2>> $OUTPUT_DIR/perf/report-output.txt
+	$GZIP $OUTPUT_DIR/perf/perf-annotate.txt
+
+	perf script -L -i $PERFDIR/perf.data > $PERFDIR/perf-trace.txt \
+			2>> $OUTPUT_DIR/perf/report-output.txt
+	$GZIP $OUTPUT_DIR/perf/perf-trace.txt
+
+	$GZIP $OUTPUT_DIR/perf/perf.data
+fi

@@ -1,0 +1,41 @@
+#!/bin/sh
+@SHELLOPTIONS@
+#
+# This file is released under the terms of the Artistic License.
+# Please see the file LICENSE, included in this package, for details.
+#
+# Copyright (C) 2015      Mark Wong
+#               2015      2ndQuadrant, Ltd.
+
+if [ $# -ne 1 ]; then
+	echo "usage: `basename $0` <output_dir>"
+	exit 1
+fi
+
+OUTPUT_DIR=$1
+
+echo "$$" > ${OUTPUT_DIR}/dbstat.pid
+
+DBOUTPUT_DIR=$OUTPUT_DIR/db
+mkdir -p $DBOUTPUT_DIR
+
+SAMPLE_LENGTH=60
+
+VVERSION=`virtuoso-t --help 2>&1 | head -n 2 | tail -n 1`
+echo "$VVERSION" > $DBOUTPUT_DIR/readme.txt
+
+cp $VADDIR/virtuoso.ini $DBOUTPUT_DIR/param.txt
+
+ISQL="isql PROMPT=OFF ERRORS=STDOUT VERBOSE=OFF"
+
+while [ 1 ]; do
+	$ISQL << __EOF__ >> $DBOUTPUT_DIR/sys_l_stat.txt &
+SELECT * FROM sys_l_stat;
+__EOF__
+
+	$ISQL << __EOF__ >> $DBOUTPUT_DIR/sys_d_stat.txt &
+SELECT * FROM sys_d_stat;
+__EOF__
+
+	sleep $SAMPLE_LENGTH
+done

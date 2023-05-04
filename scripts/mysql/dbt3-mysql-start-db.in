@@ -1,0 +1,62 @@
+#!/bin/bash
+@SHELLOPTIONS@
+#
+# This file is released under the terms of the Artistic License.
+# Please see the file LICENSE, included in this package, for details.
+#
+# Copyright (C) 2006 Open Source Development Labs, Inc.
+#               2006-2014 Mark Wong
+#               2014      2ndQuadrant, Ltd.
+#
+
+if [ "x" = "x${MYDATA}" ]; then
+	echo "ERROR: MYDATA must be set"
+	exit 1
+fi
+
+LOGFILE="dbt3.log"
+OUTDIR="."
+HOSTNAME=`hostname`
+PIDFILE=$MYDATA/$HOSTNAME.pid
+
+while getopts "fo:p:s:" OPT; do
+	case ${OPT} in
+	f)
+		if [ -f "$PIDFILE" ]; then
+			rm $PIDFILE
+		fi
+		;;
+	o)
+		OUTDIR=$OPTARG
+		;;
+	p)
+		DEFAULTS_FILE=${OPTARG}
+		DEFAULTS_FILE_ARG="--defaults-file=${DEFAULTS_FILE}"
+		;;
+	\0)
+		exit 1
+		;;
+	esac
+done
+
+# The location of the log file needs to be an absolute path, otherwise it's
+# relative to $MYDATA.
+LOGPATH=`readlink -f $OUTDIR`
+
+mysqld_safe $DEFAULTS_FILE_ARG --datadir=$MYDATA \
+		--log-error=$LOGPATH/$LOGFILE > /dev/null 2>&1 &
+
+count=0
+while [ 1 ]; do
+	mysqladmin -s ping > /dev/null 2>&1
+	if [ $? -eq 1 ]; then
+		if [ $count -eq 60 ]; then
+			echo "failed waiting for mysql to start"
+			exit 1
+		fi
+		sleep 1
+		count=$(( $count + 1 ))
+		continue
+	fi
+	break
+done

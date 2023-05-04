@@ -1,0 +1,48 @@
+#!/bin/sh
+@SHELLOPTIONS@
+#
+# This file is released under the terms of the Artistic License.  Please see
+# the file LICENSE, included in this package, for details.
+#
+# Copyright (C) 2003-2006 Jenny Zhang
+#               2003-2006 Open Source Development Labs, Inc.
+#               2015      Mark Wong
+#               2015      2ndQuadrant, Ltd.
+#
+
+usage()
+{
+	echo "usage: `basename $0` -i <q_time.csv> -f <SCALE_FACTOR>"
+}
+
+while getopts "hi:s:z" opt; do
+	case $opt in
+	h)
+		usage
+		exit 1
+		;;
+	i)
+		INFILE=$OPTARG
+		;;
+	s)
+		SCALE_FACTOR=$OPTARG
+		;;
+	\?)
+		usage
+		exit 1
+		;;
+	esac
+done
+
+R --slave --no-save << __EOF__
+df <- read.csv("$INFILE", header=T)
+df_power <- df[grep("PERF.POWER.Q", df\$task_name), ]
+df_power <- rbind(df_power, df[grep("PERF.POWER.RF", df\$task_name), ])
+# If the database timestamps round to seconds, round up 0's to 1 second so the
+# geometric mean is valid.
+df_power\$seconds[df_power\$seconds == 0] <- 1
+power <- 3600 * $SCALE_FACTOR /
+         prod(df_power\$seconds) ^ (1 / length(df_power\$seconds))
+cat(power)
+cat("\n")
+__EOF__

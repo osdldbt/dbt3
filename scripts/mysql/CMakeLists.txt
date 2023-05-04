@@ -1,19 +1,82 @@
-set (CWD "${CMAKE_SOURCE_DIR}/scripts/mysql")
+configure_file(
+    dbt3-mysql-create-db.in
+    ${CMAKE_BINARY_DIR}/dbt3-mysql-create-db
+    @ONLY
+)
+configure_file(
+    dbt3-mysql-create-tables.in
+    ${CMAKE_BINARY_DIR}/dbt3-mysql-create-tables
+    @ONLY
+)
+configure_file(
+    dbt3-mysql-dbstat.in
+    ${CMAKE_BINARY_DIR}/dbt3-mysql-dbstat
+    @ONLY
+)
+configure_file(
+    dbt3-mysql-drop-db.in
+    ${CMAKE_BINARY_DIR}/dbt3-mysql-drop-db
+    @ONLY
+)
+configure_file(
+    dbt3-mysql-drop-tables.in
+    ${CMAKE_BINARY_DIR}/dbt3-mysql-drop-tables
+    @ONLY
+)
+configure_file(
+    dbt3-mysql-get-query-time.in
+    ${CMAKE_BINARY_DIR}/dbt3-mysql-get-query-time
+    @ONLY
+)
+configure_file(
+    dbt3-mysql-get-version.in
+    ${CMAKE_BINARY_DIR}/dbt3-mysql-get-version
+    @ONLY
+)
+configure_file(
+    dbt3-mysql-load-data.in
+    ${CMAKE_BINARY_DIR}/dbt3-mysql-load-data
+    @ONLY
+)
+configure_file(
+    dbt3-mysql-rf1.in
+    ${CMAKE_BINARY_DIR}/dbt3-mysql-rf1
+    @ONLY
+)
+configure_file(
+    dbt3-mysql-rf2.in
+    ${CMAKE_BINARY_DIR}/dbt3-mysql-rf2
+    @ONLY
+)
+configure_file(
+    dbt3-mysql-start-db.in
+    ${CMAKE_BINARY_DIR}/dbt3-mysql-start-db
+    @ONLY
+)
+configure_file(
+    dbt3-mysql-stop-db.in
+    ${CMAKE_BINARY_DIR}/dbt3-mysql-stop-db
+    @ONLY
+)
+configure_file(
+    dbt3-mysql-time-statistics.in
+    ${CMAKE_BINARY_DIR}/dbt3-mysql-time-statistics
+    @ONLY
+)
 
 install (
-    PROGRAMS
-    ${CWD}/dbt3-mysql-create-db
-    ${CWD}/dbt3-mysql-create-tables
-    ${CWD}/dbt3-mysql-dbstat
-    ${CWD}/dbt3-mysql-drop-db
-    ${CWD}/dbt3-mysql-drop-tables
-    ${CWD}/dbt3-mysql-get-query-time
-    ${CWD}/dbt3-mysql-get-version
-    ${CWD}/dbt3-mysql-load-data
-    ${CWD}/dbt3-mysql-rf1
-    ${CWD}/dbt3-mysql-rf2
-    ${CWD}/dbt3-mysql-start-db
-    ${CWD}/dbt3-mysql-stop-db
-    ${CWD}/dbt3-mysql-time-statistics
+    PROGRAMS ${CMAKE_BINARY_DIR}/dbt3-mysql-create-db
+             ${CMAKE_BINARY_DIR}/dbt3-mysql-create-tables
+             ${CMAKE_BINARY_DIR}/dbt3-mysql-dbstat
+             ${CMAKE_BINARY_DIR}/dbt3-mysql-drop-db
+             ${CMAKE_BINARY_DIR}/dbt3-mysql-drop-tables
+             ${CMAKE_BINARY_DIR}/dbt3-mysql-get-query-time
+             ${CMAKE_BINARY_DIR}/dbt3-mysql-get-version
+             ${CMAKE_BINARY_DIR}/dbt3-mysql-load-data
+             ${CMAKE_BINARY_DIR}/dbt3-mysql-rf1
+             ${CMAKE_BINARY_DIR}/dbt3-mysql-rf2
+             ${CMAKE_BINARY_DIR}/dbt3-mysql-start-db
+             ${CMAKE_BINARY_DIR}/dbt3-mysql-stop-db
+             ${CMAKE_BINARY_DIR}/dbt3-mysql-time-statistics
     DESTINATION "bin"
 )

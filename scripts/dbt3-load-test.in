@@ -1,0 +1,295 @@
+#!/bin/bash
+@SHELLOPTIONS@
+#
+# This file is released under the terms of the Artistic License.
+# Please see the file LICENSE, included in this package, for details.
+#
+# Copyright (C) 2002-2006 Open Source Development Labs, Inc.
+#               2002-2006 Jenny Zhang
+#               2015-2017 2ndQuadrant, Ltd.
+#               2005-2022 Mark Wong
+#
+
+usage()
+{
+	echo
+	echo "`basename $0` is the DBT-3 load tester"
+	echo ""
+	echo "Usage:"
+	echo "  `basename $0` [OPTIONS]"
+	echo
+	echo "Generate options:"
+	echo "  -a DBMS         database management system to test"
+	echo "  -c              resort tables after loading"
+	echo "  -C              number of chunks to load"
+	echo "  -d              direct data load"
+	echo "  -f SCALE        database scale factor, default 1"
+	echo "  -g              generate flat files"
+	echo "  -h              this help message"
+	echo "  -l              only load data"
+	echo "  -o DIRECTORY    path to store test results"
+	echo "  -R              materialized view mode"
+	echo "  -U              run test as an unprivileged user"
+	echo "  -y              enable oprofile (Linux only)"
+	echo "  -Y              enable linux perf (Linux only)"
+	echo ""
+	echo "DBMS options are:"
+	echo "  monetdb         MonetDB"
+	echo "  mysql           MySQL"
+	echo "  pgsql           PostgreSQL"
+	echo "  pgxl            Postgres-XL"
+	echo "  virtuoso        Virtuoso"
+	echo ""
+	echo "PostgreSQL specific options:"
+	echo "  -p              database parameters for the load test"
+}
+
+DIRECT_LOAD=0
+DIRECT_LOAD_ARG=""
+GENERATE=0
+MPP=0
+ONLY_LOAD=0
+PRIVILEGED=1
+RESORT=0
+SF=0
+USE_OPROFILE=0
+USE_LINUXPERF=0
+WORKLOAD="H"
+
+while getopts "a:cC:df:g:lo:p:RtUyY:" opt; do
+	case $opt in
+	a)
+		DATABASE=$OPTARG
+		if [ "x$DATABASE" = "xpgxl" ]; then
+			MPP=1
+		fi
+		;;
+	c)
+		RESORT=1
+		;;
+	C)
+		CHUNKS="$OPTARG"
+		;;
+	d)
+		DIRECT_LOAD=1
+		DIRECT_LOAD_ARG="-d"
+		;;
+	f)
+		SF=$OPTARG
+		;;
+	g)
+		GENERATE=$OPTARG
+		;;
+	l)
+		ONLY_LOAD=1
+		;;
+	o)
+		OUTPUT_DIR=$OPTARG
+		mkdir -p $OUTPUT_DIR
+		;;
+	p)
+		PARAMETERS_ARG="-p \"$OPTARG\""
+		;;
+	R)
+		WORKLOAD="R"
+		WORKLOAD_ARG="-R"
+		;;
+	t)
+		TABLESPACE_FLAG="-t -b"
+		;;
+	U)
+		PRIVILEGED=0
+		UNPRIVILEGED_ARG="-U"
+		;;
+	y)
+		USE_OPROFILE=1
+		;;
+	Y)
+		USE_LINUXPERF=1
+		;;
+	\?)
+		echo "Usage: $0 [-o <dir> -p <db_param> -f <scale_factor>]"
+		exit 1
+	esac
+done
+
+if [ "x$DBGEN" = "x" ]; then
+	echo "set DBGEN environment variable to aboslute path to dbgen binary"
+	exit 1
+fi
+
+if [ "x$DATABASE" = "x" ]; then
+	echo "Specify database management system with -a flag"
+	usage
+	exit 1
+elif [ "x$DATABASE" = "xpgxl" ]; then
+	. $HOME/pgxc_ctl/pgxc_ctl.conf
+	for HOSTNAME in ${datanodeMasterServers[*]}; do
+		ssh $HOSTNAME "mkdir -p $OUTPUT_DIR"
+	done
+fi
+
+# Automatically parallelize to the number of available processors if not
+# specified otherwise.
+if [ "x${CHUNKS}" = "x" ]; then
+	if [ -f "/proc/stat" ]; then
+		CPUS=`grep cpu /proc/stat | wc -l`
+		CHUNKS=$(( $CPUS - 1 ))
+		echo "detected $CHUNKS processors for parallel loading"
+	else
+		CHUNKS=1
+	fi
+fi
+
+which gzip > /dev/null 2>&1
+if [ $? -eq 0 ]; then
+	GZIP=gzip
+else
+	GZIP=true
+fi
+
+mkdir -p $DSS_PATH || exit 1
+
+# Check to see if we have the files. If we don't have them then create them.
+if [ $DIRECT_LOAD -ne 1 ]; then
+	have_all_files=1
+	for f in customer lineitem nation orders partsupp part region supplier; do
+		if [ $CHUNKS -eq 1 ] || [ "$f" = "nation" ] || [ "$f" = "region" ]; then
+			if ! test -f $DSS_PATH/$f.tbl ; then
+				have_all_files=0
+			fi
+		else
+			i=1
+			while [ $i -le $CHUNKS ]; do
+				if ! test -f $DSS_PATH/$f.tbl.$i ; then
+					have_all_files=0
+				fi
+				i=$(( $i + 1 ))
+			done
+		fi
+	done
+fi
+
+if [ $DIRECT_LOAD -eq 1 ]; then
+	echo "Creating the database with a direct load from dbgen."
+elif [ $GENERATE -ne 0 ] || [ $have_all_files -eq 0 ]; then
+	echo "`date` Generating data for scale factor $SF ..."
+	# DBGEN reads DSS_PATH env var to determine where to put the files
+	if [ $CHUNKS -eq 1 ]; then
+		$DBGEN -s $SF || exit 1
+
+		if [ $RESORT -eq 1 ]; then
+			echo "`date` resorting data files..."
+			mv $DSS_PATH/lineitem.tbl $DSS_PATH/lineitem.tbl.orig
+			sort -t "|" -k 11 -k 12 $DSS_PATH/lineitem.tbl.orig \
+					> $DSS_PATH/lineitem.tbl
+			$GZIP $DSS_PATH/lineitem.tbl.orig
+
+			mv $DSS_PATH/orders.tbl $DSS_PATH/orders.tbl.orig
+			sort -t "|" -k 5 $DSS_PATH/orders.tbl.orig \
+					> $DSS_PATH/orders.tbl
+			$GZIP $DSS_PATH/orders.tbl.orig
+
+			mv $DSS_PATH/part.tbl $DSS_PATH/part.tbl.orig
+			sort -t "|" -k 6 $DSS_PATH/part.tbl.orig \
+					> $DSS_PATH/part.tbl
+			$GZIP $DSS_PATH/part.tbl.orig
+		fi
+	else
+		i=1
+		$DBGEN -s $SF -T n &
+		$DBGEN -s $SF -T r &
+		wait
+		for TABLE in c O L P S s; do
+			for i in $(seq 1 ${CHUNKS}); do
+				$DBGEN -s $SF -C $CHUNKS -S $i -T $TABLE &
+			done
+			wait
+		done
+	fi
+	wait
+else
+	echo "Creating the database using existing data files."
+fi
+
+# Start collecting system statistics.
+dbt3-sysstats --outdir $OUTPUT_DIR --sample 60 --mpp $MPP || exit 1
+
+if [ $PRIVILEGED -eq 1 ]; then
+	eval dbt3-$DATABASE-create-db -o $OUTPUT_DIR $PARAMETERS_ARG
+fi
+
+dbt3-$DATABASE-drop-tables || exit 1
+dbt3-$DATABASE-create-tables $TABLESPACE_FLAG || exit 1
+
+echo "Load Test starting at `date`"
+s_time=`date +%s`
+dbt3-$DATABASE-time-statistics -s -n LOAD || exit 1
+
+# Collect database statistics
+dbt3-$DATABASE-dbstat $OUTPUT_DIR 2> /dev/null &
+
+# Initialize profile counters.
+if [ -f /proc/profile ]; then
+	clearprof
+fi
+
+if [ $USE_OPROFILE -eq 1 ]; then
+	clearoprof
+fi
+
+if [ $USE_LINUXPERF -eq 1 ]; then
+	PERFDIR=$OUTPUT_DIR/perf
+	mkdir -p $PERFDIR
+	PERFCOMMAND="perf record -a -g -s -F 100 -o $PERFDIR/perf.data"
+fi
+
+eval $PERFCOMMAND dbt3-${DATABASE}-load-data -C $CHUNKS $DIRECT_LOAD_ARG $UNPRIVILEGED_ARG || exit 1
+
+dbt3-$DATABASE-time-statistics -e -n LOAD || exit 1
+e_time=`date +%s`
+diff_time=`expr $e_time - $s_time`
+echo "Elapsed time for Load Test : $diff_time seconds"
+
+# Stop collecting system statistics.
+read SARPID < $OUTPUT_DIR/sar.pid
+kill $SARPID
+read PIDSTATPID < $OUTPUT_DIR/pidstat.pid
+kill $PIDSTATPID
+if [ -f "$OUTPUT_DIR/dbstat.pid" ]; then
+	read DBSTATPID < $OUTPUT_DIR/dbstat.pid
+	kill $DBSTATPID
+fi
+
+# Brute force.
+if [ $MPP -eq 1 ]; then
+	for HOSTNAME in ${coordMasterServers[*]} ${datanodeMasterServers[*]}; do
+		ssh $HOSTNAME "killall -9 sar sadc pidstat"
+	done
+fi
+
+# Collect profile data.
+if [ -f /proc/profile ]; then
+	profname='Load_Test'
+	getprof
+fi
+
+if [ $USE_OPROFILE -eq 1 ]; then
+	profname='Load_Test'
+	getoprof
+fi
+
+if [ $USE_LINUXPERF -eq 1 ]; then
+	# Sometimes perf segfaults if it's running more than once.
+	echo "Generating Linux perf reports for load test..."
+	perf report -i $PERFDIR/perf.data -n > $PERFDIR/perf-report.txt \
+			2>> $OUTPUT_DIR/perf/report-output.txt
+	$GZIP $OUTPUT_DIR/perf/perf-report.txt
+	perf annotate -l -P -i $PERFDIR/perf.data > $PERFDIR/perf-annotate.txt \
+			2>> $OUTPUT_DIR/perf/report-output.txt
+	$GZIP $OUTPUT_DIR/perf/perf-annotate.txt
+	perf script -L -i $PERFDIR/perf.data > $PERFDIR/perf-trace.txt \
+			2>> $OUTPUT_DIR/perf/report-output.txt
+	$GZIP $OUTPUT_DIR/perf/perf-trace.txt
+	$GZIP $PERFDIR/perf.data
+fi

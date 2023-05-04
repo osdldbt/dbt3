@@ -1,0 +1,27 @@
+#!/bin/sh
+@SHELLOPTIONS@
+#
+# This file is released under the terms of the Artistic License.  Please see
+# the file LICENSE, included in this package, for details.
+#
+# Copyright (C) 2003      Open Source Development Labs, Inc.
+#               2003      Jenny Zhang
+#               2005-2014 Mark Wong
+#               2014      2ndQuadrant, Ltd.
+#
+
+SQL="SELECT task_name, s_time, e_time, (e_time-s_time) AS diff_time, \
+(extract(hour FROM (e_time-s_time)) * 3600) + (extract(minute FROM \
+(e_time-s_time)) * 60) + (extract(second FROM (e_time-s_time))) AS seconds \
+FROM time_statistics"
+
+ARGS=
+while getopts "o:" opt; do
+	case $opt in
+		o)
+			ARGS="-o $OPTARG/q_time.csv"
+			;;
+	esac
+done
+
+psql -X -A -F, -t -q ${ARGS} -c "COPY (${SQL}) TO STDOUT (FORMAT CSV, HEADER)"

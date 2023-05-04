@@ -1,0 +1,192 @@
+#!/bin/sh
+@SHELLOPTIONS@
+#
+# This file is released under the terms of the Artistic License.
+# Please see the file LICENSE, included in this package, for details.
+#
+# Copyright (C) 2014      Mark Wong
+#               2014      2ndQuadrant, Ltd.
+
+POWER_TEST=0
+THROUGHPUT_TEST=0
+
+usage()
+{
+	echo "usage: `basename $0` <-a directory> <-b directory> [-o outdir]"
+	echo " a - first dbt3 results directory"
+	echo " b - second dbt3 results directory"
+	echo " o - output directory to create charts"
+}
+
+OUTDIR="."
+POWER_TEST=0
+THROUGHPUT_TEST=0
+while getopts "23a:b:ho:" opt; do
+	case $opt in
+	2)
+		POWER_TEST=1
+		;;
+	3)
+		THROUGHPUT_TEST=1
+		;;
+	a)
+		INDIR1=$OPTARG
+		INFILE1=$INDIR1/q_time.csv
+		if [ ! -f "$INFILE1" ]; then
+			echo "$INFILE1 does not exist"
+			exit 1
+		fi
+		RNAME1=`basename $INDIR1`
+		;;
+	b)
+		INDIR2=$OPTARG
+		INFILE2=$INDIR2/q_time.csv
+		if [ ! -f "$INFILE2" ]; then
+			echo "$INFILE2 does not exist"
+			exit 1
+		fi
+		RNAME2=`basename $INDIR2`
+		;;
+	h)
+		usage
+		exit 0
+		;;
+	o)
+		OUTDIR=$OPTARG
+		;;
+	\?)
+		usage
+		exit 1
+		;;
+	esac
+done
+
+R --slave --no-save << __EOF__
+df1 <- read.csv("$INFILE1", header=T)
+df2 <- read.csv("$INFILE2", header=T)
+
+count <- 0
+cnames <- NULL
+
+df1\$q <- NA
+df2\$q <- NA
+
+
+for (i in 1:22) {
+  cnames <- c(cnames, paste("Q", i, sep=""))
+}
+cnames <- c(cnames, "RF1")
+cnames <- c(cnames, "RF2")
+
+if ($POWER_TEST == 1) {
+  labels <- NULL
+
+  df_power1 <- df1[0, ]
+  df_power2 <- df2[0, ]
+  labels <- c(labels, "$RNAME1")
+  labels <- c(labels, "$RNAME2")
+
+  # Number the results for sorting.
+  for (i in 1:22) {
+    str <- paste("PERF.POWER.Q", i, sep="")
+
+    df1[df1\$task_name == str, ]\$q = i
+    df_power1 <- rbind(df_power1, df1[df1\$task_name == str, ])
+
+    df2[df2\$task_name == str, ]\$q = i
+    df_power2 <- rbind(df_power2, df2[df2\$task_name == str, ])
+  }
+  df1[df1\$task_name == "PERF.POWER.RF1", ]\$q = 23
+  df1[df1\$task_name == "PERF.POWER.RF2", ]\$q = 24
+  df_power1 <- rbind(df_power1, df1[df1\$task_name == "PERF.POWER.RF1", ])
+  df_power1 <- rbind(df_power1, df1[df1\$task_name == "PERF.POWER.RF2", ])
+
+  df2[df2\$task_name == "PERF.POWER.RF1", ]\$q = 23
+  df2[df2\$task_name == "PERF.POWER.RF2", ]\$q = 24
+  df_power2 <- rbind(df_power2, df2[df2\$task_name == "PERF.POWER.RF1", ])
+  df_power2 <- rbind(df_power2, df2[df2\$task_name == "PERF.POWER.RF2", ])
+
+  df_power1 <- df_power1[with(df_power1, order(q)), ]
+  df_power2 <- df_power2[with(df_power2, order(q)), ]
+
+  df_plot <- df_power1
+  df_plot <- rbind(df_plot, df_power2)
+
+  data <- matrix(df_plot\$seconds, ncol=24, byrow=T)
+  colnames(data) <- cnames
+  rownames(data) <- labels
+
+  colors <- cm.colors(2)
+  df_plot <- df_plot[with(df_plot, order(q, task_name)), ]
+  bitmap("$OUTDIR/compare-power.png", type="png16m", units="px",
+         width=1437, height=888, res=150, taa=4, gaa=4)
+  barplot(data, col=colors, beside=T, horiz=F, las=1,
+          main="Power Test Query Comparison", xlab="Seconds")
+  legend("topright", legend=labels, fil=colors, bty="n")
+  grid(col="gray")
+  invisible(dev.off())
+}
+
+if ($THROUGHPUT_TEST == 1) {
+  labels <- NULL
+
+  db_thruput1 <- df1[grep("*.THRUPUT.QS.*.ALL", df1\$task_name), ]
+  db_thruput2 <- df2[grep("*.THRUPUT.QS.*.ALL", df2\$task_name), ]
+
+  runs <- nrow(db_thruput1)
+
+  labels <- c(labels, "$RNAME1")
+  labels <- c(labels, "$RNAME2")
+
+  db_thruput1 <- df1[0, ]
+  db_thruput2 <- df1[0, ]
+
+  for (i in 1:22) {
+    str <- paste("*.THRUPUT.QS.*.Q", i, "\$", sep="")
+
+    sub1 <- df1[grep(str, df1\$task_name), ]
+    newrow1 <- data.frame(task_name=paste("THRUPUT.Q", i, sep=""), s_time=0,
+                         e_time=0, diff_time=0, seconds=mean(sub1\$seconds),
+						 q=i)
+    db_thruput1 <- rbind(db_thruput1, newrow1)
+
+    sub2 <- df2[grep(str, df2\$task_name), ]
+    newrow2 <- data.frame(task_name=paste("THRUPUT.Q", i, sep=""), s_time=0,
+                         e_time=0, diff_time=0, seconds=mean(sub2\$seconds),
+						 q=i)
+    db_thruput2 <- rbind(db_thruput2, newrow2)
+  }
+  for (i in 1:2) {
+    str <- paste("*.THRUPUT.*.RF", i, sep="")
+
+    sub1 <- df1[grep(str, df1\$task_name), ]
+    newrow1 <- data.frame(task_name=paste("THRUPUT.RF", i, sep=""), s_time=0,
+                         e_time=0, diff_time=0, seconds=mean(sub1\$seconds),
+                         q=(i + 22))
+    db_thruput1 <- rbind(db_thruput1, newrow1)
+
+    sub2 <- df2[grep(str, df2\$task_name), ]
+    newrow2 <- data.frame(task_name=paste("THRUPUT.RF", i, sep=""), s_time=0,
+                         e_time=0, diff_time=0, seconds=mean(sub2\$seconds),
+                         q=(i + 22))
+    db_thruput2 <- rbind(db_thruput2, newrow2)
+  }
+  df_plot <- db_thruput1
+  df_plot <- rbind(df_plot, db_thruput2)
+
+  data <- matrix(df_plot\$seconds, ncol=24, byrow=T)
+  colnames(data) <- cnames
+  rownames(data) <- labels
+
+  colors <- cm.colors(2)
+  df_plot <- df_plot[with(df_plot, order(q, task_name)), ]
+  bitmap("$OUTDIR/compare-throughput.png", type="png16m", units="px",
+         width=1437, height=888, res=150, taa=4, gaa=4)
+  barplot(data, col=colors, beside=T, horiz=F, las=1,
+          main="Throughput Test Query Comparison", xlab="Seconds")
+  legend("topright", legend=labels, fil=colors, bty="n")
+  grid(col="gray")
+  invisible(dev.off())
+}
+
+__EOF__

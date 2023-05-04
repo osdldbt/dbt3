@@ -1,21 +1,94 @@
-set (CWD "${CMAKE_SOURCE_DIR}/scripts/pgsql")
+configure_file(
+    dbt3-pgsql-create-db.in
+    ${CMAKE_BINARY_DIR}/dbt3-pgsql-create-db
+    @ONLY
+)
+configure_file(
+    dbt3-pgsql-create-tables.in
+    ${CMAKE_BINARY_DIR}/dbt3-pgsql-create-tables
+    @ONLY
+)
+configure_file(
+    dbt3-pgsql-dbstat.in
+    ${CMAKE_BINARY_DIR}/dbt3-pgsql-dbstat
+    @ONLY
+)
+configure_file(
+    dbt3-pgsql-drop-db.in
+    ${CMAKE_BINARY_DIR}/dbt3-pgsql-drop-db
+    @ONLY
+)
+configure_file(
+    dbt3-pgsql-drop-tables.in
+    ${CMAKE_BINARY_DIR}/dbt3-pgsql-drop-tables
+    @ONLY
+)
+configure_file(
+    dbt3-pgsql-get-query-time.in
+    ${CMAKE_BINARY_DIR}/dbt3-pgsql-get-query-time
+    @ONLY
+)
+configure_file(
+    dbt3-pgsql-get-version.in
+    ${CMAKE_BINARY_DIR}/dbt3-pgsql-get-version
+    @ONLY
+)
+configure_file(
+    dbt3-pgsql-load-data.in
+    ${CMAKE_BINARY_DIR}/dbt3-pgsql-load-data
+    @ONLY
+)
+configure_file(
+    dbt3-pgsql-plan-disaster.in
+    ${CMAKE_BINARY_DIR}/dbt3-pgsql-plan-disaster
+    @ONLY
+)
+configure_file(
+    dbt3-pgsql-report.in
+    ${CMAKE_BINARY_DIR}/dbt3-pgsql-report
+    @ONLY
+)
+configure_file(
+    dbt3-pgsql-rf1.in
+    ${CMAKE_BINARY_DIR}/dbt3-pgsql-rf1
+    @ONLY
+)
+configure_file(
+    dbt3-pgsql-rf2.in
+    ${CMAKE_BINARY_DIR}/dbt3-pgsql-rf2
+    @ONLY
+)
+configure_file(
+    dbt3-pgsql-start-db.in
+    ${CMAKE_BINARY_DIR}/dbt3-pgsql-start-db
+    @ONLY
+)
+configure_file(
+    dbt3-pgsql-stop-db.in
+    ${CMAKE_BINARY_DIR}/dbt3-pgsql-stop-db
+    @ONLY
+)
+configure_file(
+    dbt3-pgsql-time-statistics.in
+    ${CMAKE_BINARY_DIR}/dbt3-pgsql-time-statistics
+    @ONLY
+)
 
 install (
-    PROGRAMS
-    ${CWD}/dbt3-pgsql-create-db
-    ${CWD}/dbt3-pgsql-create-tables
-    ${CWD}/dbt3-pgsql-dbstat
-    ${CWD}/dbt3-pgsql-drop-db
-    ${CWD}/dbt3-pgsql-drop-tables
-    ${CWD}/dbt3-pgsql-get-query-time
-    ${CWD}/dbt3-pgsql-get-version
-    ${CWD}/dbt3-pgsql-load-data
-    ${CWD}/dbt3-pgsql-plan-disaster
-    ${CWD}/dbt3-pgsql-report
-    ${CWD}/dbt3-pgsql-rf1
-    ${CWD}/dbt3-pgsql-rf2
-    ${CWD}/dbt3-pgsql-start-db
-    ${CWD}/dbt3-pgsql-stop-db
-    ${CWD}/dbt3-pgsql-time-statistics
+    PROGRAMS ${CMAKE_BINARY_DIR}/dbt3-pgsql-create-db
+             ${CMAKE_BINARY_DIR}/dbt3-pgsql-create-tables
+             ${CMAKE_BINARY_DIR}/dbt3-pgsql-dbstat
+             ${CMAKE_BINARY_DIR}/dbt3-pgsql-drop-db
+             ${CMAKE_BINARY_DIR}/dbt3-pgsql-drop-tables
+             ${CMAKE_BINARY_DIR}/dbt3-pgsql-get-query-time
+             ${CMAKE_BINARY_DIR}/dbt3-pgsql-get-version
+             ${CMAKE_BINARY_DIR}/dbt3-pgsql-load-data
+             ${CMAKE_BINARY_DIR}/dbt3-pgsql-plan-disaster
+             ${CMAKE_BINARY_DIR}/dbt3-pgsql-report
+             ${CMAKE_BINARY_DIR}/dbt3-pgsql-rf1
+             ${CMAKE_BINARY_DIR}/dbt3-pgsql-rf2
+             ${CMAKE_BINARY_DIR}/dbt3-pgsql-start-db
+             ${CMAKE_BINARY_DIR}/dbt3-pgsql-stop-db
+             ${CMAKE_BINARY_DIR}/dbt3-pgsql-time-statistics
     DESTINATION "bin"
 )

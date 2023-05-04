@@ -1,0 +1,53 @@
+#!/bin/bash
+@SHELLOPTIONS@
+#
+# This file is released under the terms of the Artistic License.  Please see
+# the file LICENSE, included in this package, for details.
+#
+# Copyright (C) 2006      Open Source Development Lab, Inc.
+#               2006-2014 Mark Wong
+#               2014      2ndQuadrant, Ltd.
+#
+
+cmd_clear=0
+cmd_start=0
+cmd_end=0
+
+while getopts "cel:n:s" opt; do
+	case $opt in
+	c)
+		cmd_clear=1
+		;;
+	e)
+		cmd_end=1
+		;;
+	n)
+		NAME=$OPTARG
+		;;
+	s)
+		cmd_start=1
+		;;
+	esac
+done
+
+if [ -z ${DBNAME} ]; then
+    echo "DBNAME not defined."
+    exit 1
+fi
+
+if [ $cmd_clear == 1 ]; then
+    SQL="DELETE FROM time_statistics"
+    echo -n "Clearing all the time statistics..."
+fi;
+
+if [ $cmd_start == 1 ]; then
+    s_time=`date +%s`
+    SQL="INSERT INTO time_statistics (task_name, s_time, int_time) 
+         VALUES ('$NAME', now(), $s_time)"
+fi;
+
+if [ $cmd_end == 1 ]; then
+    SQL="UPDATE time_statistics SET e_time = now() WHERE task_name = '$NAME'"
+fi;
+
+mysql -u root -D $DBNAME -e "$SQL"

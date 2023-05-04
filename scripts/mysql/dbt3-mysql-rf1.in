@@ -1,0 +1,54 @@
+#!/bin/sh
+@SHELLOPTIONS@
+#
+# This file is released under the terms of the Artistic License.
+# Please see the file LICENSE, included in this package, for details.
+#
+# Copyright (C) 2003     Open Source Development Lab, Inc.
+#               2014     Mark Wong
+#               2014     2ndQuadrant, Ltd.
+#
+
+if [ $# -ne 1 ]; then
+        echo "Usage: `basename $0` <scale_factor>"
+        exit 1
+fi
+
+scale_factor=$1
+
+MYSQL="mysql -u root -D $DBNAME -s -N"
+
+set_num=`$MYSQL << __EOF__
+BEGIN;
+UPDATE dataset
+SET count = count + 1
+WHERE id = 1;
+SELECT count
+FROM dataset
+WHERE id = 1;
+COMMIT;
+__EOF__
+`
+$DBGEN -s $scale_factor -U $set_num -S $set_num || exit 1
+
+echo "`date`: Stream ${set_num} : Starting Refresh Stream 1..."
+s_time=`date +%s`
+
+$MYSQL << __EOF__
+BEGIN;
+load data infile '$DSS_PATH/lineitem.tbl.u$set_num'
+into table lineitem fields terminated by  '|';
+load data infile '$DSS_PATH/orders.tbl.u$set_num'
+into table orders fields terminated by '|';
+COMMIT;
+__EOF__
+
+e_time=`date +%s`
+echo "`date`: Stream ${set_num} : Refresh Stream 1 completed."
+diff_time=$(( $e_time - $s_time ))
+echo "Stream ${set_num} : Elapsed time for Refresh Stream 1 : $diff_time seconds"
+
+if [ $set_num -gt 0 ]; then
+	exit $set_num
+fi
+exit -1

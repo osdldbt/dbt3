@@ -1,0 +1,127 @@
+#!/bin/sh
+@SHELLOPTIONS@
+#
+# This file is released under the terms of the Artistic License.
+# Please see the file LICENSE, included in this package, for details.
+#
+# Copyright (C) 2003-2006 Open Source Development Labs, Inc.
+#               2003-2006 Jenny Zhang
+#               2014      2ndQuadrant, Ltd.
+#               2005-2022 Mark Wong
+#
+
+MPP=0
+USE_LINUXPERF=0
+
+while getopts "a:ef:n:o:s:t:Y" opt; do
+	case $opt in
+	a) DATABASE=$OPTARG
+		if [ "x$DATABASE" = "xpgxl" ]; then
+			MPP=1
+		fi
+		;;
+	e) EXTRA_ARGS="-i \"${DSS_QUERY}/explain-analyze.sql\""
+		;;
+	f) SCALE_FACTOR=$OPTARG;;
+	n) num_stream=$OPTARG;;
+	o) OUTPUT_DIR=$OPTARG
+		mkdir -p $OUTPUT_DIR/results
+		;;
+	s) SEED_FILE=$OPTARG;;
+	t) stream_num=$OPTARG;;
+	Y) USE_LINUXPERF=1;;
+	\?) exit 1;;
+	esac
+done
+
+if [ "x$DATABASE" = "x" ]; then
+	echo "Specify database management system with -a flag"
+	usage
+	exit 1
+fi
+
+if [ "x$DATABASE" = "xpgxl" ]; then
+	TAG="pgsql"
+else
+	TAG=$DATABASE
+fi
+
+if [ $DATABASE = "monetdb" ]; then
+	DBCMD="mclient -e -d $DBNAME"
+elif [ $DATABASE = "pgsql" ] || [ $DATABASE = "pgxl" ]; then
+	DBCMD="psql -v ON_ERROR_STOP=1 -X -e"
+elif [ $DATABASE = "mysql" ]; then
+	DBCMD="mysql -u root -D $DBNAME"
+elif [ $DATABASE = "virtuoso" ]; then
+	DBCMD="isql PROMPT=OFF ERRORS=STDOUT ECHO=ON VERBOSE=OFF"
+else
+	echo "Unsupported database system"
+	exit 1
+fi
+
+RUNDIR=$OUTPUT_DIR/run
+RESULTSDIR="${OUTPUT_DIR}/results/${stream_num}"
+mkdir -p ${RESULTSDIR} || exit 1
+
+# output PID to a tmp file
+echo "$$" > $RUNDIR/PID$stream_num
+
+if [ ! -f $SEED_FILE ]; then
+	echo "creating seed file $SEED_FILE, you can change the seed by "
+	echo "modifying this file"
+	$SRCDIR/scripts/init_seed.sh > $SEED_FILE
+fi
+read SEED < $SEED_FILE
+SEED=$(( ${SEED} + ${stream_num} ))
+
+# get the execution plan for each query of each query stream
+PLANDIR=${OUTPUT_DIR}/plans/${stream_num}
+mkdir -p ${PLANDIR} || exit 1
+
+if [ $DATABASE = "virtuoso" ]; then
+	# Special case for Virtuoso since qgen cannot do this for us.
+	ESTART="explain('"
+	EEND="');"
+fi
+i=1
+while [ $i -le 22 ]
+do
+	# Remember the query planned is in the order determined by the seed.
+	Q=`${QGEN} -c -r ${SEED} -p ${stream_num} -s ${SCALE_FACTOR} -x ${i}`
+	N=`echo ${Q} | sed -n -r 's/.*\(#\)([[:digit:]]+)\..*/\1/p'`
+	if [ $DATABASE = "virtuoso" ]; then
+		# Can't have comments or transaction statments sent to explain().
+		# Escape single quotes for explain().
+		Q=`$QGEN -a -r $SEED -p $num_stream -s $SCALE_FACTOR -x $i | tail -n +2 | sed -e "s/'/''/g"`
+	fi
+	$DBCMD<< __EOF__ > ${PLANDIR}/${N}.txt 2>&1
+$ESTART
+${Q}
+$EEND
+__EOF__
+	i=$(( $i + 1 ))
+done
+
+# run the queries
+echo "`date`: start throughput queriy stream $stream_num "
+s_time=`date +%s`
+STREAMTASK="PERF.THRUPUT.QS${stream_num}.ALL"
+dbt3-$TAG-time-statistics -s -n $STREAMTASK || exit 1
+i=1
+while [ ${i} -le 22 ]; do
+	Q=`$QGEN -c -r $SEED -p $stream_num -s $SCALE_FACTOR $EXTRA_ARGS $i`
+	N=`echo ${Q} | sed -n -r 's/.*\(#\)([[:digit:]]+)\..*/\1/p'`
+	if [ $MPP -eq 0 ] && [ $USE_LINUXPERF -eq 1 ]; then
+		PERFDIR=$RESULTSDIR/perf/$N
+		mkdir -p $PERFDIR
+		PERFCOMMAND="perf record -a -g -s -F 100 -o $PERFDIR/q$N-perf.data"
+	fi
+	TASK="PERF.THRUPUT.QS${stream_num}.Q${N}"
+	dbt3-$TAG-time-statistics -s -n $TASK || exit 1
+	eval $PERFCOMMAND $DBCMD << __EOF__ > $RESULTSDIR/$N.txt 2>&1
+$Q
+__EOF__
+	dbt3-$TAG-time-statistics -e -n $TASK || exit 1
+	i=$(( ${i} + 1 ))
+done
+dbt3-$TAG-time-statistics -e -n $STREAMTASK || exit 1
