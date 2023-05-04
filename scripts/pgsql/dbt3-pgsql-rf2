@@ -51,7 +51,7 @@ done
 PSQL="psql -v ON_ERROR_STOP=1 -X"
 
 if [ $EXPLAIN -eq 1 ]; then
-	SQL_EXTRA=$(cat ${DSS_QUERY}/explain-analyze.sql)
+	SQL_EXTRA=$(cat "${DSS_QUERY}/explain-analyze.sql")
 fi
 
 echo "`date`: Stream $SET_NUM : Starting Refresh Stream 2..."

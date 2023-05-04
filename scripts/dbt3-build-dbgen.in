@@ -1,0 +1,128 @@
+#!/bin/sh
+@SHELLOPTIONS@
+#
+# This file is released under the terms of the Artistic License.
+# Please see the file LICENSE, included in this package, for details.
+#
+# Copyright The DBT-3 Authors
+#
+
+usage() {
+	cat << EOF
+Database Test 3 (DBT-3)
+
+Usage:
+  $(basename "${0}") [OPTION] DBMS DIRECTORY
+
+Options:
+  --patch-dir=DIRECTORY
+                 DIRECTORY of patches to apply to TPC-H Tools, overrides
+                 PATCHDIR environment variable, default /usr/share/dbt3/patches
+  --query-dir=DIRECTORY
+                 DIRECTORY of queries to copy to TPC-H Tools, overrides
+                 QUERYDIR environment variable, default /usr/share/dbt3/queries
+  -V, --version  output version information, then exit
+  -?, --help     show this help, then exit
+
+DBMS options are:
+  monetdb    MonetDB
+  mysql      MySQL
+  pgsql      PostgreSQL
+  pgxl       Postgres-XL
+  virtuoso   Virtuoso
+
+@HOMEPAGE@
+EOF
+}
+
+errormsg() {
+	printf "ERROR: %s, try \"%s\" " "${1}" "$(basename "${0}")"
+	echo "for more information."
+	exit 1
+}
+
+# Custom argument handling for hopefully most portability.
+while [ "${#}" -gt 0 ] ; do
+	case "${1}" in
+	(--patch-dir)
+		shift
+		PATCHDIR="${1}"
+		;;
+	(--patch-dir=?*)
+		PATCHDIR="${1#*--patch-dir=}"
+		;;
+	(--query-dir)
+		shift
+		QUERYDIR="${1}"
+		;;
+	(--query-dir=?*)
+		QUERYDIR="${1#*--query-dir=}"
+		;;
+	(-V | --version)
+		echo "$(basename "${0}") (Database Test 3) v@PROJECT_VERSION@"
+		;;
+	(-\? | --help)
+		usage
+		exit 0
+		;;
+	(--* | -*)
+		echo "$(basename "${0}"): invalid option -- '${1}'"
+		echo "try \"$(basename "${0}") --help\" for more information."
+		exit 1
+		;;
+	(*)
+		break
+		;;
+	esac
+	shift
+done
+
+if [ $# -eq 0 ]; then
+	errormsg "missing DBMS command line parameter"
+fi
+DBMS=${1}
+shift
+
+if [ $# -eq 0 ]; then
+	errormsg "missing DIRECTORY command line parameter"
+fi
+DBGENDIR=$(readlink -f "${1}")
+shift
+
+if [ "${PATCHDIR}" = "" ]; then
+	PATCHDIR="/usr/share/dbt3/patches"
+fi
+if [ "${QUERYDIR}" = "" ]; then
+	QUERYDIR="/usr/share/dbt3/queries"
+fi
+
+
+SERIESFILE="${PATCHDIR}/series"
+if [ ! -f "${SERIESFILE}" ]; then
+	errormsg "missing 'series' file in '${PATCHDIR}'"
+fi
+
+find "${QUERYDIR}" -mindepth 1 -maxdepth 1 -type d | \
+		while IFS= read -r QDIR; do
+	cp -pr "${QDIR}" "${DBGENDIR}/dbgen/queries/"
+done
+
+cd "${DBGENDIR}" || \
+		(echo "ERROR: cannot enter directory ${DBGENDIR}" && exit 1)
+while IFS= read -r PATCHFILE; do
+	patch -s -p2 < "${PATCHDIR}/${PATCHFILE}" || \
+			(echo "ERROR: canno apply patch ${PATCHFILE}" && exit 1)
+done < "${SERIESFILE}"
+cd dbgen || (echo "ERROR: cannot enter directory ${DBGENDIR}/dbgen" && exit 1)
+
+case "${DBMS}" in
+	(pgsql)
+		DATABASE="postgresql"
+		;;
+	(*)
+		echo "ERROR: Unhandled DBMS: ${DBMS}"
+		exit 1
+		;;
+esac
+
+make -s -f "Makefile.${DATABASE}" || (echo "ERROR: cannot build dbgen" && exit 1)

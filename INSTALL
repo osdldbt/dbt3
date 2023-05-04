@@ -1,4 +1,0 @@
-If you have checked out this source tree directly from the source contronal
-managemant system run the following command:
-
- ./autogen.sh

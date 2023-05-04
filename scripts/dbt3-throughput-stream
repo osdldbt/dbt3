@@ -19,7 +19,7 @@ while getopts "a:ef:n:o:s:t:Y" opt; do
 			MPP=1
 		fi
 		;;
-	e) EXTRA_ARGS="-i ${DSS_QUERY}/explain-analyze.sql"
+	e) EXTRA_ARGS="-i \"${DSS_QUERY}/explain-analyze.sql\""
 		;;
 	f) SCALE_FACTOR=$OPTARG;;
 	n) num_stream=$OPTARG;;

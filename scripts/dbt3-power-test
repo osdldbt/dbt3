@@ -62,7 +62,7 @@ while getopts "a:ef:o:p:s:UyYz" opt; do
 	e)
 		EXTRA=1
 		EXTRA_ARGS="-e"
-		QGEN_ARG="-i ${DSS_QUERY}/explain-analyze.sql"
+		QGEN_ARG="-i \"${DSS_QUERY}/explain-analyze.sql\""
 		;;
 	f)
 		SCALE_FACTOR=$OPTARG

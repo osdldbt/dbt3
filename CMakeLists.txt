@@ -17,6 +17,8 @@ set (
     "Database Test 3 (DBT-3) project page: https://github.com/osdldbt/dbt3"
 )
 
+add_subdirectory (patches)
+add_subdirectory (queries)
 add_subdirectory (scripts)
 
 # CPack rules for creating distribution files.

@@ -9,12 +9,18 @@ configure_file(
     ${CMAKE_BINARY_DIR}/dbt3
     @ONLY
 )
+configure_file(
+    dbt3-build-dbgen.in
+    ${CMAKE_BINARY_DIR}/dbt3-build-dbgen
+    @ONLY
+)
 
 set (CWD "${CMAKE_SOURCE_DIR}/scripts")
 
 install (
     PROGRAMS
     ${CMAKE_BINARY_DIR}/dbt3
+    ${CMAKE_BINARY_DIR}/dbt3-build-dbgen
     ${CWD}/dbt3-compare-results
     ${CWD}/dbt3-generate-report
     ${CWD}/dbt3-get-config

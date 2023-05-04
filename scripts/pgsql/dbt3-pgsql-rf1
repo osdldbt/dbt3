@@ -52,7 +52,7 @@ DATASET=`${PSQL} -A -t -c "SELECT nextval('dataset');"`
 $DBGEN -s ${SCALE_FACTOR} -U ${DATASET} -S ${DATASET} || exit 1
 
 if [ $EXPLAIN -eq 1 ]; then
-	SQL_EXTRA=$(cat ${DSS_QUERY}/explain-analyze.sql)
+	SQL_EXTRA=$(cat "${DSS_QUERY}/explain-analyze.sql")
 fi
 
 echo "`date`: Stream ${DATASET} : Starting Refresh Stream 1..."

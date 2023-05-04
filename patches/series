@@ -1,0 +1,5 @@
+dbt3-TPC-H_v3.0.1-postgresql.diff
+dbt3-TPC-H_v3.0.1-stdout.diff
+dbt3-TPC-H_v3.0.1-mysql.diff
+dbt3-TPC-H_v3.0.1-virtuoso.diff
+dbt3-TPC-H_v3.0.1-monetdb.diff

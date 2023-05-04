@@ -37,11 +37,13 @@ MySQL, and MariaDB.
 Query Templates
 ---------------
 
-The TPC-H DBGEN tool kit includes the official query syntax for TPC-H queries.
-The tester can substitute DBT-3 queries with TPC-H queries and alter the
-syntax to fit other databases.  A set of query syntax for SAP DB, PostgreSQL,
-MySQL, and MariaDB are included in the kit in the directory `dbt3/queries`.
-Some of the queries are modified for database specific syntax.
+The TPC-H Tools includes the official query syntax for the benchmarks in
+`dbgen/queries`.  DBT-3's `dbt3-build-dbgen` script populates the TPC-H Tools
+subdirectory with query templates for the databases it supports from DBT-3's
+`queries` directory.
+
+For example the PostgreSQL queries are in DBT-3 `queries/pgsql` and is copied
+to TPC-H Tools' `dbgen/queries/pgsql` when `dbt3-build-dbgen` is executed.
 
 -----
 Setup
@@ -86,23 +88,22 @@ The latest development version of the kit can be checked out using git::
 Building the kit
 ~~~~~~~~~~~~~~~~
 
-The configure script needs to be run with the specific DBMS to build **qgen**
-and **dbgen**.  These programs were developed to be build for specific
-databases at compile time.  Otherwise the rest of the scripts installed by the
-kit do not need to be reinstalled or recreated if a different DBMS is used.
+The kit requires the TPC-H Tools to be built for the specific database
+management system to be tested.  The TPC-H Tools is developed in such a way
+that it needs to rebuilt or another copy needs to be built if a different
+database management system is to be tested.  The TPC-H Tools cannot be
+redistributed with this kit and must be downloaded by the tester:
+https://www.tpc.org/tpc_documents_current_versions/current_specifications5.asp
 
-For MySQL and MariaDB::
+DBT-3 provides a script to apply patches and compile the TPC-H Tools.  The
+patches that are applied are minor code changes and query templates to make the
+TPC-H Tools work with the databases supposed by DBT-3.
 
-    ./configure --with-mysql
+For example, to build the TPC-H Tools for PostgreSQL (pgsql), unzip the TPC-H
+Tools zip file and run `dbt3-build-dbgen` against the resulting directory::
 
-For PostgreSQL::
-
-    ./configure --with-postgresql
-
-Once the configure script has been run, the kit is built and installed by::
-
-    make
-    make install
+    unzip *-tpc-h-tool.zip
+    dbt3-build-dbgen pgsql "TPC-H V3.0.1"/
 
 Sizing the System
 ~~~~~~~~~~~~~~~~~
@@ -211,7 +212,7 @@ Quick Start
 
 Only one command needs to be issued to run a complete test::
 
-    dbt3-run -a pgsql -f 1 -o /tmp/results
+    dbt3-run --tpchtools="TPC-H V3.0.1" -a pgsql -f 1 -o /tmp/results
 
 This will run the generate the data files for a 1GB scale factor database load,
 power and throughput test, with 1 stream, against PostgreSQL and record the
