@@ -17,6 +17,7 @@ set (
     "Database Test 3 (DBT-3) project page: https://github.com/osdldbt/dbt3"
 )
 
+add_subdirectory (appimage)
 add_subdirectory (patches)
 add_subdirectory (queries)
 add_subdirectory (scripts)
@@ -78,3 +79,34 @@ set (
 )
 
 include (CPack)
+
+set (APPIMAGE_SOURCE_DIR ${CMAKE_SOURCE_DIR}/appimage)
+
+set (GNUPLOT "AppDir/usr/bin/gnuplot")
+set (PSQL "AppDir/usr/bin/psql")
+
+add_custom_target(appimage-podman
+    COMMAND cp -aLr /usr/local/AppDir .
+    COMMAND cp -aL ${CMAKE_BINARY_DIR}/AppRun
+                   ${APPIMAGE_SOURCE_DIR}/activate
+                   ${APPIMAGE_SOURCE_DIR}/dbt3.desktop
+                   ${APPIMAGE_SOURCE_DIR}/dbt3.svg
+            AppDir
+    COMMAND mkdir -p AppDir/usr/share/metainfo
+    COMMAND cp -aL ${APPIMAGE_SOURCE_DIR}/dbt3.appdata.xml
+            AppDir/usr/share/metainfo
+    COMMAND mkdir -p AppDir/usr/lib
+    COMMAND cp -aL `ldd ${GNUPLOT} | grep libfribidi\\. | cut -d \" \" -f 3`
+                   `ldd ${GNUPLOT} | grep libgraphite2\\. | cut -d \" \" -f 3`
+                   `ldd ${GNUPLOT} | grep harfbuzz\\. | cut -d \" \" -f 3`
+                   `ldd ${GNUPLOT} | grep libpango-1\\.0\\. | cut -d \" \" -f 3`
+                   `ldd ${GNUPLOT} | grep libpangoft2-1\\.0\\. | cut -d \" \" -f 3`
+                   `ldd ${GNUPLOT} | grep libpangocairo-1\\.0\\. | cut -d \" \" -f 3`
+                   `ldd ${GNUPLOT} | grep libthai\\. | cut -d \" \" -f 3`
+                   `ldd ${PSQL} | grep libcrypto\\. | cut -d \" \" -f 3`
+                   `ldd ${PSQL} | grep libpq\\. | cut -d \" \" -f 3`
+                   `ldd ${PSQL} | grep libssl\\. | cut -d \" \" -f 3`
+            AppDir/usr/lib
+    COMMAND VERSION=${PROJECT_VERSION} /usr/local/squashfs-root/AppRun
+            --comp=xz AppDir
+)

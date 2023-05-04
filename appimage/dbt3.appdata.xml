@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+	<id>dbt3</id>
+	<metadata_license>Artistic-2.0</metadata_license>
+	<project_license>Artistic-2.0</project_license>
+	<name>DBT-3</name>
+	<summary>
+        Database Test 3 TPC Benchmark (TM) C Fair Use Implementation
+    </summary>
+	<description>
+		<p>
+			Database Test 3 (DBT-3) is a TPC Benchmark (TM) H (TPC-H) Fair Use
+            Implementation.
+        </p>
+	</description>
+	<launchable type="desktop-id">dbt3.desktop</launchable>
+	<url type="homepage">https://github.com/osdldbt/dbt3</url>
+	<screenshots>
+		<screenshot type="default">
+			<image>
+                https://osdldbt.github.io/dbt-reports/dbt3/3-tier/txn/n-transaction-rate.png
+            </image>
+		</screenshot>
+	</screenshots>
+	<provides>
+		<id>dbt3.desktop</id>
+	</provides>
+</component>

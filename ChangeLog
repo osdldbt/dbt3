@@ -10,6 +10,7 @@ vX.Y.Z
 - Add container script to run a complete test
 - Convert documentation to reStructuredText
 - Add dbt3-build-dbgen script to build dbgen with applied patches
+- Add ability to create an AppImage
 
 v1.11.1
 

@@ -1,0 +1,42 @@
+#!/bin/sh
+
+usage() {
+	cat << EOF
+Usage:
+  $(basename "${0}")
+
+Options:
+  -?, --help     show this help, then exit
+EOF
+}
+
+# Custom argument handling for hopefully most portability.
+while [ "${#}" -gt 0 ] ; do
+    case "${1}" in
+	(-\? | --help)
+		usage
+		exit 0
+		;;
+	(--* | -*)
+		echo "$(basename "${ARGV0}"): invalid option -- '${1}'"
+		echo "try \"$(basename "${ARGV0}") --help\" for more information."
+		exit 1
+		;;
+	(*)
+		break
+		;;
+	esac
+	shift
+done
+
+if ! which podman > /dev/null 2>&1; then
+	echo "podman is not in your path"
+	exit 1
+fi
+
+CONTAINER_DIR=$(readlink -f "$(dirname "$0")")
+CONTAINER_TAG="dbt3-appimage"
+
+cd "$CONTAINER_DIR/.." && \
+		podman build --isolation=chroot -t $CONTAINER_TAG \
+				--ignorefile .dockerignore -f "Containerfile.appimage" .
