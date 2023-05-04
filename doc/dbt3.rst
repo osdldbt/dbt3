@@ -211,24 +211,23 @@ Quick Start
 
 Only one command needs to be issued to run a complete test::
 
-    dbt3-run-workload -a pgsql -f 1 -o /tmp/results
+    dbt3-run -a pgsql -f 1 -o /tmp/results
 
 This will run the generate the data files for a 1GB scale factor database load,
 power and throughput test, with 1 stream, against PostgreSQL and record the
 results of the test in `/tmp/results`.
 
-The *dbt3-run-workload* script can be used to run any combination of a load
-test, power test, and throughput test.  A load tests must be run in order to
-create the database before a power or throughput tests can be run
-individually.
+The *dbt3-run* script can be used to run any combination of a load test, power
+test, and throughput test.  A load tests must be run in order to create the
+database before a power or throughput tests can be run individually.
 
 Addition PostgreSQL execution notes
 -----------------------------------
 
 There is an additional `-e` flag that can be used for testing PostgreSQL with
-the *dbt3-run-workload* script that will execute the queries in the power and
-throughput tests using `EXPLAIN (ANALYZE, BUFFERS)` thus returning actual
-execution plans instead of the query results.
+the *dbt3-* script that will execute the queries in the power and throughput
+tests using `EXPLAIN (ANALYZE, BUFFERS)` thus returning actual execution plans
+instead of the query results.
 
 If the `-e` flag is used, an additional plan disaster report will be
 generating showing which queries grossly misestimated the number of rows
@@ -259,10 +258,10 @@ kit builds them only in one specific configuration::
 Test Results
 ============
 
-The results directory, as specified when running the
-*dbt3-run-workload-scripts* by the `-o` option, will contain the calculated
-metrics of the test as well as charts of the system and database statistics
-summarized in the +index.html+ file in the results directory.
+The results directory, as specified when running the *dbt3-run* scripts by the
+`-o` option, will contain the calculated metrics of the test as well as charts
+of the system and database statistics summarized in the *index.html* file in
+the results directory.
 
 The query results chart display the execute time of each query for the power
 test, and the arithmetic mean of each of the streams in the throughput test.

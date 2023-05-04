@@ -4,10 +4,17 @@ add_subdirectory (pgsql)
 add_subdirectory (pgxl)
 add_subdirectory (virtuoso)
 
+configure_file(
+    dbt3.in
+    ${CMAKE_BINARY_DIR}/dbt3
+    @ONLY
+)
+
 set (CWD "${CMAKE_SOURCE_DIR}/scripts")
 
 install (
     PROGRAMS
+    ${CMAKE_BINARY_DIR}/dbt3
     ${CWD}/dbt3-compare-results
     ${CWD}/dbt3-generate-report
     ${CWD}/dbt3-get-config

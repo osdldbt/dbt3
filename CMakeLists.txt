@@ -8,6 +8,15 @@ set (PROJECT_VERSION_PATCH 1)
 set (PROJECT_VERSION
      ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH})
 
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set (SHELLOPTIONS "set -x")
+endif ()
+
+set (
+    HOMEPAGE
+    "Database Test 3 (DBT-3) project page: https://github.com/osdldbt/dbt3"
+)
+
 add_subdirectory (scripts)
 
 # CPack rules for creating distribution files.
