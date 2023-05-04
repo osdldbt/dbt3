@@ -8,8 +8,8 @@ work but will need manual editing of the script.
 
 The quickest way to try out the kit is to run::
 
-    container/build-pgsql <tpchtools.zip>
-    container/run-test pgsql 1
+    tools/build-pgsql <tpchtools.zip>
+    tools/run-test pgsql 1
 
 * `build-pgsql` - Build a container image prepared for running tests against
                   PostgreSQL.

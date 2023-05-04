@@ -10,7 +10,6 @@ CMakeCache.txt
 CPackConfig.cmake
 CPackSourceConfig.cmake
 
-container/
 Containerfile*
 .dockerignore
 .git
