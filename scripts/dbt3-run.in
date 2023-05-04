@@ -16,46 +16,49 @@ killall sar sadc pidstat dbt3-$DATABASE-dbstat' TERM
 
 usage()
 {
-	echo
-	echo "`basename $0` is the DBT-3 workload runner"
-	echo ""
-	echo "Usage:"
-	echo "  `basename $0` [OPTIONS]"
-	echo
-	echo "Generate options:"
-	echo "  -1              only run load test"
-	echo "  -2              only run power test"
-	echo "  -3              only run throughput test"
-	echo "  -a DBMS         database management system to test"
-	echo "  -c              comment about the test"
-	echo "  -C              flag to resort data load files"
-	echo "  -d              direct data load"
-	echo "  -f SCALE        database scale factor, default 1"
-	echo "  -g              generate flat files"
-	echo "  -h              this help message"
-	echo "  -l PORT         database port"
-	echo "  -n STREAMS      number of throughput streams"
-	echo "  -o DIRECTORY    path to store test results"
-	echo "  -O              enable oprofile (Linux only)"
-	echo "  -P              enable linux perf (Linux only)"
-	echo "  -R              materialized view mode"
-	echo "  -s SEED         seed to use for power and throughput tests"
-	echo "  -u              use tablespaces"
-	echo "  -U              run test as an unprivileged user"
-	echo "  -z              do not run refresh streams"
-	echo ""
-	echo "DBMS options are:"
-	echo "  monetdb         MonetDB"
-	echo "  mysql           MySQL"
-	echo "  pgsql           PostgreSQL"
-	echo "  pgxl            Postgres-XL"
-	echo "  virtuoso        Virtuoso"
-	echo ""
-	echo "PostgreSQL specific options:"
-	echo "  -e   EXPLAIN ANALYZE"
-	echo "  -p   database parameters for the load test"
-	echo "  -q   database parameters for the power test"
-	echo "  -r   database parameters for the throughput test"
+	cat << EOF
+$(basename "${0}") is the DBT-3 workload runner
+
+Usage:
+  $(basename "${0}") [OPTIONS]
+
+Generate options:
+  -1              only run load test
+  -2              only run power test
+  -3              only run throughput test
+  -a DBMS         database management system to test
+  -c              comment about the test
+  -C              flag to resort data load files
+  -d              direct data load
+  -f SCALE        database scale factor, default 1
+  -g              generate flat files
+  -l PORT         database port
+  -n STREAMS      number of throughput streams
+  -o DIRECTORY    path to store test results
+  -O              enable oprofile (Linux only)
+  -P              enable linux perf (Linux only)
+  -R              materialized view mode
+  -s SEED         seed to use for power and throughput tests
+  -u              use tablespaces
+  -U              run test as an unprivileged user
+  -z              do not run refresh streams
+  -?, --help      this help message
+
+DBMS options are:
+  monetdb         MonetDB
+  mysql           MySQL
+  pgsql           PostgreSQL
+  pgxl            Postgres-XL
+  virtuoso        Virtuoso
+
+PostgreSQL specific options:
+  -e   EXPLAIN ANALYZE
+  -p   database parameters for the load test
+  -q   database parameters for the power test
+  -r   database parameters for the throughput test
+
+@HOMEPAGE@
+EOF
 }
 
 make_sar_csv() {
@@ -110,106 +113,120 @@ if [ -n "$DEFAULT_THROUGHPUT_PARAMETERS" ]; then
 	THROUGHPUT_PARAMETERS="$DEFAULT_THROUGHPUT_PARAMETERS"
 fi
 
-while getopts "123a:c:CdD:ef:ghn:Oo:p:Pq:Rr:s:tuUVz" opt; do
-	case $opt in
-	1)
+# Custom argument handling for hopefully most portability.
+while [ "${#}" -gt 0 ] ; do
+	case "${1}" in
+	(-1)
 		RUN_LOAD_TEST=1
 		RUN_ALL_TESTS=0
 		;;
-	2)
+	(-2)
 		RUN_POWER_TEST=1
 		FLAG_POWER_TEST="-2"
 		RUN_ALL_TESTS=0
 		;;
-	3)
+	(-3)
 		RUN_THROUGHPUT_TEST=1
 		FLAG_THROUGHPUT_TEST="-3"
 		RUN_ALL_TESTS=0
 		;;
-	a)
-		DATABASE=${OPTARG}
+	(-a)
+		shift
+		DATABASE=${1}
 		export DATABASE=${DATABASE}
 		;;
-	c)
-		COMMENT=${OPTARG}
+	(-c)
+		shift
+		COMMENT=${1}
 		;;
-	C)
+	(-C)
 		RESORT_ARG="-c"
 		;;
-	d)
+	(-d)
 		DIRECT_LOAD_ARG="-d"
 		;;
-	D)
-		CHUNK_ARG="-C $OPTARG"
+	(-D)
+		shift
+		CHUNK_ARG="-C $1"
 		;;
-	e)
+	(-e)
 		EXTRA_ARGS="$EXTRA_ARGS -e"
 		;;
-	f)
-		export SCALE_FACTOR=$OPTARG
+	(-f)
+		shift
+		export SCALE_FACTOR=$1
 		;;
-	g)
+	(-g)
 		GENERATE=1
 		;;
-	h)
-		usage
-		exit 1
+	(-n)
+		shift
+		STREAMS=$1
 		;;
-	n)
-		STREAMS=$OPTARG
-		;;
-	O)
+	(-O)
 		OPROFILE_FLAG="-y"
 		;;
-	o)
-		OUTPUT_DIR="${OPTARG}"
+	(-o)
+		shift
+		OUTPUT_DIR="${1}"
 		if [ -d "$OUTPUT_DIR" ]; then
 			echo "The directory \"$OUTPUT_DIR\" already exists, specify a different location."
 			exit 1
 		fi
 		mkdir -p $OUTPUT_DIR
 		;;
-	P)
+	(-P)
 		LINUXPERF_FLAG="-Y"
 		;;
-	p)
+	(-p)
 		# PostgreSQL only.
 		LOAD_PARAMETERS="$LOAD_PARAMETERS $OPTARG"
 		;;
-	q)
+	(-q)
 		# PostgreSQL only.
 		POWER_PARAMETERS="$POWER_PARAMETERS $OPTARG"
 		;;
-	R)
-		WORKLOAD="R"
+	(-R)
 		WORKLOAD_ARG="-R"
 		;;
-	r)
+	(-r)
 		# PostgreSQL only.
 		THROUGHPUT_PARAMETERS="$THROUGHPUT_PARAMETERS $OPTARG"
 		;;
-	s)
-		SEED=$OPTARG
+	(-s)
+		shift
+		SEED=$1
 		;;
-	u)
+	(-u)
 		TABLESPACES_FLAG="-t"
 		;;
-	U)
+	(-U)
 		PRIVILEGED=0
 		UNPRIVILEGED_ARG="-U"
 		;;
-	V)
+	(-v)
 		VERT_FLAG="-V"
 		;;
-	z)
+	(-z)
 		NO_REFRESH_FLAG="-z"
-		NO_REFRESH=1
 		;;
-	\?)
+	(-V | --version)
+		echo "$(basename "${0}") (Database Test 3) v@PROJECT_VERSION@"
+		;;
+	(-\? | --help)
 		usage
+		exit 0
+		;;
+	(--* | -*)
+		echo "$(basename "${0}"): invalid option -- '${1}'"
+		echo "try \"$(basename "${0}") --help\" for more information."
 		exit 1
 		;;
+	(*)
+		break
+		;;
 	esac
+	shift
 done
 
 if [ "x${DSS_PATH}" = "x" ]; then
