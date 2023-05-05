@@ -9,11 +9,6 @@ configure_file(
     @ONLY
 )
 configure_file(
-    dbt3-pgsql-dbstat.in
-    ${CMAKE_BINARY_DIR}/dbt3-pgsql-dbstat
-    @ONLY
-)
-configure_file(
     dbt3-pgsql-drop-db.in
     ${CMAKE_BINARY_DIR}/dbt3-pgsql-drop-db
     @ONLY
@@ -77,7 +72,6 @@ configure_file(
 install (
     PROGRAMS ${CMAKE_BINARY_DIR}/dbt3-pgsql-create-db
              ${CMAKE_BINARY_DIR}/dbt3-pgsql-create-tables
-             ${CMAKE_BINARY_DIR}/dbt3-pgsql-dbstat
              ${CMAKE_BINARY_DIR}/dbt3-pgsql-drop-db
              ${CMAKE_BINARY_DIR}/dbt3-pgsql-drop-tables
              ${CMAKE_BINARY_DIR}/dbt3-pgsql-get-query-time

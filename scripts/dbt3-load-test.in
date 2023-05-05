@@ -10,6 +10,9 @@
 #               2005-2022 Mark Wong
 #
 
+trap 'ts-sysstat -o "${OUTPUT_DIR}/sysstat" -s; \
+		eval "ts-${DATABASE}-stat -o ${OUTPUT_DIR}/dbstat -s"' INT TERM
+
 usage()
 {
 	echo
@@ -29,9 +32,9 @@ usage()
 	echo "  -l              only load data"
 	echo "  -o DIRECTORY    path to store test results"
 	echo "  -R              materialized view mode"
+	echo "  -S              enable system and database stats collection"
 	echo "  -U              run test as an unprivileged user"
-	echo "  -y              enable oprofile (Linux only)"
-	echo "  -Y              enable linux perf (Linux only)"
+	echo "  -Y              enable profiling (Linux only)"
 	echo ""
 	echo "DBMS options are:"
 	echo "  monetdb         MonetDB"
@@ -44,19 +47,29 @@ usage()
 	echo "  -p              database parameters for the load test"
 }
 
+stop_procs() {
+	if which ts-sysstat > /dev/null 2>&1; then
+		ts-sysstat -o "${OUTPUT_DIR}/sysstat" -s &
+	fi
+	if which "ts-${DATABASE}-stat" > /dev/null 2>&1; then
+		eval "ts-${DATABASE}-stat -o ${OUTPUT_DIR}/dbstat -s &"
+	fi
+}
+trap 'stop_procs' INT TERM
+
 DIRECT_LOAD=0
 DIRECT_LOAD_ARG=""
 GENERATE=0
 MPP=0
 ONLY_LOAD=0
 PRIVILEGED=1
+PROFILE=0
 RESORT=0
 SF=0
-USE_OPROFILE=0
-USE_LINUXPERF=0
+STATS=0
 WORKLOAD="H"
 
-while getopts "a:cC:df:g:lo:p:RtUyY:" opt; do
+while getopts "a:cC:df:g:lo:p:RStUY" opt; do
 	case $opt in
 	a)
 		DATABASE=$OPTARG
@@ -97,15 +110,15 @@ while getopts "a:cC:df:g:lo:p:RtUyY:" opt; do
 	t)
 		TABLESPACE_FLAG="-t -b"
 		;;
+	S)
+		STATS=1
+		;;
 	U)
 		PRIVILEGED=0
 		UNPRIVILEGED_ARG="-U"
 		;;
-	y)
-		USE_OPROFILE=1
-		;;
 	Y)
-		USE_LINUXPERF=1
+		PROFILE=1
 		;;
 	\?)
 		echo "Usage: $0 [-o <dir> -p <db_param> -f <scale_factor>]"
@@ -212,8 +225,14 @@ else
 	echo "Creating the database using existing data files."
 fi
 
-# Start collecting system statistics.
-dbt3-sysstats --outdir $OUTPUT_DIR --sample 60 --mpp $MPP || exit 1
+if [ $STATS -eq 1 ]; then
+	# Start collecting system statistics.
+	if ! which ts-sysstat > /dev/null 2>&1; then
+		echo "WARNING: ts-sysstat not found for system stats collection"
+	else
+		ts-sysstat -o "${OUTPUT_DIR}/sysstat" &
+	fi
+fi
 
 if [ $PRIVILEGED -eq 1 ]; then
 	eval dbt3-$DATABASE-create-db -o $OUTPUT_DIR $PARAMETERS_ARG
@@ -222,43 +241,35 @@ fi
 dbt3-$DATABASE-drop-tables || exit 1
 dbt3-$DATABASE-create-tables $TABLESPACE_FLAG || exit 1
 
+if [ $STATS -eq 1 ]; then
+	# Collect database statistics
+	if ! which "ts-${DATABASE}-stat" > /dev/null 2>&1; then
+		printf "WARNING: %s not found for database stats " \
+				"ts-${DATABASE}-stat"
+		echo "collection"
+	else
+		eval "ts-${DATABASE}-stat -o ${OUTPUT_DIR}/dbstat &"
+	fi
+fi
+
 echo "Load Test starting at `date`"
 s_time=`date +%s`
 dbt3-$DATABASE-time-statistics -s -n LOAD || exit 1
 
-# Collect database statistics
-dbt3-$DATABASE-dbstat $OUTPUT_DIR 2> /dev/null &
-
-# Initialize profile counters.
-if [ -f /proc/profile ]; then
-	clearprof
+if [ $PROFILE -eq 1 ]; then
+	ts-profile -o "${OUTPUT_DIR}/profile" sleep 1 &
 fi
 
-if [ $USE_OPROFILE -eq 1 ]; then
-	clearoprof
-fi
-
-if [ $USE_LINUXPERF -eq 1 ]; then
-	PERFDIR=$OUTPUT_DIR/perf
-	mkdir -p $PERFDIR
-	PERFCOMMAND="perf record -a -g -s -F 100 -o $PERFDIR/perf.data"
-fi
-
-eval $PERFCOMMAND dbt3-${DATABASE}-load-data -C $CHUNKS $DIRECT_LOAD_ARG $UNPRIVILEGED_ARG || exit 1
+"dbt3-${DATABASE}-load-data" -C "${CHUNKS}" "${DIRECT_LOAD_ARG}" \
+		"${UNPRIVILEGED_ARG}" || exit 1
 
 dbt3-$DATABASE-time-statistics -e -n LOAD || exit 1
 e_time=`date +%s`
 diff_time=`expr $e_time - $s_time`
 echo "Elapsed time for Load Test : $diff_time seconds"
 
-# Stop collecting system statistics.
-read SARPID < $OUTPUT_DIR/sar.pid
-kill $SARPID
-read PIDSTATPID < $OUTPUT_DIR/pidstat.pid
-kill $PIDSTATPID
-if [ -f "$OUTPUT_DIR/dbstat.pid" ]; then
-	read DBSTATPID < $OUTPUT_DIR/dbstat.pid
-	kill $DBSTATPID
+if [ $STATS -eq 1 ]; then
+	stop_procs
 fi
 
 # Brute force.
@@ -268,28 +279,6 @@ if [ $MPP -eq 1 ]; then
 	done
 fi
 
-# Collect profile data.
-if [ -f /proc/profile ]; then
-	profname='Load_Test'
-	getprof
-fi
-
-if [ $USE_OPROFILE -eq 1 ]; then
-	profname='Load_Test'
-	getoprof
-fi
-
-if [ $USE_LINUXPERF -eq 1 ]; then
-	# Sometimes perf segfaults if it's running more than once.
-	echo "Generating Linux perf reports for load test..."
-	perf report -i $PERFDIR/perf.data -n > $PERFDIR/perf-report.txt \
-			2>> $OUTPUT_DIR/perf/report-output.txt
-	$GZIP $OUTPUT_DIR/perf/perf-report.txt
-	perf annotate -l -P -i $PERFDIR/perf.data > $PERFDIR/perf-annotate.txt \
-			2>> $OUTPUT_DIR/perf/report-output.txt
-	$GZIP $OUTPUT_DIR/perf/perf-annotate.txt
-	perf script -L -i $PERFDIR/perf.data > $PERFDIR/perf-trace.txt \
-			2>> $OUTPUT_DIR/perf/report-output.txt
-	$GZIP $OUTPUT_DIR/perf/perf-trace.txt
-	$GZIP $PERFDIR/perf.data
+if [ $PROFILE -eq 1 ]; then
+	ts-profile -o "${OUTPUT_DIR}/profile" -p
 fi

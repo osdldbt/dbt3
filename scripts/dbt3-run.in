@@ -9,11 +9,6 @@
 #               2014-2017 2ndQuadrant, Ltd.
 #               2004-2022 Mark Wong
 
-trap 'echo "Test was interrupted by Control-C."; \
-killall sar sadc pidstat dbt3-$DATABASE-dbstat' INT
-trap 'echo "Test was interrupted. Got TERM signal."; \
-killall sar sadc pidstat dbt3-$DATABASE-dbstat' TERM
-
 usage()
 {
 	cat << EOF
@@ -40,10 +35,10 @@ Generate options:
   -l PORT         database port
   -n STREAMS      number of throughput streams
   -o DIRECTORY    path to store test results
-  -O              enable oprofile (Linux only)
-  -P              enable linux perf (Linux only)
+  --profile       enable software profiling (Linux only)
   -R              materialized view mode
   -s SEED         seed to use for power and throughput tests
+  --stats         enable system and database stats collection
   --tpchtools=TPCHTOOLS
                   TPCHTOOLS is the TPC-H Tools directory
   -u              use tablespaces
@@ -68,26 +63,6 @@ PostgreSQL specific options:
 EOF
 }
 
-make_sar_csv() {
-	local FILE=$1
-
-	local DIR=`dirname $FILE`
-
-	$SADF -P ALL $FILE > ${DIR}/sar-cpu.csv
-	$SADF $FILE -- -B > ${DIR}/sar-paging.csv
-	$SADF $FILE -- -d -p > ${DIR}/sar-blockdev.csv 2> /dev/null
-	$SADF 1 1 -- -R > /dev/null 2>&1
-	if [ $? -eq 0 ]; then
-		$SADF $FILE -- -R > ${DIR}/sar-mem1.csv
-		$SADF $FILE -- -r > ${DIR}/sar-mem2.csv
-	else
-		$SADF $FILE -- -r > ${DIR}/sar-mem.csv
-	fi
-	$SADF $FILE -- -r > ${DIR}/sar-mem2.csv
-	$SADF $FILE -- -W > ${DIR}/sar-swap.csv
-	$SADF $FILE -- -n DEV > ${DIR}/sar-net.csv
-}
-
 DATABASE=""
 DBNAME="dbt3"
 DIRECT_LOAD_ARG=""
@@ -105,9 +80,11 @@ RUN_THROUGHPUT_TEST=0
 NO_REFRESH=0
 NODES=${#datanodeMasterServers[@]}
 OUTPUT_DIR=""
+PROFILE_ARG=""
 RESORT_ARG=""
 SCALE_FACTOR=1
 SEED=0
+STATS_ARG=""
 STREAMS=1
 EXTRA_ARGS=""
 WORKLOAD="H"
@@ -193,9 +170,6 @@ while [ "${#}" -gt 0 ] ; do
 		shift
 		STREAMS=$1
 		;;
-	(-O)
-		OPROFILE_FLAG="-y"
-		;;
 	(-o)
 		shift
 		OUTPUT_DIR="${1}"
@@ -204,12 +178,12 @@ while [ "${#}" -gt 0 ] ; do
 			exit 1
 		fi
 		;;
-	(-P)
-		LINUXPERF_FLAG="-Y"
-		;;
 	(-p)
 		# PostgreSQL only.
 		LOAD_PARAMETERS="$LOAD_PARAMETERS $OPTARG"
+		;;
+	(--profile)
+		PROFILE_ARG="-Y"
 		;;
 	(-q)
 		# PostgreSQL only.
@@ -225,6 +199,9 @@ while [ "${#}" -gt 0 ] ; do
 	(-s)
 		shift
 		SEED=$1
+		;;
+	(--stats)
+		STATS_ARG="-S"
 		;;
 	(--tpchtools)
 		shift
@@ -350,8 +327,6 @@ if [ ${RUN_LOAD_TEST} -eq 1 ]; then
 			-a $DATABASE \
 			-o $OUTPUT_DIR/load \
 			${LOAD_PARAMETERS_ARG} \
-			${OPROFILE_FLAG} \
-			${LINUXPERF_FLAG} \
 			-f $SCALE_FACTOR \
 			-g $GENERATE \
 			${WORKLOAD_ARG} \
@@ -360,6 +335,8 @@ if [ ${RUN_LOAD_TEST} -eq 1 ]; then
 			$DIRECT_LOAD_ARG \
 			$CHUNK_ARG \
 			$UNPRIVILEGED_ARG \
+			$STATS_ARG \
+			$PROFILE_ARG \
 			${TABLESPACES_FLAG} || exit 1
 else
 	#
@@ -398,9 +375,9 @@ if [ ${RUN_POWER_TEST} -eq 1 ]; then
 			${POWER_PARAMETERS_ARG}\
 			$EXTRA_ARGS \
 			-s ${SEED_FILE} \
-			${OPROFILE_FLAG} \
-			${LINUXPERF_FLAG} \
 			$UNPRIVILEGED_ARG \
+			$STATS_ARG \
+			$PROFILE_ARG \
 			${NO_REFRESH_FLAG}
 	if [ $? -eq 1 ] ; then
 		echo "power test problem!"
@@ -416,9 +393,9 @@ if [ ${RUN_THROUGHPUT_TEST} -eq 1 ]; then
 			${THROUGHPUT_PARAMETERS_ARG} \
 			$EXTRA_ARGS \
 			-s ${SEED_FILE} \
-			${OPROFILE_FLAG} \
-			${LINUXPERF_FLAG} \
 			$UNPRIVILEGED_ARG \
+			$STATS_ARG \
+			$PROFILE_ARG \
 			${NO_REFRESH_FLAG}
 	if [ $? -eq 1 ] ; then
 		echo "throughput test problem!"
@@ -473,26 +450,6 @@ dbt3-post-process \
 		$NO_REFRESH_FLAG \
 		$FLAG_POWER_TEST \
 		$FLAG_THROUGHPUT_TEST 2> $OUTPUT_DIR/post-process.txt
-
-which sadf > /dev/null 2>&1
-if [ $? -eq 0 ]; then
-	SADF="sadf -d -U"
-	$SADF 1 1 > /dev/null 2>&1
-	if [ $? -ne 0 ]; then
-		SADF="sadf -D"
-		$SADF 1 1 > /dev/null 2>&1
-		if [ $? -ne 0 ]; then
-			echo "WARNING: Was not able to determine proper sadf flags"
-			SADF="true"
-		fi
-	fi
-else
-	SADF=true
-fi
-
-for SARFILE in `find $OUTPUT_DIR -name sar_raw.out`; do
-	make_sar_csv $SARFILE
-done
 
 LOADDIR=${OUTPUT_DIR}/load
 if [ -d "${LOADDIR}" ]; then

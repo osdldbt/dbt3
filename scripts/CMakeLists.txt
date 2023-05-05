@@ -60,11 +60,6 @@ configure_file(
     @ONLY
 )
 configure_file(
-    dbt3-sysstats.in
-    ${CMAKE_BINARY_DIR}/dbt3-sysstats
-    @ONLY
-)
-configure_file(
     dbt3-throughput-score.in
     ${CMAKE_BINARY_DIR}/dbt3-throughput-score
     @ONLY
@@ -97,7 +92,6 @@ install (
              ${CMAKE_BINARY_DIR}/dbt3-power-score
              ${CMAKE_BINARY_DIR}/dbt3-power-test
              ${CMAKE_BINARY_DIR}/dbt3-run
-             ${CMAKE_BINARY_DIR}/dbt3-sysstats
              ${CMAKE_BINARY_DIR}/dbt3-throughput-score
              ${CMAKE_BINARY_DIR}/dbt3-throughput-stream
              ${CMAKE_BINARY_DIR}/dbt3-throughput-stream-wrapper

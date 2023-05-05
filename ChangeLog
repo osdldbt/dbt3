@@ -19,6 +19,8 @@ vX.Y.Z
 - Generate PDF version of the report only when explicitly requested
 - Stop double collecting stats in MonetDB and Virtuoso scripts
 - Do not automatically create HTML report after test execution
+- Use touchstone-tools for collecting system and database statistics, as well
+  as system profile data
 
 v1.11.1
 

@@ -11,7 +11,7 @@
 #
 
 NO_REFRESH=0
-while getopts "a:ef:n:o:s:UYz" opt; do
+while getopts "a:ef:n:o:s:Uz" opt; do
 	case $opt in
 	a) DATABASE=$OPTARG
 		;;
@@ -26,8 +26,6 @@ while getopts "a:ef:n:o:s:UYz" opt; do
 	s) SEED_FILE=$OPTARG
 		;;
 	U) UNPRIVILEGED_ARG="-U"
-		;;
-	Y) LINUXPERF_ARG="-Y"
 		;;
 	z) NO_REFRESH=1
 		;;
@@ -57,7 +55,6 @@ do
 			-f ${scale_factor} \
 			-t ${i} \
 			$EXTRA_ARGS \
-			${LINUXPERF_ARG} \
 			-o ${OUTPUT_DIR} \
 			-s ${SEED_FILE} > ${RUNDIR}/thruput_qs${i} 2>&1 &
 	

@@ -9,11 +9,6 @@ configure_file(
     @ONLY
 )
 configure_file(
-    dbt3-pgxl-dbstat.in
-    ${CMAKE_BINARY_DIR}/dbt3-pgxl-dbstat
-    @ONLY
-)
-configure_file(
     dbt3-pgxl-drop-tables.in
     ${CMAKE_BINARY_DIR}/dbt3-pgxl-drop-tables
     @ONLY
@@ -42,7 +37,6 @@ configure_file(
 install (
     PROGRAMS ${CMAKE_BINARY_DIR}/dbt3-pgxl-create-db
              ${CMAKE_BINARY_DIR}/dbt3-pgxl-create-tables
-             ${CMAKE_BINARY_DIR}/dbt3-pgxl-dbstat
              ${CMAKE_BINARY_DIR}/dbt3-pgxl-drop-tables
              ${CMAKE_BINARY_DIR}/dbt3-pgxl-load-data
              ${CMAKE_BINARY_DIR}/dbt3-pgxl-start-db

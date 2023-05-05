@@ -15,8 +15,7 @@ NO_REFRESH=0
 NO_REFRESH_FLAG=
 PRIVILEGED=1
 EXTRA_ARGS=
-USE_OPROFILE=0
-USE_LINUXPERF=0
+STATS=0
 
 usage()
 {
@@ -33,10 +32,10 @@ usage()
 	echo "  -n STREAMS      number of throughput streams"
 	echo "  -o DIRECTORY    path to store test results"
 	echo "  -s SEED         seed to use for power and throughput tests"
+	echo "  -S              enable system and database stats collection"
 	echo "  -u              use tablespaces"
 	echo "  -U              run test as an unprivileged user"
-	echo "  -y              enable oprofile (Linux only)"
-	echo "  -Y              enable linux perf (Linux only)"
+	echo "  -Y              enable software profiling (Linux only)"
 	echo "  -z              do not run refresh streams"
 	echo ""
 	echo "DBMS options are:"
@@ -51,7 +50,17 @@ usage()
 	echo "  -p              database parameters for the load test"
 }
 
-while getopts "a:ef:hn:o:p:s:UyYz" opt; do
+stop_procs() {
+	if which ts-sysstat > /dev/null 2>&1; then
+		ts-sysstat -o "${OUTPUT_DIR}/sysstat" -s &
+	fi
+	if which "ts-${DATABASE}-stat" > /dev/null 2>&1; then
+		eval "ts-${DATABASE}-stat -o ${OUTPUT_DIR}/dbstat -s &"
+	fi
+}
+trap 'stop_procs' INT TERM
+
+while getopts "a:ef:hn:o:p:s:SUz" opt; do
 	case $opt in
 	a) DATABASE=$OPTARG
 		if [ "x$DATABASE" = "xpgxl" ]; then
@@ -75,13 +84,12 @@ while getopts "a:ef:hn:o:p:s:UyYz" opt; do
 		;;
 	s) SEED_FILE=$OPTARG
 		;;
+	S) STATS=1
+		;;
 	U) PRIVILEGED=0
 		UNPRIVILEGED_ARG="-U"
 		;;
-	y) USE_OPROFILE=1
-		;;
-	Y) USE_LINUXPERF=1
-		LINUXPERF_FLAG="-Y"
+	Y) PROFILE=1
 		;;
 	z) NO_REFRESH_FLAG="-z"
 		NO_REFRESH=1
@@ -119,22 +127,6 @@ echo "Seed : $SEED" > $OUTPUT_DIR/readme.txt
 RUNDIR=$OUTPUT_DIR/run
 mkdir -p $RUNDIR
 
-# Clear the read profile counters.
-if [ -f /proc/profile ]; then
-	clearprof
-fi
-
-# Clear the oprofile counters.
-if [ $USE_OPROFILE -eq 1 ]; then
-	clearoprof
-fi
-
-if [ $MPP -eq 0 ] && [ $USE_LINUXPERF -eq 1 ]; then
-	PERFDIR=$OUTPUT_DIR/perf
-	mkdir -p $PERFDIR
-	PERFCOMMAND="perf record -a -g -s -F 100 -o $PERFDIR/perf.data"
-fi
-
 if [ $PRIVILEGED -eq 1 ]; then
 	dbt3-$DATABASE-stop-db
 	eval dbt3-$DATABASE-start-db -o $OUTPUT_DIR $PARAMETERS_ARG || exit 1
@@ -143,79 +135,45 @@ fi
 dbt3-$TAG-time-statistics -s -n PERF.THRUPUT || exit 1
 
 # Start collecting system statistics. 
-dbt3-sysstats --outdir $OUTPUT_DIR --sample 60 || exit 1
+if [ $STATS -eq 1 ]; then
+	if ! which ts-sysstat > /dev/null 2>&1; then
+		echo "WARNING: ts-sysstat not found for system stats collection"
+	else
+		ts-sysstat -o "${OUTPUT_DIR}/sysstat" &
+	fi
 
-# Start collecting database statistics.
-dbt3-$DATABASE-dbstat ${OUTPUT_DIR} &
-
-# Start the streams.
-eval $PERFCOMMAND dbt3-throughput-stream-wrapper -f $scale_factor \
-		-n $num_stream $EXTRA_ARGS -o $OUTPUT_DIR -s $SEED_FILE \
-		$NO_REFRESH_FLAG $LINUXPERF_FLAG $UNPRIVILEGED_ARG || exit 1
-
-# Stop collecting system statistics.
-read SARPIDS < $OUTPUT_DIR/sar.pid
-for SARPID in $SARPIDS; do
-	kill $SARPID
-done
-read PIDSTATPIDS < $OUTPUT_DIR/pidstat.pid
-for PIDSTATPID in $PIDSTATPIDS; do
-	kill $PIDSTATPID
-done
-if [ -f "$OUTPUT_DIR/dbstat.pid" ]; then
-	read DBSTATPID < $OUTPUT_DIR/dbstat.pid
-	kill $DBSTATPID
+	# Collect database statistics
+	if ! which "ts-${DATABASE}-stat" > /dev/null 2>&1; then
+		printf "WARNING: %s not found for database stats " \
+				"ts-${DATABASE}-stat"
+		echo "collection"
+	else
+		eval "ts-${DATABASE}-stat -o ${OUTPUT_DIR}/dbstat &"
+	fi
 fi
 
+if [ "${MPP}" -eq 0 ] && [ "${PROFILE}" -eq 1 ]; then
+	PERFDIR="${OUTPUT_DIR}/profile"
+	ts-profile -o "${PERFDIR}" sleep 1 &
+fi
+
+# Start the streams.
+eval "dbt3-throughput-stream-wrapper -f $scale_factor \
+		-n $num_stream $EXTRA_ARGS -o $OUTPUT_DIR -s $SEED_FILE \
+		$NO_REFRESH_FLAG $UNPRIVILEGED_ARG" || exit 1
+
 dbt3-$TAG-time-statistics -e -n PERF.THRUPUT || exit 1
+
+if [ $STATS -eq 1 ]; then
+	stop_procs
+fi
 
 # Stop the database after the test.
 if [ $PRIVILEGED -eq 1 ]; then
 	dbt3-$DATABASE-stop-db
 fi
 
-if [ -f /proc/profile ]; then
-	profname="Throughput_Test"
-	getprof
-fi
-
-if [ $USE_OPROFILE -eq 1 ]; then
-	profname="Throughput_Test"
-	getoprof
-fi
-
-if [ $MPP -eq 0 ] && [ $USE_LINUXPERF -eq 1 ]; then
-	echo "Generating Linux perf reports for throughput test..."
-	perf report -i $PERFDIR/perf.data -n > $PERFDIR/perf-report.txt \
-			2>> $OUTPUT_DIR/perf/report-output.txt
-	$GZIP $PERFDIR/perf-report.txt
-	perf annotate -l -P -i $PERFDIR/perf.data > $PERFDIR/perf-annotate.txt \
-			2>> $OUTPUT_DIR/perf/report-output.txt
-	$GZIP $PERFDIR/perf-annotate.txt
-	perf script -L -i $PERFDIR/perf.data > $PERFDIR/perf-trace.txt \
-			2>> $OUTPUT_DIR/perf/report-output.txt
-	$GZIP $PERFDIR/perf-trace.txt
-	$GZIP $PERFDIR/perf.data
-
-	i=1
-	while [ $i -le $num_stream ]; do
-		j=1
-		while [ $j -le 22 ]; do
-			PERFDIR=$OUTPUT_DIR/results/$i/perf/$j
-			PERFPREFIX=q$j
-			perf report -i $PERFDIR/$PERFPREFIX-perf.data -n \
-					> $PERFDIR/$PERFPREFIX-perf-report.txt
-			$GZIP $PERFDIR/$PERFPREFIX-perf-report.txt
-			perf annotate -l -P -i $PERFDIR/$PERFPREFIX-perf.data \
-					> $PERFDIR/$PERFPREFIX-perf-annotate.txt
-			$GZIP $PERFDIR/$PERFPREFIX-perf-annotate.txt
-			perf script -L -i $PERFDIR/$PERFPREFIX-perf.data \
-					> $PERFDIR/$PERFPREFIX-perf-trace.txt
-			$GZIP $PERFDIR/$PERFPREFIX-perf-trace.txt
-			$GZIP $PERFDIR/$PERFPREFIX-perf.data
-			j=$(( $j + 1 ))
-		done
-		i=$(( $i + 1 ))
-	done > $OUTPUT_DIR/perf/perf-output.txt 2>&1
-	wait
+if [ "${MPP}" -eq 0 ] && [ "${PROFILE}" -eq 1 ]; then
+	echo "Generating profiling reports for throughput test..."
+	ts-profile -o "${PERFDIR}" -p
 fi

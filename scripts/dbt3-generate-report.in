@@ -38,12 +38,12 @@ __EOF__
 display_sar_stats() {
 	STATSDIR=$1
 
-	if [ ! -f "${INDIR}/${STATSDIR}/sar_raw.out" ]; then
+	if [ ! -f "${INDIR}/${STATSDIR}/sysstat/sar.datafile" ]; then
 		return
 	fi
 
 	cat << __EOF__
-\`CPU <${STATSDIR}/cpu/>\`__ \`Memory <${STATSDIR}/mem/>\`__ \`Blockdev <${STATSDIR}/blockdev/>\`__ \`Network <${STATSDIR}/net/>\`__ \`Swap <${STATSDIR}/swap/>\`__
+\`CPU <${STATSDIR}/cpu/>\`__ \`Memory <${STATSDIR}/mem/>\`__ \`Blockdev <${STATSDIR}/blockdev/>\`__ \`Network <${STATSDIR}/net/>\`__ \`Paging <${STATSDIR}/paging/>\`__ \`Swap <${STATSDIR}/swap/>\`__
 __EOF__
 
 	THISDIR="${INDIR}/${STATSDIR}"
@@ -51,6 +51,7 @@ __EOF__
 	create_stat_page $STATSDIR mem $THISDIR ${THISDIR}/mem
 	create_stat_page $STATSDIR blockdev $THISDIR ${THISDIR}/blockdev
 	create_stat_page $STATSDIR net $THISDIR ${THISDIR}/net
+	create_stat_page "${STATSDIR}" paging "${THISDIR}" "${THISDIR}/paging"
 	create_stat_page $STATSDIR swap $THISDIR ${THISDIR}/swap
 }
 
@@ -59,10 +60,11 @@ show_images()
 	DIR=$1
 	TAG=$2
 
-	CHARTS=`(cd $DIR && find */ -name "sar-$TAG*.png")`
+	CHARTS=$(find "${DIR}" -name "sar-${TAG}*.png" | sort -n)
 	for CHART in $CHARTS; do
-		echo ".. image:: ../$CHART"
-		echo "   :target: ../$CHART"
+		FNAME=$(basename "${CHART}")
+		echo ".. image:: ../sysstat/sar/${TAG}/${FNAME}"
+		echo "   :target: ../sysstat/sar/${TAG}/${FNAME}"
 		echo "   :width: 100%"
 		echo ""
 	done
@@ -82,7 +84,7 @@ FAST=0
 PLOT_OPTS=""
 while getopts fi:V OPT; do
 	case $OPT in
-		f) FAST=1;;
+		f) export FAST=1;;
 		i) INDIR=$OPTARG;;
 		V) PLOT_OPTS="$PLOT_OPTS -V";;
 		\?) usage; exit 1;;
@@ -94,53 +96,36 @@ if [ "x${INDIR}" = "x" ]; then
 	exit 1
 fi
 
-echo "Generating sar io charts..."
-for SARBLOCKDEVFILE in `find $INDIR -name sar-blockdev.csv`; do
-	DIRNAME="$(dirname $SARBLOCKDEVFILE)/sar"
-	mkdir -p $DIRNAME
-	dbt-plot-sar-blockdev $SARBLOCKDEVFILE $DIRNAME $BLKDEVICES \
-			> /dev/null 2>&1 || warning "Could not create sar blockdev charts" &
-done
-
-echo "Generating memory charts..."
-for SARMEMFILE in `find $INDIR -name sar-mem.csv`; do
-	DIRNAME="$(dirname $SARMEMFILE)/sar"
-	mkdir -p $DIRNAME
-	dbt-plot-sar-mem -i $SARMEMFILE -o $DIRNAME > /dev/null 2>&1 \
-			|| warning "Could not create sar mem charts from $SARMEMFILE" &
-done
-
-echo "Generating processor utilization charts..."
-for SARCPUFILE in `find $INDIR -name sar-cpu.csv`; do
-	DIRNAME="$(dirname $SARCPUFILE)/sar"
-	mkdir -p $DIRNAME
-	dbt-plot-sar-cpu $SARCPUFILE $DIRNAME > /dev/null 2>&1 \
-			|| warning "Could not create sar cpu charts from $SARCPUFILE" &
-done
-
-echo "Generating swap charts..."
-for SARSWAPFILE in `find $INDIR -name sar-swap.csv`; do
-	DIRNAME="$(dirname $SARSWAPFILE)/sar"
-	mkdir -p $DIRNAME
-	dbt-plot-sar-swap $SARSWAPFILE $DIRNAME > /dev/null 2>&1 \
-			|| warning "Could not create sar swap charts from $SARSWAPFILE" &
-done
-
-echo "Generating network charts..."
-for SARNETFILE in `find $INDIR -name sar-net.csv`; do
-	DIRNAME="$(dirname $SARNETFILE)/sar"
-	mkdir -p $DIRNAME
-	dbt-plot-sar-net $SARNETFILE $DIRNAME > /dev/null 2>&1 \
-			|| warning "Could not create sar net charts from $SARNETFILE" &
-done
+echo "Generating sar charts..."
+if [ $FAST -ne 1 ]; then
+	for TEST in load power throughput; do
+		find "${INDIR}/${TEST}" -type d -name sysstat 2> /dev/null| \
+				while IFS= read -r SARDIR; do
+			ts-plot-sar -i "${SARDIR}/sar" &
+		done
+	done
+	wait
+fi
 
 echo "Processing pidstat files..."
-for PIDSTATFILE in $(find $INDIR -name pidstat.txt); do
-	DIRNAME="$(dirname $PIDSTATFILE)"
-	(cd $DIRNAME && dbt-process-pidstat $PIDSTATFILE 2> /dev/null) &
-done
+if [ $FAST -ne 1 ]; then
+	for TEST in load power throughput; do
+		find "${INDIR}/${TEST}" -type f -name pidstat.txt 2> /dev/null | \
+				while IFS= read -r PIDSTATFILE; do
+			ts-process-pidstat -i "${PIDSTATFILE}" &
+		done
+	done
+	wait
 
-wait
+	for TEST in load power throughput; do
+		find "${INDIR}/${TEST}" -type f -name pidstat.csv 2> /dev/null | \
+				while IFS= read -r PIDSTATCSV; do
+			PIDSTATDIR="$(dirname "${PIDSTATCSV}")"
+			ts-plot-pidstat -i "${PIDSTATCSV}" -o "${PIDSTATDIR}/pidstat" &
+		done
+	done
+	wait
+fi
 
 DATE=$(grep "^date" ${INDIR}/config.txt | cut -d ":" -f2-)
 DBMS=$(grep "^dbms" ${INDIR}/config.txt | awk '{print $2}')
@@ -183,7 +168,9 @@ else
 fi
 
 # Plot a query results
-dbt3-plot-results -i $QTIMECSV -o $INDIR -f $SF $PLOT_OPTS
+if [ $FAST -ne 1 ]; then
+	dbt3-plot-results -i $QTIMECSV -o $INDIR -f $SF $PLOT_OPTS
+fi
 
 REPORTFILE="${INDIR}/report.rst"
 cat > $REPORTFILE << __EOF__
@@ -205,12 +192,12 @@ Summary
 Metrics
 =======
 
-======================  ============  ==========================================
-       Composite Score  $(printf "%12s" $COMPOSITE)
-Load Test Time (hours)  $(printf "%12s" $LOAD_HOUR)  $(display_sar_stats load)
-      Power Test Score  $(printf "%12s" $POWER)  $(display_sar_stats power)
- Throughput Test Score  $(printf "%12s" $THROUGHPUT)  $(display_sar_stats throughput)
-======================  ============  ==========================================
+=======================  ===========  ==
+        Composite Score  $(printf "%11.2f" "${COMPOSITE}")
+ Load Test Time (hours)  $(printf "%11.2f" "${LOAD_HOUR}")  $(display_sar_stats load)
+       Power Test Score  $(printf "%11.2f" "${POWER}")  $(display_sar_stats power)
+  Throughput Test Score  $(printf "%11.2f" "${THROUGHPUT}")  $(display_sar_stats throughput)
+=======================  ===========  ==
 
 Query Times
 ===========
@@ -244,9 +231,8 @@ if [ ! "x${RST2HTML5}" = "x" ]; then
 for RST in $(find $INDIR -name "*.rst"); do
 		NAME="${RST%.*}"
 		(cd $(dirname $RST) && \
-				$RST2HTML5 $(basename $RST) ${NAME}.html 2> /dev/null) &
+				$RST2HTML5 $(basename $RST) ${NAME}.html 2> /dev/null)
 	done
-	wait
 
 	echo "Generated top level HTML reports:"
 	ls -1v ${INDIR}/*.html
@@ -265,9 +251,8 @@ for RST in $(find $INDIR -name "*.rst"); do
 				NAME="${HTML%.*}"
 				(cd $(dirname $HTML) && \
 						pandoc -s $(basename $HTML) -f html -t pdf -o ${NAME}.pdf \
-								2> /dev/null) &
+								2> /dev/null)
 			done
-			wait
 
 			echo "Generated top level PDF reports:"
 			ls -1v ${INDIR}/*.pdf

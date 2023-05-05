@@ -279,25 +279,6 @@ also have links to the query plans and query results.
 Tips & Tricks
 =============
 
-Linux perf tool
----------------
-
-The scripts assume that the kernel address maps are not restricted if the Linux
-**perf** tool is used.  To make sure they are unrestricted, set the Linux
-kernel parameter to zero by::
-
-    echo 0 > /proc/sys/kernel/kptr_restrict
-    echo -1 > /proc/sys/kernel/perf_event_paranoid
-
-or editing `/etc/sysctl.conf` with::
-
-    kernel.kptr_restrict = 0
-    kernel.perf_event_paranoid = -1
-
-then as **root** run::
-
-    sysctl -p
-
 MySQL/MariaDB Options
 ---------------------
 
