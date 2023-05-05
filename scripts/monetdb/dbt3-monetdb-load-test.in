@@ -12,11 +12,9 @@ CHUNKS=1
 GENERATE=0
 ONLY_LOAD=0
 SF=0
-USE_OPROFILE=0
-USE_LINUXPERF=0
 WORKLOAD="H"
 
-while getopts "f:g:lo:yY" opt; do
+while getopts "f:g:lo:" opt; do
 	case $opt in
 	f)
 		SF=$OPTARG
@@ -30,12 +28,6 @@ while getopts "f:g:lo:yY" opt; do
 	o)
 		OUTPUT_DIR=$OPTARG
 		mkdir -p $OUTPUT_DIR
-		;;
-	y)
-		USE_OPROFILE=1
-		;;
-	Y)
-		USE_LINUXPERF=1
 		;;
 	\?)
 		echo "Usage: $0 [-o <dir> -p <db_param> -f <scale_factor>]"
@@ -69,9 +61,6 @@ else
 	echo "Creating the database using existing data files."
 fi
 
-# Start collecting system statistics.
-dbt3-sysstats --outdir $OUTPUT_DIR --sample 60 || exit 1
-
 eval dbt3-monetdb-create-db -o $OUTPUT_DIR
 
 dbt3-monetdb-drop-tables
@@ -84,60 +73,9 @@ dbt3-monetdb-time-statistics -s -n "LOAD"
 # Collect database statistics
 dbt3-monetdb-dbstat $OUTPUT_DIR 2> /dev/null &
 
-# Initialize profile counters.
-if [ -f /proc/profile ]; then
-	clearprof
-fi
-
-if [ $USE_OPROFILE -eq 1 ]; then
-	clearoprof
-fi
-
-if [ $USE_LINUXPERF -eq 1 ]; then
-	PERFDIR=$OUTPUT_DIR/perf
-	mkdir -p $PERFDIR
-	PERFCOMMAND="perf record -a -g -s -F 100 -o $PERFDIR/perf.data"
-fi
-
 eval $PERFCOMMAND dbt3-monetdb-load-data -C $CHUNKS || exit 1
 
 dbt3-monetdb-time-statistics -e -n "LOAD"
 e_time=`date +%s`
 diff_time=`expr $e_time - $s_time`
 echo "Elapsed time for Load Test : $diff_time seconds"
-
-# Stop collecting system statistics.
-read SARPID < $OUTPUT_DIR/sar.pid
-kill $SARPID
-read PIDSTATPID < $OUTPUT_DIR/pidstat.pid
-kill $PIDSTATPID
-if [ -f "$OUTPUT_DIR/dbstat.pid" ]; then
-	read DBSTATPID < $OUTPUT_DIR/dbstat.pid
-	kill $DBSTATPID
-fi
-
-# Collect profile data.
-if [ -f /proc/profile ]; then
-	profname='Load_Test'
-	getprof
-fi
-
-if [ $USE_OPROFILE -eq 1 ]; then
-	profname='Load_Test'
-	getoprof
-fi
-
-if [ $USE_LINUXPERF -eq 1 ]; then
-	echo "Generating Linux perf reports for load test..."
-	perf report -i $PERFDIR/perf.data -n > $PERFDIR/perf-report.txt \
-			2>> $OUTPUT_DIR/perf/report-output.txt
-	$GZIP $OUTPUT_DIR/perf/perf-report.txt
-	perf annotate -l -P -i $PERFDIR/perf.data > $PERFDIR/perf-annotate.txt \
-			2>> $OUTPUT_DIR/perf/report-output.txt
-	$GZIP $OUTPUT_DIR/perf/perf-annotate.txt
-	perf script -L -i $PERFDIR/perf.data > $PERFDIR/perf-trace.txt \
-			2>> $OUTPUT_DIR/perf/report-output.txt
-	$GZIP $OUTPUT_DIR/perf/perf-trace.txt
-
-	$GZIP $PERFDIR/perf.data
-fi

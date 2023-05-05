@@ -17,6 +17,7 @@ vX.Y.Z
   script so that they only need to be directly managed by the user when running
   individual tools manually
 - Generate PDF version of the report only when explicitly requested
+- Stop double collecting stats in MonetDB and Virtuoso scripts
 
 v1.11.1
 
