@@ -16,6 +16,7 @@ vX.Y.Z
 - Manage DSS_PATH, DSS_QUERY, and DSS_CONFIG environment variables in "run"
   script so that they only need to be directly managed by the user when running
   individual tools manually
+- Generate PDF version of the report only when explicitly requested
 
 v1.11.1
 
