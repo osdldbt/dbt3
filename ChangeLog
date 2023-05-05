@@ -18,6 +18,7 @@ vX.Y.Z
   individual tools manually
 - Generate PDF version of the report only when explicitly requested
 - Stop double collecting stats in MonetDB and Virtuoso scripts
+- Do not automatically create HTML report after test execution
 
 v1.11.1
 

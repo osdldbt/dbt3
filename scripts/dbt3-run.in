@@ -240,9 +240,6 @@ while [ "${#}" -gt 0 ] ; do
 		PRIVILEGED=0
 		UNPRIVILEGED_ARG="-U"
 		;;
-	(-v)
-		VERT_FLAG="-V"
-		;;
 	(-z)
 		NO_REFRESH_FLAG="-z"
 		;;
@@ -496,12 +493,6 @@ fi
 for SARFILE in `find $OUTPUT_DIR -name sar_raw.out`; do
 	make_sar_csv $SARFILE
 done
-
-which R > /dev/null 2>&1
-if [ $? -eq 0 ]; then
-	echo "Generating a report... "
-	dbt3-generate-report -i $OUTPUT_DIR $VERT_FLAG
-fi
 
 LOADDIR=${OUTPUT_DIR}/load
 if [ -d "${LOADDIR}" ]; then

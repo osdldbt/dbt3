@@ -252,7 +252,7 @@ for RST in $(find $INDIR -name "*.rst"); do
 	ls -1v ${INDIR}/*.html
 	echo ""
 
-	if [ $GENERATE_PDF -eq 1 ]; then
+	if [ "${GENERATE_PDF}" = "1" ]; then
 		# A pdf could be produced other ways, but I believe pandoc produces the
 		# most minimally styled LaTeX looking document, as opposed to using
 		# rst2latex, with default settings.
