@@ -50,7 +50,7 @@ done
 PSQL="psql -X -v ON_ERROR_STOP=1"
 
 DATASET=`${PSQL} -A -t -c "SELECT nextval('dataset');"`
-$DBGEN -s ${SCALE_FACTOR} -U ${DATASET} -S ${DATASET} || exit 1
+eval "\"${DBGEN}\" -s ${SCALE_FACTOR} -U ${DATASET} -S ${DATASET}" || exit 1
 
 if [ $EXPLAIN -eq 1 ]; then
 	SQL_EXTRA=$(cat "${DSS_QUERY}/explain-analyze.sql")

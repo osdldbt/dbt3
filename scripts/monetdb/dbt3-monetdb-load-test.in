@@ -63,7 +63,7 @@ done
 if [ $GENERATE -ne 0 ] || [ $have_all_files -eq 0 ]; then
 	echo "`date` Generating data for scale factor $SF..."
 	# DBGEN reads DSS_PATH env var to determine where to put the files
-	$DBGEN -s $SF || exit 1
+	eval "\"${DBGEN}\" -s ${SF}" || exit 1
 	wait
 else
 	echo "Creating the database using existing data files."

@@ -176,7 +176,7 @@ elif [ $GENERATE -ne 0 ] || [ $have_all_files -eq 0 ]; then
 	echo "`date` Generating data for scale factor $SF ..."
 	# DBGEN reads DSS_PATH env var to determine where to put the files
 	if [ $CHUNKS -eq 1 ]; then
-		$DBGEN -s $SF || exit 1
+		eval "\"${DBGEN}\" -s ${SF}" || exit 1
 
 		if [ $RESORT -eq 1 ]; then
 			echo "`date` resorting data files..."
@@ -197,12 +197,12 @@ elif [ $GENERATE -ne 0 ] || [ $have_all_files -eq 0 ]; then
 		fi
 	else
 		i=1
-		$DBGEN -s $SF -T n &
-		$DBGEN -s $SF -T r &
+		eval "\"${DBGEN}\" -s ${SF} -T n &"
+		eval "\"${DBGEN}\" -s ${SF} -T r &"
 		wait
 		for TABLE in c O L P S s; do
 			for i in $(seq 1 ${CHUNKS}); do
-				$DBGEN -s $SF -C $CHUNKS -S $i -T $TABLE &
+				eval "\"$DBGEN\" -s $SF -C $CHUNKS -S $i -T $TABLE &"
 			done
 			wait
 		done

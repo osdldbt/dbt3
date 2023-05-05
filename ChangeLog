@@ -13,6 +13,9 @@ vX.Y.Z
 - Add ability to create an AppImage
 - Rename run-workload script to "run"
 - Don't create output directory until closer to starting the test
+- Manage DSS_PATH, DSS_QUERY, and DSS_CONFIG environment variables in "run"
+  script so that they only need to be directly managed by the user when running
+  individual tools manually
 
 v1.11.1
 

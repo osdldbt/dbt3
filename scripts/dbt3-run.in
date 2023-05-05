@@ -30,6 +30,11 @@ Generate options:
   -c              comment about the test
   -C              flag to resort data load files
   -d              direct data load
+  --dbname        databse name, default $DBNAME
+  --dss=PATH      PATH to temporary DSS files, default $DSS_PATH
+  --dss-query=DIRECTORY
+                  DIRECTORY to query templates, default
+                  TPCHTOOLS/dbgen/queries/DBMS
   -f SCALE        database scale factor, default 1
   -g              generate flat files
   -l PORT         database port
@@ -39,6 +44,8 @@ Generate options:
   -P              enable linux perf (Linux only)
   -R              materialized view mode
   -s SEED         seed to use for power and throughput tests
+  --tpchtools=TPCHTOOLS
+                  TPCHTOOLS is the TPC-H Tools directory
   -u              use tablespaces
   -U              run test as an unprivileged user
   -z              do not run refresh streams
@@ -82,8 +89,9 @@ make_sar_csv() {
 }
 
 DATABASE=""
+DBNAME="dbt3"
 DIRECT_LOAD_ARG=""
-
+DSS_PATH="/tmp/dss"
 COMMENT=""
 FLAG_POWER_TEST=""
 FLAG_THROUGHPUT_TEST=""
@@ -150,6 +158,27 @@ while [ "${#}" -gt 0 ] ; do
 		shift
 		CHUNK_ARG="-C $1"
 		;;
+	(--dbname)
+		shift
+		DBNAME="${1}"
+		;;
+	(--dbname=?*)
+		DBNAME="${1#*--dbname=}"
+		;;
+	(--dss)
+		shift
+		DSS_PATH="${1}"
+		;;
+	(--dss=?*)
+		DSS_PATH="${1#*--dss=}"
+		;;
+	(--dss-query)
+		shift
+		DSS_QUERY="${1}"
+		;;
+	(--dss-query=?*)
+		DSS_QUERY="${1#*--dss-query=}"
+		;;
 	(-e)
 		EXTRA_ARGS="$EXTRA_ARGS -e"
 		;;
@@ -197,6 +226,13 @@ while [ "${#}" -gt 0 ] ; do
 		shift
 		SEED=$1
 		;;
+	(--tpchtools)
+		shift
+		TPCHTOOLS="${1}"
+		;;
+	(--tpchtools=?*)
+		TPCHTOOLS="${1#*--tpchtools=}"
+		;;
 	(-u)
 		TABLESPACES_FLAG="-t"
 		;;
@@ -229,16 +265,50 @@ while [ "${#}" -gt 0 ] ; do
 	shift
 done
 
-if [ "x${DSS_PATH}" = "x" ]; then
-	>&2 echo "Error: DSS_PATH environment variable not set"
+mkdir -p "${DSS_PATH}"
+if [ ! -d "${DSS_PATH}" ]; then
+	>&2 echo "ERROR: DSS_PATH path does not exist at ${DSS_PATH}"
 	exit 1
 fi
+export DSS_PATH
+
+if [ ! -d "${TPCHTOOLS}" ]; then
+	>&2 echo "ERROR: TPCHTOOLS path does not exist at ${TPCHTOOLS}"
+	exit 1
+fi
+export DSS_CONFIG="${TPCHTOOLS}/dbgen"
+
+export DBGEN="${DSS_CONFIG}/dbgen"
+if [ ! -f "${DBGEN}" ]; then
+	>&2 echo "ERROR: ${DBGEN} does not exist, was the TPC-C Tools built with 'dbt3-build-dbgen ${TPCHTOOLS}'"
+	exit 1
+fi
+
+export QGEN="${DSS_CONFIG}/qgen"
+if [ ! -f "${QGEN}" ]; then
+	>&2 echo "ERROR: ${QGEN} does not exist, was the TPC-C Tools built with 'dbt3-build-dbgen ${TPCHTOOLS}'"
+	exit 1
+fi
+
+if [ "${DSS_QUERY}" = "" ]; then
+	DSS_QUERY="${TPCHTOOLS}/dbgen/queries/${DATABASE}"
+fi
+if [ ! -d "${DSS_QUERY}" ]; then
+	>&2 echo "ERROR: DSS_QUERY path does not exist at ${DSS_QUERY}"
+	exit 1
+fi
+export DSS_QUERY
+echo "DSS_QUERY set to ${DSS_QUERY}"
 
 if [ "x${OUTPUT_DIR}" = "x" ]; then
 	>&2 echo "Error: use -o to set output directory"
 	exit 1
 fi
 mkdir -p "${OUTPUT_DIR}"
+
+if [ "${DATABASE}" = "pgsql" ]; then
+	export PGDATABASE="${DBNAME}"
+fi
 
 if [ "x$DATABASE" = "xpgxl" ]; then
 	TAG="pgsql"

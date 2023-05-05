@@ -29,14 +29,14 @@ load_table()
 		elif [ "$table" = "lineitem" ]; then
 			FLAG="L"
 		elif [ "$table" = "nation" ]; then
-			$PSQL -c "COPY $table FROM PROGRAM 'DSS_CONFIG=$DSS_CONFIG $DBGEN -s $SCALE_FACTOR -T n -o' USING DELIMITERS '|';" &
+			$PSQL -c "COPY $table FROM PROGRAM 'DSS_CONFIG=$DSS_CONFIG \"$DBGEN\" -s $SCALE_FACTOR -T n -o' USING DELIMITERS '|';" &
 			return
 		elif [ "$table" = "orders" ]; then
 			FLAG="O"
 		elif [ "$table" = "part" ]; then
 			FLAG="P"
 		elif [ "$table" = "region" ]; then
-			$PSQL -c "COPY $table FROM PROGRAM 'DSS_CONFIG=$DSS_CONFIG $DBGEN -s $SCALE_FACTOR -T r -o' USING DELIMITERS '|';" &
+			$PSQL -c "COPY $table FROM PROGRAM 'DSS_CONFIG=$DSS_CONFIG \"$DBGEN\" -s $SCALE_FACTOR -T r -o' USING DELIMITERS '|';" &
 			return
 		elif [ "$table" = "supplier" ]; then
 			FLAG="s"
@@ -48,7 +48,7 @@ load_table()
 		fi
 
 		for i in `seq 1 $NODES`; do
-			$PSQL -c "COPY $table FROM PROGRAM 'DSS_CONFIG=$DSS_CONFIG $DBGEN -s $SCALE_FACTOR -T $FLAG -o -C $NODES -S $i' USING DELIMITERS '|';" &
+			$PSQL -c "COPY $table FROM PROGRAM 'DSS_CONFIG=$DSS_CONFIG \"$DBGEN\" -s $SCALE_FACTOR -T $FLAG -o -C $NODES -S $i' USING DELIMITERS '|';" &
 		done
 	fi
 	wait

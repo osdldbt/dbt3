@@ -87,12 +87,13 @@ i=1
 while [ $i -le 22 ]
 do
 	# Remember the query planned is in the order determined by the seed.
-	Q=`${QGEN} -c -r ${SEED} -p ${stream_num} -s ${SCALE_FACTOR} -x ${i}`
+	Q=$(eval "\"${QGEN}\" -c -r ${SEED} -p ${stream_num} -s ${SCALE_FACTOR} -x ${i}")
 	N=`echo ${Q} | sed -n -r 's/.*\(#\)([[:digit:]]+)\..*/\1/p'`
 	if [ $DATABASE = "virtuoso" ]; then
 		# Can't have comments or transaction statments sent to explain().
 		# Escape single quotes for explain().
-		Q=`$QGEN -a -r $SEED -p $num_stream -s $SCALE_FACTOR -x $i | tail -n +2 | sed -e "s/'/''/g"`
+		Q=$(eval "\"$QGEN\" -a -r ${SEED} -p ${num_stream} -s ${SCALE_FACTOR} \
+				-x ${i} | tail -n +2 | sed -e \"s/'/''/g\"")
 	fi
 	$DBCMD<< __EOF__ > ${PLANDIR}/${N}.txt 2>&1
 $ESTART
@@ -109,7 +110,8 @@ STREAMTASK="PERF.THRUPUT.QS${stream_num}.ALL"
 dbt3-$TAG-time-statistics -s -n $STREAMTASK || exit 1
 i=1
 while [ ${i} -le 22 ]; do
-	Q=`$QGEN -c -r $SEED -p $stream_num -s $SCALE_FACTOR $EXTRA_ARGS $i`
+	Q=$(eval "\"${QGEN}\" -c -r ${SEED} -p ${stream_num} -s ${SCALE_FACTOR} \
+			${EXTRA_ARGS} ${i}")
 	N=`echo ${Q} | sed -n -r 's/.*\(#\)([[:digit:]]+)\..*/\1/p'`
 	if [ $MPP -eq 0 ] && [ $USE_LINUXPERF -eq 1 ]; then
 		PERFDIR=$RESULTSDIR/perf/$N
