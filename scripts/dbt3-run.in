@@ -85,7 +85,7 @@ RESORT_ARG=""
 SCALE_FACTOR=1
 SEED=0
 STATS_ARG=""
-STREAMS=1
+STREAMS=""
 EXTRA_ARGS=""
 WORKLOAD="H"
 
@@ -166,9 +166,15 @@ while [ "${#}" -gt 0 ] ; do
 	(-g)
 		GENERATE=1
 		;;
-	(-n)
+	(-n | --streams)
 		shift
 		STREAMS=$1
+		;;
+	(-n?*)
+		STREAMS="${1#*-n}"
+		;;
+	(--streams=?*)
+		STREAMS="${1#*--streams=}"
 		;;
 	(-o)
 		shift
@@ -294,6 +300,30 @@ if [ "x$DATABASE" = "xpgxl" ]; then
 	done
 else
 	TAG=$DATABASE
+fi
+
+if [ "${STREAMS}" = "" ]; then
+	if [ "${SCALE_FACTOR}" -lt 10 ]; then
+		STREAMS=2
+	elif [ "${SCALE_FACTOR}" -lt 30 ]; then
+		STREAMS=3
+	elif [ "${SCALE_FACTOR}" -lt 100 ]; then
+		STREAMS=4
+	elif [ "${SCALE_FACTOR}" -lt 300 ]; then
+		STREAMS=5
+	elif [ "${SCALE_FACTOR}" -lt 1000 ]; then
+		STREAMS=6
+	elif [ "${SCALE_FACTOR}" -lt 3000 ]; then
+		STREAMS=7
+	elif [ "${SCALE_FACTOR}" -lt 10000 ]; then
+		STREAMS=8
+	elif [ "${SCALE_FACTOR}" -lt 30000 ]; then
+		STREAMS=9
+	elif [ "${SCALE_FACTOR}" -lt 100000 ]; then
+		STREAMS=10
+	else
+		STREAMS=11
+	fi
 fi
 
 if [ -n "$LOAD_PARAMETERS" ]; then
