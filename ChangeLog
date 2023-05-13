@@ -23,6 +23,7 @@ vX.Y.Z
   overridden
 - Use touchstone-tools for collecting system and database statistics, as well
   as system profile data
+- Convert power-score script to use sqlite3
 
 v1.11.1
 

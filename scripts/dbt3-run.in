@@ -512,9 +512,9 @@ else
 fi
 
 echo ""
-echo "Composite score: " $COMPOSITE
+printf "Composite score: %.2f\n" "${COMPOSITE}"
 echo "Load time (hours): " $LOAD
-echo "Power score: " $POWER
+printf "Power score: %.2f\n" "${POWER}"
 echo "Throughput Score: " $THROUGHPUT
 echo ""
 

@@ -66,6 +66,7 @@ version()
 	fi
 	display_version $RST2HTML5 --version
 	display_version sar -V
+	display_version sqlite3 --version
 }
 
 if [ $# -eq 0 ]; then

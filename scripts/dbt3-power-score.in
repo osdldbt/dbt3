@@ -12,11 +12,11 @@
 
 usage()
 {
-	echo "usage: `basename $0` -i <q_time.csv> -f <SCALE_FACTOR>"
+	echo "usage: $(basename "${0}") -i <q_time.csv> -s <SCALE_FACTOR>"
 }
 
-while getopts "hi:s:z" opt; do
-	case $opt in
+while getopts "hi:s:" opt; do
+	case "${opt}" in
 	h)
 		usage
 		exit 1
@@ -34,15 +34,28 @@ while getopts "hi:s:z" opt; do
 	esac
 done
 
-R --slave --no-save << __EOF__
-df <- read.csv("$INFILE", header=T)
-df_power <- df[grep("PERF.POWER.Q", df\$task_name), ]
-df_power <- rbind(df_power, df[grep("PERF.POWER.RF", df\$task_name), ])
-# If the database timestamps round to seconds, round up 0's to 1 second so the
-# geometric mean is valid.
-df_power\$seconds[df_power\$seconds == 0] <- 1
-power <- 3600 * $SCALE_FACTOR /
-         prod(df_power\$seconds) ^ (1 / length(df_power\$seconds))
-cat(power)
-cat("\n")
-__EOF__
+TMPDIR=$(mktemp -d)
+DBFILE="${TMPDIR}/dbt3.db"
+sqlite3 "${DBFILE}" << EOF
+CREATE TABLE qtime(
+    task_name TEXT
+  , s_time TEXT
+  , e_time TEXT
+  , diff_time REAL
+  , seconds INTEGER
+);
+.mode csv
+.import ${INFILE} qtime
+SELECT 3600.0
+     * $SCALE_FACTOR
+     / pow(exp(sum(ln(coalesce(seconds, 1)))),
+           1.0 / (SELECT count(*)
+                  FROM qtime
+                  WHERE task_name LIKE 'PERF.POWER.Q%'
+                  OR task_name LIKE 'PERF.POWER.RF%'))
+FROM qtime
+WHERE task_name LIKE 'PERF.POWER.Q%'
+   OR task_name LIKE 'PERF.POWER.RF%';
+EOF
+
+rm -rf "${TMPDIR}"
