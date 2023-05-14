@@ -69,7 +69,6 @@ Required Software
 In addition to the DBMS software, the following is also required:
 
 * bc http://www.gnu.org/software/bc/bc.html
-* R http://www.r-project.org/
 * SQLite https://www.sqlite.org/index.html
 * **sar**, **pidstat** http://pagesperso-orange.fr/sebastien.godard/ (While the
   scripts assume this particular version of **sar** and **pidstat**, it is

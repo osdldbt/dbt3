@@ -55,6 +55,7 @@ version()
 		return
 	fi
 
+	display_version gnuplot --version
 	display_version pandoc --version
 	display_version perl --version
 	display_version psql --version

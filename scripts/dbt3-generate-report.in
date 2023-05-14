@@ -81,12 +81,10 @@ warning() {
 
 # Use this to skip chart generation to help test just the HTML generation.
 FAST=0
-PLOT_OPTS=""
-while getopts fi:V OPT; do
+while getopts fi: OPT; do
 	case $OPT in
 		f) export FAST=1;;
 		i) INDIR=$OPTARG;;
-		V) PLOT_OPTS="$PLOT_OPTS -V";;
 		\?) usage; exit 1;;
 	esac
 done
@@ -132,6 +130,7 @@ DBMS=$(grep "^dbms" ${INDIR}/config.txt | awk '{print $2}')
 DBVER=$(grep "^dbver" ${INDIR}/config.txt | cut -d " " -f2-)
 OSVER=$(grep "^kernel" ${INDIR}/config.txt | cut -d ' ' -f3-)
 QTIMECSV="${INDIR}/q_time.csv"
+SCALE_FACTOR=$(grep scale_factor "${INDIR}/config.txt" | awk '{print $2}')
 SF=$(grep scale_factor ${INDIR}/config.txt | awk '{print $2}')
 STREAMS=$(grep num_stream ${INDIR}/config.txt | awk '{print $2}')
 
@@ -154,7 +153,6 @@ fi
 
 POWERDIR="power"
 if [ -d "${INDIR}/${POWERDIR}" ]; then
-	PLOT_OPTS="$PLOT_OPTS -2"
 	POWER=$(dbt3-power-score -i $QTIMECSV -s $SF)
 else
 	POWER="N/A"
@@ -162,7 +160,6 @@ fi
 
 THROUGHPUTDIR="throughput"
 if [ -d "${INDIR}/${THROUGHPUTDIR}" ]; then
-	PLOT_OPTS="$PLOT_OPTS -3"
 	THROUGHPUT=$(dbt3-throughput-score -i $QTIMECSV -s $SF -n $STREAMS)
 else
 	THROUGHPUT="N/A"
@@ -176,7 +173,7 @@ fi
 
 # Plot a query results
 if [ $FAST -ne 1 ]; then
-	dbt3-plot-results -i $QTIMECSV -o $INDIR -f $SF $PLOT_OPTS
+	dbt3-plot-results -i "${QTIMECSV}" -o "${INDIR}"
 fi
 
 REPORTFILE="${INDIR}/report.rst"
