@@ -4,11 +4,7 @@
 # This file is released under the terms of the Artistic License.
 # Please see # the file LICENSE, included in this package, for details.
 #
-# Copyright (C) 2004      Open Source Development Labs, Inc.
-#               2004      Jenny Zhang
-#               2014      2ndQuadrant, Ltd.
-#               2004-2022 Mark Wong
-#
+# Copyright The DBT-3 Authors
 
 NO_REFRESH=0
 while getopts "a:ef:n:o:s:Uz" opt; do

@@ -3,9 +3,7 @@
 # This file is released under the terms of the Artistic License.
 # Please see the file LICENSE, included in this package, for details.
 #
-# Copyright (C) 2002-2008 Open Source Development Labs, Inc.
-#               2002-2015 Mark Wong
-#               2015      2ndQuadrant, Ltd.
+# Copyright The DBT-3 Authors
 
 create_table() {
 	SQL=${1}

@@ -4,11 +4,7 @@
 # This file is released under the terms of the Artistic License.
 # Please see the file LICENSE, included in this package, for details.
 #
-# Copyright (C) 2002-2006 Open Source Development Labs, Inc.
-#               2002-2006 Jenny Zhang
-#               2015-2017 2ndQuadrant, Ltd.
-#               2005-2022 Mark Wong
-#
+# Copyright The DBT-3 Authors
 
 trap 'ts-sysstat -o "${OUTPUT_DIR}/sysstat" -s; \
 		eval "ts-${DATABASE}-stat -o ${OUTPUT_DIR}/dbstat -s"' INT TERM

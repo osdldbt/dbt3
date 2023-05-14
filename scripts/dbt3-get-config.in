@@ -4,10 +4,7 @@
 # This file is released under the terms of the Artistic License.  Please see
 # the file LICENSE, included in this package, for details.
 #
-# Copyright (C) 2003-2006 Open Source Development Labs, Inc.
-#
-# Author: Jenny Zhang
-# March 2003
+# Copyright The DBT-3 Authors
 
 if [ $# -lt 5 ]; then
         echo "usage: $0 <scale_factor> <number of stream> <load parameters> <load parameters> <throughput parameters> <output_dir>"

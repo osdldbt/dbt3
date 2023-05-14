@@ -4,11 +4,7 @@
 # This file is released under the terms of the Artistic License.
 # Please see the file LICENSE, included in this package, for details.
 #
-# Copyright (C) 2003      Open Source Development Lab, Inc.
-#               2003      Jenny Zhang
-#               2014      2ndQuadrant, Ltd.
-#               2005-2022 Mark Wong
-#
+# Copyright The DBT-3 Authors
 
 usage()
 {

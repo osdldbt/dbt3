@@ -4,10 +4,7 @@
 # This file is released under the terms of the Artistic License.
 # Please see the file LICENSE, included in this package, for details.
 #
-# Copyright (C) 2003     Open Source Development Lab, Inc.
-#               2014     Mark Wong
-#               2014     2ndQuadrant, Ltd.
-#
+# Copyright The DBT-3 Authors
 
 if [ $# -ne 1 ]; then
         echo "Usage: `basename $0` <scale_factor>"
