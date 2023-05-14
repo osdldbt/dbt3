@@ -60,7 +60,6 @@ version()
 	display_version perl --version
 	display_version psql --version
 	display_version python --version
-	display_version R --version
 	RST2HTML5="rst2html5.py"
 	if ! which "${NAME}" > /dev/null 2>&1; then
 		RST2HTML5="rst2html5"
