@@ -24,6 +24,7 @@ vX.Y.Z
 - Use touchstone-tools for collecting system and database statistics, as well
   as system profile data
 - Convert power-score script to use sqlite3
+- Convert post-processing script to use sqlite3
 
 v1.11.1
 

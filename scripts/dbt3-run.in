@@ -474,12 +474,10 @@ wait
 
 dbt3-post-process \
 		-i $OUTPUT_DIR \
-		-s $SCALE_FACTOR \
 		-n $STREAMS \
-		-o $OUTPUT_DIR/summary.rst \
 		$NO_REFRESH_FLAG \
 		$FLAG_POWER_TEST \
-		$FLAG_THROUGHPUT_TEST 2> $OUTPUT_DIR/post-process.txt
+		${FLAG_THROUGHPUT_TEST} > ${OUTPUT_DIR}/summary.rst
 
 LOADDIR=${OUTPUT_DIR}/load
 if [ -d "${LOADDIR}" ]; then

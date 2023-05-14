@@ -10,31 +10,258 @@
 #               2005-2022 Mark Wong
 #
 
+power_query_times() {
+	if [ ! -d "${INDIR}/power" ]; then
+		printf "=======  =========================%s\n" "$(if [ $HTML -eq 1 ]; then printf "  =="; fi)"
+		return
+	fi
+
+	for Q in $(seq 1 22); do
+		printf "%7d %26.2f" "${Q}" \
+				"$(grep "^PERF\.POWER\.Q${Q}," "${QTIME}" | cut -d "," -f 5)"
+		if [ $HTML -eq 1 ]; then
+			printf "  \`Plan <power/plans/%d.txt>\`__ | " "${Q}"
+			printf "\`Result <power/results/%d.txt>\`__" "${Q}"
+		fi
+		echo
+	done
+	for RF in $(seq 1 2); do
+		printf "%7s %26.2f" "RF${RF}" \
+				"$(grep "^PERF\.POWER\.RF${RF}," "${QTIME}" | cut -d "," -f 5)"
+		if [ $HTML -eq 1 ]; then
+			printf "  \`Result <power/results/rf%d.txt>\`__" "${RF}"
+		fi
+		echo
+	done
+
+	printf "=======  =========================%s\n" "$(if [ $HTML -eq 1 ]; then printf "  =="; fi)"
+}
+
+power_summary() {
+	if [ ! -d "${INDIR}/power" ]; then
+		echo "+--------------------+------------------------+------------------------+------------------------+"
+		return
+	fi
+
+	printf "|%19.2f | %.22s | %.22s | %.22s |\n" \
+			"$(grep "^PERF\.POWER," "${QTIME}" | cut -d "," -f 5)" \
+			"$(grep "^PERF\.POWER\.Q" "${QTIME}" | cut -d "," -f 2 | head -n 1)" \
+			"$(grep "^PERF\.POWER\.RF1" "${QTIME}" | cut -d "," -f 2)" \
+			"$(grep "^PERF\.POWER\.RF2" "${QTIME}" | cut -d "," -f 2)"
+	echo "|                    +------------------------+------------------------+------------------------+"
+	printf "|                    | %.22s | %.22s | %.22s |\n" \
+			"$(grep "^PERF\.POWER\.Q" "${QTIME}" | cut -d "," -f 3 | tail -n 1)" \
+			"$(grep "^PERF\.POWER\.RF1" "${QTIME}" | cut -d "," -f 3)" \
+			"$(grep "^PERF\.POWER\.RF2" "${QTIME}" | cut -d "," -f 3)"
+	echo "+--------------------+------------------------+------------------------+------------------------+"
+}
+
+throughput_query() {
+	if [ ! -d "${INDIR}/throughput" ]; then
+		return
+	fi
+
+	Q0=${1}
+	Q1=${2}
+
+	if [ "${Q1}" -eq 22 ]; then
+		Q1=24
+	fi
+
+	QSEGMENT="========"
+	QEXTRASEGMENT="========================================================================"
+
+	# Construct the table header based on whether it's for HTML or not.
+
+	printf "%s" "${QSEGMENT}"
+	for Q in $(seq "${Q0}" "${Q1}"); do
+		printf "  %s" "${QSEGMENT}"
+		if [ $HTML -eq 1 ]; then
+			printf "%s" "${QEXTRASEGMENT}"
+		fi
+	done
+	echo
+
+	printf " Stream "
+	for Q in $(seq "${Q0}" "${Q1}"); do
+		if [ $HTML -eq 1 ]; then
+			SIZE=75
+		else
+			SIZE=3
+		fi
+		if [ "${Q}" -eq 23 ]; then
+			STRING="RF1"
+		elif [ "${Q}" -eq 24 ]; then
+			STRING="RF2"
+		else
+			STRING="Q${Q}"
+		fi
+		printf "     %-${SIZE}s  " "${STRING}"
+	done
+	echo
+
+	printf "%s" "${QSEGMENT}"
+	for Q in $(seq "${Q0}" "${Q1}"); do
+		printf "  %s" "${QSEGMENT}"
+		if [ $HTML -eq 1 ]; then
+			printf "%s" "${QEXTRASEGMENT}"
+		fi
+	done
+	echo
+
+	# Fill in the table with the query data.
+
+	for STREAM in $(seq 1 "${STREAMS}"); do
+		printf "%8d" "${STREAM}"
+		for Q in $(seq "${Q0}" "${Q1}"); do
+			if [ "${Q}" -eq 23 ]; then
+				STRING="^PERF\.THRUPUT\.RFST${STREAM}\.RF1,"
+				Q=1
+			elif [ "${Q}" -eq 24 ]; then
+				STRING="^PERF\.THRUPUT\.RFST${STREAM}\.RF2,"
+				Q=2
+			else
+				STRING="^PERF\.THRUPUT\.QS${STREAM}\.Q${Q},"
+			fi
+
+			printf "  %8.2f" \
+					"$(grep "${STRING}" "${QTIME}" | cut -d "," -f 5)"
+			if [ $HTML -eq 1 ]; then
+				printf " %34s" "\`P <throughput/plans/${STREAM}/${Q}.txt>\`__"
+				printf " %36s" \
+						"\`R <throughput/results/${STREAM}/${Q}.txt>\`__"
+			fi
+		done
+		echo
+	done
+
+	printf "     Min"
+	for Q in $(seq "${Q0}" "${Q1}"); do
+		if [ "${Q}" -eq 23 ]; then
+			STRING="^PERF\.THRUPUT\.RFST.*\.RF1,"
+		elif [ "${Q}" -eq 24 ]; then
+			STRING="^PERF\.THRUPUT\.RFST.*\.RF2,"
+		else
+			STRING="^PERF\.THRUPUT\.QS${STREAM}\.Q${Q},"
+		fi
+
+		if [ $HTML -eq 1 ]; then
+			SIZE=80
+		else
+			SIZE=8
+		fi
+
+		printf "  %${SIZE}.2f" \
+				"$(grep "${STRING}" "${QTIME}" \
+						| cut -d "," -f 5 | sort -n | head -n 1)"
+	done
+	echo
+
+	printf "     Max"
+	for Q in $(seq "${Q0}" "${Q1}"); do
+		if [ "${Q}" -eq 23 ]; then
+			STRING="^PERF\.THRUPUT\.RFST.*\.RF1,"
+		elif [ "${Q}" -eq 24 ]; then
+			STRING="^PERF\.THRUPUT\.RFST.*\.RF2,"
+		else
+			STRING="^PERF\.THRUPUT\.QS${STREAM}\.Q${Q},"
+		fi
+
+		if [ $HTML -eq 1 ]; then
+			SIZE=80
+		else
+			SIZE=8
+		fi
+
+		printf "  %${SIZE}.2f" \
+				"$(grep "${STRING}" "${QTIME}" \
+						| cut -d "," -f 5 | sort -n | tail -n 1)"
+	done
+	echo
+
+	printf "     Avg"
+	for Q in $(seq "${Q0}" "${Q1}"); do
+		if [ "${Q}" -eq 23 ]; then
+			STRING="^PERF\.THRUPUT\.RFST.*\.RF1,"
+		elif [ "${Q}" -eq 24 ]; then
+			STRING="^PERF\.THRUPUT\.RFST.*\.RF2,"
+		else
+			STRING="^PERF\.THRUPUT\.QS${STREAM}\.Q${Q},"
+		fi
+
+		if [ $HTML -eq 1 ]; then
+			SIZE=80
+		else
+			SIZE=8
+		fi
+
+		SUM=$(grep "${STRING}" "${QTIME}" \
+						| cut -d "," -f 5 | xargs | tr ' ' + | bc -l)
+		printf "  %${SIZE}.2f" "$(echo "${SUM} / ${STREAMS}" | bc -l)"
+	done
+	echo
+
+	# Construct the bottom of the table.
+
+	printf "%s" "${QSEGMENT}"
+	for Q in $(seq "${Q0}" "${Q1}"); do
+		printf "  %s" "${QSEGMENT}"
+		if [ $HTML -eq 1 ]; then
+			printf "%s" "${QEXTRASEGMENT}"
+		fi
+	done
+	echo
+}
+
+throughput_summary() {
+	if [ ! -d "${INDIR}/throughput" ]; then
+		echo "+-----------+-----------+------------------------+------------------------+------------------------+"
+		return
+	fi
+
+	for STREAM in $(seq 1 "${STREAMS}"); do
+		printf "| %9d | %9.2f | %.22s | %.22s | %.22s |\n" \
+				"${STREAM}" \
+				"$(grep "^PERF\.THRUPUT\.QS${STREAM}\.ALL," "${QTIME}" \
+						| cut -d "," -f 5)" \
+				"$(grep "^PERF\.THRUPUT\.QS${STREAM}\.Q" "${QTIME}" \
+						| cut -d "," -f 2 | sort | head -n 1)" \
+				"$(grep "^PERF\.THRUPUT\.RFST${STREAM}\.RF1" "${QTIME}" \
+						| cut -d "," -f 2)" \
+				"$(grep "^PERF\.THRUPUT\.RFST${STREAM}\.RF2" "${QTIME}" \
+						| cut -d "," -f 2)"
+		echo "+-----------+           +------------------------+------------------------+------------------------+"
+		printf "| %9d |           | %.22s | %.22s | %.22s |\n" \
+				$(( SEED + STREAM )) \
+				"$(grep "^PERF\.THRUPUT\.QS${STREAM}\.Q" "${QTIME}" \
+						| cut -d "," -f 3 | sort | tail -n 1)" \
+				"$(grep "^PERF\.THRUPUT\.RFST${STREAM}\.RF1" "${QTIME}" \
+						| cut -d "," -f 3)" \
+				"$(grep "^PERF\.THRUPUT\.RFST${STREAM}\.RF2" "${QTIME}" \
+						| cut -d "," -f 3)"
+		echo "+-----------+-----------+------------------------+------------------------+------------------------+"
+	done
+}
+
+HTML=0
 PLOT_OPTS=""
-FLAG_POWER_TEST=0
-FLAG_THROUGHPUT_TEST=0
-while getopts "23i:n:o:s:z" OPT; do
+while getopts "23hi:n:z" OPT; do
 	case ${OPT} in
 	2)
-		FLAG_POWER_TEST=1
 		PLOT_OPTS="${PLOT_OPTS} -2"
 		;;
 	3)
-		FLAG_THROUGHPUT_TEST=1
 		PLOT_OPTS="${PLOT_OPTS} -3"
 		;;
 	i)
 		INDIR=$OPTARG
 		QTIME=$INDIR/q_time.csv
 		;;
+	h)
+		HTML=1
+		;;
 	n)
 		STREAMS=${OPTARG}
-		;;
-	o)
-		OUTFILE=${OPTARG}
-		;;
-	s)
-		SCALE_FACTOR=${OPTARG}
 		;;
 	z)
 		PLOT_OPTS="${PLOT_OPTS} -z"
@@ -45,462 +272,47 @@ while getopts "23i:n:o:s:z" OPT; do
 	esac
 done
 
-which R > /dev/null 2>&1
-if [ $? -ne 0 ]; then
-	exit 1
-fi
+SEED=$(cat "${INDIR}/seed")
 
-SEED=$(cat ${INDIR}/seed)
+cat << EOF
+Power Test
+----------
 
-R --slave --no-save << __EOF__ > $OUTFILE
-df <- read.csv("${QTIME}", header=T)
+* Seed: ${SEED}
 
-cat("Power Test\n")
-cat("----------\n")
-cat("\n")
-cat("* Seed: ${SEED}\n")
-cat("\n")
-cat("+--------------------+----------------------+----------------------+----------------------+\n")
-cat("| Duration (seconds) |   Query Start Time   |    RF1 Start Time    |    RF2 Start Time    |\n")
-cat("|                    +----------------------+----------------------+----------------------+\n")
-cat("|                    |    Query End Time    |     RF1 End Time     |     RF2 End Time     |\n")
-cat("+====================+======================+======================+======================+\n")
-cat(sprintf("|%20.2f|%22s|%22s|%22s|\n",
-            df[df\$task_name == "PERF.POWER",]\$seconds,
-            strtrim(min(df[grep("^PERF.POWER.Q", df\$task_name), ]\$s_time), 22),
-            strtrim(df[df\$task_name == "PERF.POWER.RF1",]\$s_time, 22),
-            strtrim(df[df\$task_name == "PERF.POWER.RF2",]\$s_time, 22)))
-cat("|                    +----------------------+----------------------+----------------------+\n")
-cat(sprintf("|                    |%22s|%22s|%22s|\n",
-            strtrim(max(df[grep("^PERF.POWER.Q", df\$task_name), ]\$e_time), 22),
-            strtrim(df[df\$task_name == "PERF.POWER.RF1",]\$e_time, 22),
-            strtrim(df[df\$task_name == "PERF.POWER.RF2",]\$e_time, 22)))
-cat("+--------------------+----------------------+----------------------+----------------------+\n")
-cat("\n")
-cat("=======  =========================\n")
-cat(" Query    Response Time (seconds)\n")
-cat("=======  =========================\n")
-for (i in 1:22) {
-    str <- paste("PERF.POWER.Q", i, sep="")
-    cat(sprintf("%7d  %25.2f\n", i, df[df\$task_name == str, ]\$seconds))
-}
-for (i in 1:2) {
-    str <- paste("PERF.POWER.RF", i, sep="")
-    cat(sprintf("    RF%d  %25.2f\n", i, df[df\$task_name == str, ]\$seconds))
-}
-cat("=======  =========================\n")
-cat("\n")
-cat("Throughput Test\n")
-cat("---------------\n")
-cat("\n")
-cat("Stream execution summary:\n")
-cat("\n")
-cat("+----------+-----------+----------------------+----------------------+----------------------+\n")
-cat("|  Stream  | Duration  |   Query Start Time   |    RF1 Start Time    |    RF2 Start Time    |\n")
-cat("+----------+ (seconds) +----------------------+----------------------+----------------------+\n")
-cat("|   Seed   |           |    Query End Time    |     RF1 End Time     |     RF2 End Time     |\n")
-cat("+==========+===========+======================+======================+======================+\n")
-for (stream in 1:${STREAMS}) {
-    str <- paste("PERF.THRUPUT.QS", stream, ".ALL", sep="")
-    str2 <- paste("PERF.THRUPUT.QS", stream, ".Q\\\\d$", sep="")
-    str3 <- paste("PERF.THRUPUT.RFST", stream, ".RF1", sep="")
-    str4 <- paste("PERF.THRUPUT.RFST", stream, ".RF2", sep="")
-    cat(sprintf("|%10d|%11.2f|%22s|%22s|%22s|\n",
-                stream,
-                df[df\$task_name == str,]\$seconds,
-                strtrim(min(df[grep(str2, df\$task_name),]\$s_time), 22),
-                strtrim(df[df\$task_name == str3,]\$s_time, 22),
-                strtrim(df[df\$task_name == str4,]\$s_time, 22)))
-    cat("+----------+           +----------------------+----------------------+----------------------+\n")
-    cat(sprintf("|%10d|           |%22s|%22s|%22s|\n",
-                $SEED + stream,
-                strtrim(min(df[grep(str2, df\$task_name),]\$e_time), 22),
-                strtrim(df[df\$task_name == str3,]\$e_time, 22),
-                strtrim(df[df\$task_name == str4,]\$e_time, 22)))
-    cat("+----------+-----------+----------------------+----------------------+----------------------+\n")
-}
-cat("\n")
-cat("Query execution duration (seconds):\n")
-cat("\n")
-cat("========  ========  ========  ========  ========  ========  ========  ========\n")
-cat(" Stream      Q1        Q2        Q3        Q4        Q5        Q6        Q7\n")
-cat("========  ========  ========  ========  ========  ========  ========  ========\n")
-for (stream in 1:${STREAMS}) {
-    cat(sprintf("%8d", stream))
-    for (i in 1:7) {
-        str <- paste("PERF.THRUPUT.QS", stream, ".Q", i, sep="")
-        cat(sprintf("  %8.2f", df[df\$task_name == str, ]\$seconds))
-    }
-    cat("\n")
-}
-cat(sprintf("     Min"))
-for (i in 1:7) {
-    str <- paste("PERF.THRUPUT.QS\\\\d.Q", i, "$", sep="")
-    cat(sprintf("  %8.2f", min(df[grep(str, df\$task_name), ]\$seconds)))
-}
-cat("\n")
-cat(sprintf("     Max"))
-for (i in 1:7) {
-    str <- paste("PERF.THRUPUT.QS\\\\d.Q", i, "$", sep="")
-    cat(sprintf("  %8.2f", max(df[grep(str, df\$task_name), ]\$seconds)))
-}
-cat("\n")
-cat(sprintf("     Avg"))
-for (i in 1:7) {
-    str <- paste("PERF.THRUPUT.QS\\\\d.Q", i, "$", sep="")
-    cat(sprintf("  %8.2f", mean(df[grep(str, df\$task_name), ]\$seconds)))
-}
-cat("\n")
-cat("========  ========  ========  ========  ========  ========  ========  ========\n")
-cat("\n")
++--------------------+------------------------+------------------------+------------------------+
+| Duration (seconds) |    Query Start Time    |     RF1 Start Time     |     RF2 Start Time     |
+|                    +------------------------+------------------------+------------------------+
+|                    |     Query End Time     |      RF1 End Time      |      RF2 End Time      |
++====================+========================+========================+========================+
+$(power_summary)
 
-cat("========  ========  ========  ========  ========  ========  ========  ========\n")
-cat(" Stream      Q8        Q9        Q10       Q11       Q12       Q13       Q14\n")
-cat("========  ========  ========  ========  ========  ========  ========  ========\n")
-for (stream in 1:${STREAMS}) {
-    cat(sprintf("%8d", stream))
-    for (i in 8:14) {
-        str <- paste("PERF.THRUPUT.QS", stream, ".Q", i, sep="")
-        cat(sprintf("  %8.2f", df[df\$task_name == str, ]\$seconds))
-    }
-    cat("\n")
-}
-cat(sprintf("     Min"))
-for (i in 8:14) {
-    str <- paste("PERF.THRUPUT.QS\\\\d.Q", i, "$", sep="")
-    cat(sprintf("  %8.2f", min(df[grep(str, df\$task_name), ]\$seconds)))
-}
-cat("\n")
-cat(sprintf("     Max"))
-for (i in 8:14) {
-    str <- paste("PERF.THRUPUT.QS\\\\d.Q", i, "$", sep="")
-    cat(sprintf("  %8.2f", max(df[grep(str, df\$task_name), ]\$seconds)))
-}
-cat("\n")
-cat(sprintf("     Avg"))
-for (i in 8:14) {
-    str <- paste("PERF.THRUPUT.QS\\\\d.Q", i, "$", sep="")
-    cat(sprintf("  %8.2f", mean(df[grep(str, df\$task_name), ]\$seconds)))
-}
-cat("\n")
-cat("========  ========  ========  ========  ========  ========  ========  ========\n")
-cat("\n")
+=======  =========================  $(if [ $HTML -eq 1 ]; then echo "=="; fi)
+ Query    Response Time (seconds)
+=======  =========================  $(if [ $HTML -eq 1 ]; then echo "=="; fi)
+$(power_query_times)
 
-cat("========  ========  ========  ========  ========  ========  ========  ========\n")
-cat(" Stream      Q15       Q16       Q17       Q18       Q19       Q20       Q21\n")
-cat("========  ========  ========  ========  ========  ========  ========  ========\n")
-for (stream in 1:${STREAMS}) {
-    cat(sprintf("%8d", stream))
-    for (i in 15:21) {
-        str <- paste("PERF.THRUPUT.QS", stream, ".Q", i, sep="")
-        cat(sprintf("  %8.2f", df[df\$task_name == str, ]\$seconds))
-    }
-    cat("\n")
-}
-cat(sprintf("     Min"))
-for (i in 15:21) {
-    str <- paste("PERF.THRUPUT.QS\\\\d.Q", i, "$", sep="")
-    cat(sprintf("  %8.2f", min(df[grep(str, df\$task_name), ]\$seconds)))
-}
-cat("\n")
-cat(sprintf("     Max"))
-for (i in 15:21) {
-    str <- paste("PERF.THRUPUT.QS\\\\d.Q", i, "$", sep="")
-    cat(sprintf("  %8.2f", max(df[grep(str, df\$task_name), ]\$seconds)))
-}
-cat("\n")
-cat(sprintf("     Avg"))
-for (i in 15:21) {
-    str <- paste("PERF.THRUPUT.QS\\\\d.Q", i, "$", sep="")
-    cat(sprintf("  %8.2f", mean(df[grep(str, df\$task_name), ]\$seconds)))
-}
-cat("\n")
-cat("========  ========  ========  ========  ========  ========  ========  ========\n")
-cat("\n")
+Throughput Test
+---------------
 
-cat("========  ========  ========  ========\n")
-cat(" Stream      Q22       RF1       RF2\n")
-cat("========  ========  ========  ========\n")
-for (stream in 1:${STREAMS}) {
-    cat(sprintf("%8d", stream))
-    for (i in 22:22) {
-        str <- paste("PERF.THRUPUT.QS", stream, ".Q", i, sep="")
-        cat(sprintf("  %8.2f", df[df\$task_name == str, ]\$seconds))
-    }
-    for (i in 1:2) {
-        str <- paste("PERF.THRUPUT.RFST", stream, ".RF", i, sep="")
-        cat(sprintf("  %8.2f", df[df\$task_name == str, ]\$seconds))
-    }
-    cat("\n")
-}
-cat(sprintf("     Min"))
-for (i in 22:22) {
-    str <- paste("PERF.THRUPUT.QS\\\\d.Q", i, "$", sep="")
-    cat(sprintf("  %8.2f", min(df[grep(str, df\$task_name), ]\$seconds)))
-}
-for (i in 1:2) {
-    str <- paste("PERF.THRUPUT.RFST\\\\d.RF", i, "$", sep="")
-    cat(sprintf("  %8.2f", min(df[grep(str, df\$task_name), ]\$seconds)))
-}
-cat("\n")
-cat(sprintf("     Max"))
-for (i in 22:22) {
-    str <- paste("PERF.THRUPUT.QS\\\\d.Q", i, "$", sep="")
-    cat(sprintf("  %8.2f", max(df[grep(str, df\$task_name), ]\$seconds)))
-}
-for (i in 1:2) {
-    str <- paste("PERF.THRUPUT.RFST\\\\d.RF", i, "$", sep="")
-    cat(sprintf("  %8.2f", max(df[grep(str, df\$task_name), ]\$seconds)))
-}
-cat("\n")
-cat(sprintf("     Avg"))
-for (i in 22:22) {
-    str <- paste("PERF.THRUPUT.QS\\\\d.Q", i, "$", sep="")
-    cat(sprintf("  %8.2f", mean(df[grep(str, df\$task_name), ]\$seconds)))
-}
-for (i in 1:2) {
-    str <- paste("PERF.THRUPUT.RFST\\\\d.RF", i, "$", sep="")
-    cat(sprintf("  %8.2f", mean(df[grep(str, df\$task_name), ]\$seconds)))
-}
-cat("\n")
-cat("========  ========  ========  ========\n")
-__EOF__
+Stream execution summary:
 
-R --slave --no-save << __EOF__ > $(dirname ${OUTFILE})/with-links-$(basename ${OUTFILE})
-df <- read.csv("${QTIME}", header=T)
++-----------+-----------+------------------------+------------------------+------------------------+
+|  Stream   | Duration  |    Query Start Time    |     RF1 Start Time     |     RF2 Start Time     |
++-----------+ (seconds) +------------------------+------------------------+------------------------+
+|   Seed    |           |     Query End Time     |      RF1 End Time      |      RF2 End Time      |
++===========+===========+========================+========================+========================+
+$(throughput_summary)
 
-cat("Power Test\n")
-cat("----------\n")
-cat("\n")
-cat("* Seed: ${SEED}\n")
-cat("\n")
-cat("+--------------------+----------------------+----------------------+----------------------+\n")
-cat("| Duration (seconds) |   Query Start Time   |    RF1 Start Time    |    RF2 Start Time    |\n")
-cat("|                    +----------------------+----------------------+----------------------+\n")
-cat("|                    |    Query End Time    |     RF1 End Time     |     RF2 End Time     |\n")
-cat("+====================+======================+======================+======================+\n")
-cat(sprintf("|%20.2f|%22s|%22s|%22s|\n",
-            df[df\$task_name == "PERF.POWER",]\$seconds,
-            strtrim(min(df[grep("^PERF.POWER.Q", df\$task_name), ]\$s_time), 22),
-            strtrim(df[df\$task_name == "PERF.POWER.RF1",]\$s_time, 22),
-            strtrim(df[df\$task_name == "PERF.POWER.RF2",]\$s_time, 22)))
-cat("|                    +----------------------+----------------------+----------------------+\n")
-cat(sprintf("|                    |%22s|%22s|%22s|\n",
-            strtrim(max(df[grep("^PERF.POWER.Q", df\$task_name), ]\$e_time), 22),
-            strtrim(df[df\$task_name == "PERF.POWER.RF1",]\$e_time, 22),
-            strtrim(df[df\$task_name == "PERF.POWER.RF2",]\$e_time, 22)))
-cat("+--------------------+----------------------+----------------------+----------------------+\n")
-cat("\n")
-cat("=======  =========================  ==\n")
-cat(" Query    Response Time (seconds)\n")
-cat("=======  =========================  ==\n")
-for (i in 1:22) {
-    str <- paste("PERF.POWER.Q", i, sep="")
-    cat(sprintf("%7d  %25.2f  \`Plan <power/plans/%d.txt>\`__ | \`Result <power/results/%d.txt>\`__\n",
-                i, df[df\$task_name == str, ]\$seconds, i, i))
-}
-for (i in 1:2) {
-    str <- paste("PERF.POWER.RF", i, sep="")
-    cat(sprintf("    RF%d  %25.2f  \`Result <power/results/rf%d.txt>\`__\n",
-                i, df[df\$task_name == str, ]\$seconds, i))
-}
-cat("=======  =========================  ==\n")
-cat("\n")
-cat("Throughput Test\n")
-cat("---------------\n")
-cat("\n")
-cat("Stream execution summary:\n")
-cat("\n")
-cat("+----------+-----------+----------------------+----------------------+----------------------+\n")
-cat("|  Stream  | Duration  |   Query Start Time   |    RF1 Start Time    |    RF2 Start Time    |\n")
-cat("+----------+ (seconds) +----------------------+----------------------+----------------------+\n")
-cat("|   Seed   |           |    Query End Time    |     RF1 End Time     |     RF2 End Time     |\n")
-cat("+==========+===========+======================+======================+======================+\n")
-for (stream in 1:${STREAMS}) {
-    str <- paste("PERF.THRUPUT.QS", stream, ".ALL", sep="")
-    str2 <- paste("PERF.THRUPUT.QS", stream, ".Q\\\\d$", sep="")
-    str3 <- paste("PERF.THRUPUT.RFST", stream, ".RF1", sep="")
-    str4 <- paste("PERF.THRUPUT.RFST", stream, ".RF2", sep="")
-    cat(sprintf("|%10d|%11.2f|%22s|%22s|%22s|\n",
-                stream,
-                df[df\$task_name == str,]\$seconds,
-                strtrim(min(df[grep(str2, df\$task_name),]\$s_time), 22),
-                strtrim(df[df\$task_name == str3,]\$s_time, 22),
-                strtrim(df[df\$task_name == str4,]\$s_time, 22)))
-    cat("+----------+           +----------------------+----------------------+----------------------+\n")
-    cat(sprintf("|%10d|           |%22s|%22s|%22s|\n",
-                $SEED + stream,
-                strtrim(min(df[grep(str2, df\$task_name),]\$e_time), 22),
-                strtrim(df[df\$task_name == str3,]\$e_time, 22),
-                strtrim(df[df\$task_name == str4,]\$e_time, 22)))
-    cat("+----------+-----------+----------------------+----------------------+----------------------+\n")
-}
-cat("\n")
-cat("Query execution duration (seconds) (Click **P** for plans and **R** for results):\n")
-cat("\n")
-cat("========  ================================================================================  ================================================================================  ================================================================================  ================================================================================  ================================================================================  ================================================================================  ================================================================================\n")
-cat(" Stream    Q1                                                                                Q2                                                                                Q3                                                                                Q4                                                                                Q5                                                                                Q6                                                                                Q7\n")
-cat("========  ================================================================================  ================================================================================  ================================================================================  ================================================================================  ================================================================================  ================================================================================  ================================================================================\n")
-for (stream in 1:${STREAMS}) {
-    cat(sprintf("%8d", stream))
-    for (i in 1:7) {
-        str <- paste("PERF.THRUPUT.QS", stream, ".Q", i, sep="")
-        link_p <- paste("\`P <throughput/plans/", stream, "/", i, ".txt>\`__",
-                        sep="")
-        link_r <- paste("\`R <throughput/results/", stream, "/", i, ".txt>\`__",
-                        sep="")
-        cat(sprintf("  %8.2f %34s %36s",
-                    df[df\$task_name == str, ]\$seconds, link_p, link_r))
-    }
-    cat("\n")
-}
-cat(sprintf("     Min"))
-for (i in 1:7) {
-    str <- paste("PERF.THRUPUT.QS\\\\d.Q", i, "$", sep="")
-    cat(sprintf("  %80.2f", min(df[grep(str, df\$task_name), ]\$seconds)))
-}
-cat("\n")
-cat(sprintf("     Max"))
-for (i in 1:7) {
-    str <- paste("PERF.THRUPUT.QS\\\\d.Q", i, "$", sep="")
-    cat(sprintf("  %80.2f", max(df[grep(str, df\$task_name), ]\$seconds)))
-}
-cat("\n")
-cat(sprintf("     Avg"))
-for (i in 1:7) {
-    str <- paste("PERF.THRUPUT.QS\\\\d.Q", i, "$", sep="")
-    cat(sprintf("  %80.2f", mean(df[grep(str, df\$task_name), ]\$seconds)))
-}
-cat("\n")
-cat("========  ================================================================================  ================================================================================  ================================================================================  ================================================================================  ================================================================================  ================================================================================  ================================================================================\n")
-cat("\n")
+Query execution duration (seconds)$(if [ $HTML -eq 1 ]; then printf " (Click **P** for plans and **R** for results)"; fi):
 
-cat("========  ================================================================================  ================================================================================  ================================================================================  ================================================================================  ================================================================================  ================================================================================  ================================================================================\n")
-cat(" Stream    Q8                                                                                Q9                                                                                Q10                                                                               Q11                                                                               Q12                                                                               Q13                                                                               Q14\n")
-cat("========  ================================================================================  ================================================================================  ================================================================================  ================================================================================  ================================================================================  ================================================================================  ================================================================================\n")
-for (stream in 1:${STREAMS}) {
-    cat(sprintf("%8d", stream))
-    for (i in 8:14) {
-        link_p <- paste("\`P <throughput/plans/", stream, "/", i, ".txt>\`__",
-                        sep="")
-        link_r <- paste("\`R <throughput/results/", stream, "/", i, ".txt>\`__",
-                        sep="")
-        str <- paste("PERF.THRUPUT.QS", stream, ".Q", i, sep="")
-        cat(sprintf("  %8.2f %34s %36s",
-                    df[df\$task_name == str, ]\$seconds, link_p, link_r))
-    }
-    cat("\n")
-}
-cat(sprintf("     Min"))
-for (i in 8:14) {
-    str <- paste("PERF.THRUPUT.QS\\\\d.Q", i, "$", sep="")
-    cat(sprintf("  %80.2f", min(df[grep(str, df\$task_name), ]\$seconds)))
-}
-cat("\n")
-cat(sprintf("     Max"))
-for (i in 8:14) {
-    str <- paste("PERF.THRUPUT.QS\\\\d.Q", i, "$", sep="")
-    cat(sprintf("  %80.2f", max(df[grep(str, df\$task_name), ]\$seconds)))
-}
-cat("\n")
-cat(sprintf("     Avg"))
-for (i in 8:14) {
-    str <- paste("PERF.THRUPUT.QS\\\\d.Q", i, "$", sep="")
-    cat(sprintf("  %80.2f", mean(df[grep(str, df\$task_name), ]\$seconds)))
-}
-cat("\n")
-cat("========  ================================================================================  ================================================================================  ================================================================================  ================================================================================  ================================================================================  ================================================================================  ================================================================================\n")
-cat("\n")
+$(throughput_query 1 7)
 
-cat("========  ================================================================================  ================================================================================  ================================================================================  ================================================================================  ================================================================================  ================================================================================  ================================================================================\n")
-cat(" Stream    Q15                                                                               Q16                                                                               Q17                                                                               Q18                                                                               Q19                                                                               Q20                                                                               Q21\n")
-cat("========  ================================================================================  ================================================================================  ================================================================================  ================================================================================  ================================================================================  ================================================================================  ================================================================================\n")
-for (stream in 1:${STREAMS}) {
-    cat(sprintf("%8d", stream))
-    for (i in 15:21) {
-        link_p <- paste("\`P <throughput/plans/", stream, "/", i, ".txt>\`__",
-                        sep="")
-        link_r <- paste("\`R <throughput/results/", stream, "/", i, ".txt>\`__",
-                        sep="")
-        str <- paste("PERF.THRUPUT.QS", stream, ".Q", i, sep="")
-        cat(sprintf("  %8.2f %34s %36s",
-                    df[df\$task_name == str, ]\$seconds, link_p, link_r))
-    }
-    cat("\n")
-}
-cat(sprintf("     Min"))
-for (i in 15:21) {
-    str <- paste("PERF.THRUPUT.QS\\\\d.Q", i, "$", sep="")
-    cat(sprintf("  %80.2f", min(df[grep(str, df\$task_name), ]\$seconds)))
-}
-cat("\n")
-cat(sprintf("     Max"))
-for (i in 15:21) {
-    str <- paste("PERF.THRUPUT.QS\\\\d.Q", i, "$", sep="")
-    cat(sprintf("  %80.2f", max(df[grep(str, df\$task_name), ]\$seconds)))
-}
-cat("\n")
-cat(sprintf("     Avg"))
-for (i in 15:21) {
-    str <- paste("PERF.THRUPUT.QS\\\\d.Q", i, "$", sep="")
-    cat(sprintf("  %80.2f", mean(df[grep(str, df\$task_name), ]\$seconds)))
-}
-cat("\n")
-cat("========  ================================================================================  ================================================================================  ================================================================================  ================================================================================  ================================================================================  ================================================================================  ================================================================================\n")
-cat("\n")
+$(throughput_query 8 14)
 
-cat("========  ================================================================================  ================================================================================  ================================================================================\n")
-cat(" Stream    Q22                                                                               RF1                                                                               RF2\n")
-cat("========  ================================================================================  ================================================================================  ================================================================================\n")
-for (stream in 1:${STREAMS}) {
-    cat(sprintf("%8d", stream))
-    for (i in 22:22) {
-        link_p <- paste("\`P <throughput/plans/", stream, "/", i, ".txt>\`__",
-                        sep="")
-        link_r <- paste("\`R <throughput/results/", stream, "/", i, ".txt>\`__",
-                        sep="")
-        str <- paste("PERF.THRUPUT.QS", stream, ".Q", i, sep="")
-        cat(sprintf("  %8.2f %34s %36s",
-                    df[df\$task_name == str, ]\$seconds, link_p, link_r))
-    }
-    for (i in 1:2) {
-        link_r <- paste("\`R <throughput/results/", stream, "/rf", i, ".txt>\`__",
-                        sep="")
-        str <- paste("PERF.THRUPUT.RFST", stream, ".RF", i, sep="")
-        cat(sprintf("  %8.2f %71s",
-                    df[df\$task_name == str, ]\$seconds, link_r))
-    }
-    cat("\n")
-}
-cat(sprintf("     Min"))
-for (i in 22:22) {
-    str <- paste("PERF.THRUPUT.QS\\\\d.Q", i, "$", sep="")
-    cat(sprintf("  %80.2f", min(df[grep(str, df\$task_name), ]\$seconds)))
-}
-for (i in 1:2) {
-    str <- paste("PERF.THRUPUT.RFST\\\\d.RF", i, "$", sep="")
-    cat(sprintf("  %80.2f", min(df[grep(str, df\$task_name), ]\$seconds)))
-}
-cat("\n")
-cat(sprintf("     Max"))
-for (i in 22:22) {
-    str <- paste("PERF.THRUPUT.QS\\\\d.Q", i, "$", sep="")
-    cat(sprintf("  %80.2f", max(df[grep(str, df\$task_name), ]\$seconds)))
-}
-for (i in 1:2) {
-    str <- paste("PERF.THRUPUT.RFST\\\\d.RF", i, "$", sep="")
-    cat(sprintf("  %80.2f", max(df[grep(str, df\$task_name), ]\$seconds)))
-}
-cat("\n")
-cat(sprintf("     Avg"))
-for (i in 22:22) {
-    str <- paste("PERF.THRUPUT.QS\\\\d.Q", i, "$", sep="")
-    cat(sprintf("  %80.2f", mean(df[grep(str, df\$task_name), ]\$seconds)))
-}
-for (i in 1:2) {
-    str <- paste("PERF.THRUPUT.RFST\\\\d.RF", i, "$", sep="")
-    cat(sprintf("  %80.2f", mean(df[grep(str, df\$task_name), ]\$seconds)))
-}
-cat("\n")
-cat("========  ================================================================================  ================================================================================  ================================================================================\n")
-__EOF__
+$(throughput_query 15 21)
+
+$(throughput_query 22 22)
+EOF
+
+exit 0

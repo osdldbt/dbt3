@@ -135,6 +135,13 @@ QTIMECSV="${INDIR}/q_time.csv"
 SF=$(grep scale_factor ${INDIR}/config.txt | awk '{print $2}')
 STREAMS=$(grep num_stream ${INDIR}/config.txt | awk '{print $2}')
 
+dbt3-post-process \
+		-i "${INDIR}" \
+		-n "${STREAMS}" \
+		-2 \
+		-3 \
+		-h > "${INDIR}/with-links-summary.rst"
+
 LOADDIR=${INDIR}/load
 if [ -d "${LOADDIR}" ]; then
 	LOAD=$(grep LOAD $INDIR/q_time.csv | awk -F, '{ print $5 }')
