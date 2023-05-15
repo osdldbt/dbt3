@@ -6,10 +6,44 @@
 #
 # Copyright The DBT-3 Authors
 
-if [ $# -lt 5 ]; then
-        echo "usage: $0 <scale_factor> <number of stream> <load parameters> <load parameters> <throughput parameters> <output_dir>"
-        exit 1
-fi
+usage()
+{
+	cat << EOF
+$(basename "${0}") is the Database Test 3 (DBT-3) system cofiguration collector
+
+Usage:
+  $(basename "${0}") [OPTION]
+  $(basename "${0}") SCALE_FACTOR STREAMS LOAD_PARMETERS POWER_PARAMETERS THROUGHPUT_PARAMETERS DIRECTORY
+
+Options:
+  -V, --version  output version information, then exit
+  -?, --help     show this help, then exit
+
+@HOMEPAGE@
+EOF
+}
+
+# Custom argument handling for hopefully most portability.
+while [ "${#}" -gt 0 ] ; do
+	case "${1}" in
+	(-V | --version)
+		echo "$(basename "${0}") (Database Test 3) v@PROJECT_VERSION@"
+		;;
+	(-\? | --help)
+		usage
+		exit 0
+		;;
+	(--* | -*)
+		echo "$(basename "${0}"): invalid option -- '${1}'"
+		echo "try \"$(basename "${0}") --help\" for more information."
+		exit 1
+		;;
+	(*)
+		break
+		;;
+	esac
+	shift
+done
 
 scale_factor=$1
 num_stream=$2

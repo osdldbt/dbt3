@@ -7,7 +7,8 @@
 # Copyright The DBT-3 Authors
 #
 
-usage() {
+usage()
+{
 	cat << EOF
 Database Test 3 (DBT-3)
 

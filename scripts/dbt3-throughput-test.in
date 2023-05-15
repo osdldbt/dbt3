@@ -7,43 +7,48 @@
 # Copyright The DBT-3 Authors
 
 MPP=0
-NO_REFRESH=0
 NO_REFRESH_FLAG=
 PRIVILEGED=1
+PROFILE=0
 EXTRA_ARGS=
 STATS=0
 
 usage()
 {
-	echo
-	echo "`basename $0` is the DBT-3 throughput runner"
-	echo ""
-	echo "Usage:"
-	echo "  `basename $0` [OPTIONS]"
-	echo
-	echo "Generate options:"
-	echo "  -a DBMS         database management system to test"
-	echo "  -f SCALE        database scale factor, default 1"
-	echo "  -h              this help message"
-	echo "  -n STREAMS      number of throughput streams"
-	echo "  -o DIRECTORY    path to store test results"
-	echo "  -s SEED         seed to use for power and throughput tests"
-	echo "  -S              enable system and database stats collection"
-	echo "  -u              use tablespaces"
-	echo "  -U              run test as an unprivileged user"
-	echo "  -Y              enable software profiling (Linux only)"
-	echo "  -z              do not run refresh streams"
-	echo ""
-	echo "DBMS options are:"
-	echo "  monetdb         MonetDB"
-	echo "  mysql           MySQL"
-	echo "  pgsql           PostgreSQL"
-	echo "  pgxl            Postgres-XL"
-	echo "  virtuoso        Virtuoso"
-	echo ""
-	echo "PostgreSQL specific options:"
-	echo "  -e              EXPLAIN ANALYZE"
-	echo "  -p              database parameters for the load test"
+	cat << EOF
+$(basename "${0}") is the Database Test 3 (DBT-3) throughput tester
+
+Usage:
+  $(basename "${0}") [OPTION]
+
+Options:
+  -a DBMS        database management system to test
+  -f SCALE       database scale factor, default 1
+  -n STREAMS     number of throughput STREAMS
+  -o DIRECTORY   DIRECTORY to store test results
+  -s SEED        set SEED to a specific value
+  -S             enable system and database stats collection"
+  -t STREAM      set STREAM identifier
+  -u             use tablespaces"
+  -U             run test as an unprivileged user"
+  -V, --version  output version information, then exit
+  -Y             enable software profiling (Linux only)"
+  -z             do not run refresh streams"
+  -?, --help     show this help, then exit
+
+DBMS options are:
+  monetdb    MonetDB
+  mysql      MySQL
+  pgsql      PostgreSQL
+  pgxl       Postgres-XL
+  virtuoso   Virtuoso
+
+PostgreSQL specific options:
+  -e             EXPLAIN ANALYZE
+  -p             database parameters for the throughput test"
+
+@HOMEPAGE@
+EOF
 }
 
 stop_procs() {
@@ -56,43 +61,70 @@ stop_procs() {
 }
 trap 'stop_procs' INT TERM
 
-while getopts "a:ef:hn:o:p:s:SUz" opt; do
-	case $opt in
-	a) DATABASE=$OPTARG
+# Custom argument handling for hopefully most portability.
+while [ "${#}" -gt 0 ]; do
+	case "${1}" in
+	(-a)
+		shift
+		DATABASE="${1}"
 		if [ "x$DATABASE" = "xpgxl" ]; then
 			MPP=1
 		fi
 		;;
-	e) EXTRA_ARGS="$EXTRA_ARGS -e"
+	(-e)
+		EXTRA_ARGS="$EXTRA_ARGS -e"
 		;;
-	f) scale_factor=$OPTARG
+	(-f)
+		shift
+		scale_factor="${1}"
 		;;
-	h) usage
-		exit 0
+	(-n)
+		shift
+		num_stream="${1}"
 		;;
-	n) num_stream=$OPTARG
-		;;
-	o) OUTPUT_DIR=$OPTARG
+	(-o)
+		shift
+		OUTPUT_DIR="${1}"
 		mkdir -p $OUTPUT_DIR/results
 		;;
-	p)
-		PARAMETERS_ARG="-p \"$OPTARG\""
+	(-p)
+		shift
+		PARAMETERS_ARG="-p \"${1}\""
 		;;
-	s) SEED_FILE=$OPTARG
+	(-s)
+		shift
+		SEED_FILE="${1}"
 		;;
-	S) STATS=1
+	(-S)
+		STATS=1
 		;;
-	U) PRIVILEGED=0
+	(-U)
+		PRIVILEGED=0
 		UNPRIVILEGED_ARG="-U"
 		;;
-	Y) PROFILE=1
+	(-Y)
+		PROFILE=1
 		;;
-	z) NO_REFRESH_FLAG="-z"
-		NO_REFRESH=1
+	(-V | --version)
+		echo "$(basename "${0}") (Database Test 3) v@PROJECT_VERSION@"
 		;;
-	\?) exit 1
+	(-z)
+		NO_REFRESH_FLAG="-z"
+		;;
+	(-\? | --help)
+		usage
+		exit 0
+		;;
+	(--* | -*)
+		echo "$(basename "${0}"): invalid option -- '${1}'"
+		echo "try \"$(basename "${0}") --help\" for more information."
+		exit 1
+		;;
+	(*)
+		break
 		;;
 	esac
+	shift
 done
 
 if [ "x$DATABASE" = "x" ]; then

@@ -8,26 +8,52 @@
 
 usage()
 {
-	echo "usage: $(basename "${0}") -i <q_time.csv> -s <SCALE_FACTOR>"
+	cat << EOF
+$(basename "${0}") is the Database Test 3 (DBT-3) power score calculator
+
+Usage:
+  $(basename "${0}") [OPTION]
+
+Options:
+  -i CSV         q_time.csv file
+  -s SCALE_FACTOR
+                 SCALE_FACTOR of the test
+  -o DIRECTORY   output DIRECTORY to save bar chart
+  -V, --version  output version information, then exit
+  -?, --help     show this help, then exit
+
+@HOMEPAGE@
+EOF
 }
 
-while getopts "hi:s:" opt; do
-	case "${opt}" in
-	h)
+# Custom argument handling for hopefully most portability.
+while [ "${#}" -gt 0 ] ; do
+	case "${1}" in
+	(-i)
+		shift
+		INFILE="${1}"
+		;;
+	(-s)
+		shift
+		SCALE_FACTOR="${1}"
+		;;
+	(-V | --version)
+		echo "$(basename "${0}") (Database Test 3) v@PROJECT_VERSION@"
+		;;
+	(-\? | --help)
 		usage
+		exit 0
+		;;
+	(--* | -*)
+		echo "$(basename "${0}"): invalid option -- '${1}'"
+		echo "try \"$(basename "${0}") --help\" for more information."
 		exit 1
 		;;
-	i)
-		INFILE=$OPTARG
-		;;
-	s)
-		SCALE_FACTOR=$OPTARG
-		;;
-	\?)
-		usage
-		exit 1
+	(*)
+		break
 		;;
 	esac
+	shift
 done
 
 TMPDIR=$(mktemp -d)

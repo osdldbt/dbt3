@@ -6,7 +6,6 @@
 #
 # Copyright The DBT-3 Authors
 
-EXTRA=0
 EXTRA_ARGS=
 NO_REFRESH=0
 MPP=0
@@ -16,36 +15,44 @@ STATS=0
 
 usage()
 {
-	echo
-	echo "`basename $0` is the DBT-3 power tester"
-	echo ""
-	echo "Usage:"
-	echo "  `basename $0` [OPTIONS]"
-	echo
-	echo "Generate options:"
-	echo "  -a DBMS         database management system to test"
-	echo "  -d              direct data load"
-	echo "  -f SCALE        database scale factor, default 1"
-	echo "  -g              generate flat files"
-	echo "  -h              this help message"
-	echo "  -l              only load data"
-	echo "  -o DIRECTORY    path to store test results"
-	echo "  -s SEED         seed to use for power and throughput tests"
-	echo "  -S              enable system and database stats collection"
-	echo "  -U              run as an unprivileged user"
-	echo "  -Y              enable software profiling (Linux only)"
-	echo "  -z              do not run refresh streams"
-	echo ""
-	echo "DBMS options are:"
-	echo "  monetdb         MonetDB"
-	echo "  mysql           MySQL"
-	echo "  pgsql           PostgreSQL"
-	echo "  pgxl            Postgres-XL"
-	echo "  virtuoso        Virtuoso"
-	echo ""
-	echo "PostgreSQL specific options:"
-	echo "  -e              EXPLAIN ANALYZE"
-	echo "  -p              database parameters for the load test"
+	cat << EOF
+$(basename "${0}") is the Database Test 3 (DBT-3) power tester
+
+Usage:
+  $(basename "${0}") [OPTION]
+
+Options:
+  -a DBMS        database management system to test
+  -c             resort tables after loading
+  -C             number of chunks to load
+  -d             direct data load
+  -f SCALE       database scale factor, default 1
+  -g             generate flat files
+  -h             this help message
+  -l             only load data
+  -o DIRECTORY   path to store test results
+  -R             materialized view mode
+  -s SEED        seed to use for power and throughput tests"
+  -S             enable system and database stats collection
+  -U             run test as an unprivileged user
+  -Y             enable profiling (Linux only)
+  -V, --version  output version information, then exit
+  -z             do not run refresh streams"
+  -?, --help     show this help, then exit
+
+DBMS options are:
+  monetdb    MonetDB
+  mysql      MySQL
+  pgsql      PostgreSQL
+  pgxl       Postgres-XL
+  virtuoso   Virtuoso
+
+PostgreSQL specific options:
+  -e              EXPLAIN ANALYZE
+  -p             database parameters for the power test
+
+@HOMEPAGE@
+EOF
 }
 
 stop_procs() {
@@ -59,51 +66,68 @@ stop_procs() {
 trap 'stop_procs' INT TERM
 
 # process the command line parameters
-while getopts "a:ef:o:p:s:SUYz" opt; do
-	case $opt in
-	a)
-		DATABASE=$OPTARG
+# Custom argument handling for hopefully most portability.
+while [ "${#}" -gt 0 ] ; do
+	case "${1}" in
+	(-a)
+		shift
+		DATABASE="${1}"
 		if [ "x$DATABASE" = "xpgxl" ]; then
 			MPP=1
 		fi
 		;;
-	e)
-		EXTRA=1
+	(-e)
 		EXTRA_ARGS="-e"
 		QGEN_ARG="-i \"${DSS_QUERY}/explain-analyze.sql\""
 		;;
-	f)
-		SCALE_FACTOR=$OPTARG
+	(-f)
+		shift
+		SCALE_FACTOR="${1}"
 		;;
-	o)
-		OUTPUT_DIR=$OPTARG
+	(-o)
+		shift
+		OUTPUT_DIR="${1}"
 		RESULTSDIR="${OUTPUT_DIR}/results"
 		mkdir -p ${RESULTSDIR}
 		;;
-	p)
-		PARAMETERS_ARG="-p \"$OPTARG\""
+	(-p)
+		shift
+		PARAMETERS_ARG="-p \"${1}\""
 		;;
-	s)
-		SEED_FILE=$OPTARG
+	(-s)
+		shift
+		SEED_FILE="${1}"
 		;;
-	S)
+	(-S)
 		STATS=1
 		;;
-	U)
+	(-U)
 		PRIVILEGED=0
 		UNPRIVILEGED_ARG="-U"
 		;;
-	Y)
+	(-Y)
 		PROFILE=1
 		;;
-	z)
+	(-V | --version)
+		echo "$(basename "${0}") (Database Test 3) v@PROJECT_VERSION@"
+		;;
+	(-z)
 		NO_REFRESH=1
 		;;
-	\?)
+	(-\? | --help)
 		usage
+		exit 0
+		;;
+	(--* | -*)
+		echo "$(basename "${0}"): invalid option -- '${1}'"
+		echo "try \"$(basename "${0}") --help\" for more information."
 		exit 1
 		;;
+	(*)
+		break
+		;;
 	esac
+	shift
 done
 
 if [ "x$QGEN" = "x" ]; then

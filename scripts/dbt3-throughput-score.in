@@ -8,21 +8,56 @@
 
 usage()
 {
-	echo "usage: $0 -i <q_time.out> -n <streams> -s <scale factor>"
+	cat << EOF
+$(basename "${0}") is the Database Test 3 (DBT-3) throughput score calculator
+
+Usage:
+  $(basename "${0}") [OPTION]
+
+Options:
+  -i CSV         q_time.csv file
+  -n STREAMS     number of throughput STREAMS
+  -s SCALE_FACTOR
+                 SCALE_FACTOR of the test
+  -V, --version  output version information, then exit
+  -?, --help     show this help, then exit
+
+@HOMEPAGE@
+EOF
 }
 
-while getopts "i:n:s:" OPT; do
-	case ${OPT} in
-	i)
-		INFILE=${OPTARG}
+# Custom argument handling for hopefully most portability.
+while [ "${#}" -gt 0 ] ; do
+	case "${1}" in
+	(-i)
+		shift
+		INFILE="${1}"
 		;;
-	n)
-		STREAMS=${OPTARG}
+	(-n)
+		shift
+		STREAMS="${1}"
 		;;
-	s)
-		SCALE_FACTOR=${OPTARG}
+	(-s)
+		shift
+		SCALE_FACTOR="${1}"
+		;;
+	(-V | --version)
+		echo "$(basename "${0}") (Database Test 3) v@PROJECT_VERSION@"
+		;;
+	(-\? | --help)
+		usage
+		exit 0
+		;;
+	(--* | -*)
+		echo "$(basename "${0}"): invalid option -- '${1}'"
+		echo "try \"$(basename "${0}") --help\" for more information."
+		exit 1
+		;;
+	(*)
+		break
 		;;
 	esac
+	shift
 done
 
 if [ -z ${INFILE} ] || [ -z ${STREAMS} ] || [ -z ${SCALE_FACTOR} ]; then

@@ -26,6 +26,7 @@ vX.Y.Z
 - Convert power-score script to use sqlite3
 - Convert post-processing script to use sqlite3
 - Add usage message to PostgreSQL scripts
+- Add usage message to top level scripts
 
 v1.11.1
 

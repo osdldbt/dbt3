@@ -6,26 +6,86 @@
 #
 # Copyright The DBT-3 Authors
 
-MPP=0
+usage()
+{
+	cat << EOF
+$(basename "${0}") is the Database Test 3 (DBT-3) throughput test stream executor
 
-while getopts "a:ef:n:o:s:t:" opt; do
-	case $opt in
-	a) DATABASE=$OPTARG
-		if [ "x$DATABASE" = "xpgxl" ]; then
-			MPP=1
-		fi
+Usage:
+  $(basename "${0}") [OPTION]
+
+Options:
+  -a DBMS        database management system to test
+  -f SCALE       database scale factor, default 1
+  -n STREAMS     number of throughput STREAMS
+  -o DIRECTORY   DIRECTORY to store test results
+  -s SEED        set SEED to a specific value
+  -t STREAM      set STREAM identifier
+  -V, --version  output version information, then exit
+  -?, --help     show this help, then exit
+
+DBMS options are:
+  monetdb    MonetDB
+  mysql      MySQL
+  pgsql      PostgreSQL
+  pgxl       Postgres-XL
+  virtuoso   Virtuoso
+
+PostgreSQL specific options:
+  -e             EXPLAIN ANALYZE
+
+@HOMEPAGE@
+EOF
+}
+
+# Custom argument handling for hopefully most portability.
+while [ "${#}" -gt 0 ]; do
+	case "${1}" in
+	(-a)
+		shift
+		DATABASE="${1}"
 		;;
-	e) EXTRA_ARGS="-i \"${DSS_QUERY}/explain-analyze.sql\""
+	(-e)
+		EXTRA_ARGS="-i \"${DSS_QUERY}/explain-analyze.sql\""
 		;;
-	f) SCALE_FACTOR=$OPTARG;;
-	n) num_stream=$OPTARG;;
-	o) OUTPUT_DIR=$OPTARG
+	(-f)
+		shift
+		SCALE_FACTOR="${1}"
+		;;
+	(-n)
+		shift
+		num_stream="${1}"
+		;;
+	(-o)
+		shift
+		OUTPUT_DIR="${1}"
 		mkdir -p $OUTPUT_DIR/results
 		;;
-	s) SEED_FILE=$OPTARG;;
-	t) stream_num=$OPTARG;;
-	\?) exit 1;;
+	(-s)
+		shift
+		SEED_FILE="${1}"
+		;;
+	(-t)
+		shift
+		stream_num="${1}"
+		;;
+	(-V | --version)
+		echo "$(basename "${0}") (Database Test 3) v@PROJECT_VERSION@"
+		;;
+	(-\? | --help)
+		usage
+		exit 0
+		;;
+	(--* | -*)
+		echo "$(basename "${0}"): invalid option -- '${1}'"
+		echo "try \"$(basename "${0}") --help\" for more information."
+		exit 1
+		;;
+	(*)
+		break
+		;;
 	esac
+	shift
 done
 
 if [ "x$DATABASE" = "x" ]; then

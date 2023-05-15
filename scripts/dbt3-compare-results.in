@@ -11,25 +11,37 @@ THROUGHPUT_TEST=0
 
 usage()
 {
-	echo "usage: `basename $0` <-a directory> <-b directory> [-o outdir]"
-	echo " a - first dbt3 results directory"
-	echo " b - second dbt3 results directory"
-	echo " o - output directory to create charts"
+	cat << EOF
+$(basename "${0}") is the Database Test 3 (DBT-3) results comparer
+
+Usage:
+  $(basename "${0}") [OPTION]
+
+Options:
+  -a             first dbt3 results directory"
+  -b             second dbt3 results directory"
+  -o             output directory to create charts"
+  -V, --version  output version information, then exit
+  -?, --help     show this help, then exit
+
+@HOMEPAGE@
+EOF
 }
 
 OUTDIR="."
 POWER_TEST=0
 THROUGHPUT_TEST=0
-while getopts "23a:b:ho:" opt; do
-	case $opt in
-	2)
+while [ "${#}" -gt 0 ] ; do
+	case "${1}" in
+	(-2)
 		POWER_TEST=1
 		;;
-	3)
+	(-3)
 		THROUGHPUT_TEST=1
 		;;
-	a)
-		INDIR1=$OPTARG
+	(-a)
+		shift
+		INDIR1=${1}
 		INFILE1=$INDIR1/q_time.csv
 		if [ ! -f "$INFILE1" ]; then
 			echo "$INFILE1 does not exist"
@@ -37,8 +49,9 @@ while getopts "23a:b:ho:" opt; do
 		fi
 		RNAME1=`basename $INDIR1`
 		;;
-	b)
-		INDIR2=$OPTARG
+	(-b)
+		shift
+		INDIR2=${1}
 		INFILE2=$INDIR2/q_time.csv
 		if [ ! -f "$INFILE2" ]; then
 			echo "$INFILE2 does not exist"
@@ -46,18 +59,31 @@ while getopts "23a:b:ho:" opt; do
 		fi
 		RNAME2=`basename $INDIR2`
 		;;
-	h)
+	(-h)
 		usage
 		exit 0
 		;;
-	o)
-		OUTDIR=$OPTARG
+	(-o)
+		shift
+		OUTDIR=${1}
 		;;
-	\?)
+	(-V | --version)
+		echo "$(basename "${0}") (Database Test 3) v@PROJECT_VERSION@"
+		;;
+	(-\? | --help)
 		usage
+		exit 0
+		;;
+	(--* | -*)
+		echo "$(basename "${0}"): invalid option -- '${1}'"
+		echo "try \"$(basename "${0}") --help\" for more information."
 		exit 1
 		;;
+	(*)
+		break
+		;;
 	esac
+	shift
 done
 
 R --slave --no-save << __EOF__

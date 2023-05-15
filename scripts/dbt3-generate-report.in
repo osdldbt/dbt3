@@ -6,13 +6,22 @@
 #
 # Copyright The DBT-3 Authors
 
-usage() {
-	echo "usage: $(basename $0) is the DBT-2 report generator"
-	echo ""
-	echo "usage: $(basename $0) [OPTIONS]"
-	echo ""
-	echo "General Options:"
-	echo "  -i <path>    DBT-3 results directory"
+usage()
+{
+	cat << EOF
+$(basename "${0}") is the Database Test 3 (DBT-3) report generator
+
+Usage:
+  $(basename "${0}") [OPTION]
+
+Options:
+  --fast         do not generate charts
+  -i DIRECTORY   DBT-3 results directory
+  -V, --version  output version information, then exit
+  -?, --help     show this help, then exit
+
+@HOMEPAGE@
+EOF
 }
 
 create_stat_page()
@@ -79,12 +88,33 @@ warning() {
 
 # Use this to skip chart generation to help test just the HTML generation.
 FAST=0
-while getopts fi: OPT; do
-	case $OPT in
-		f) export FAST=1;;
-		i) INDIR=$OPTARG;;
-		\?) usage; exit 1;;
+# Custom argument handling for hopefully most portability.
+while [ "${#}" -gt 0 ] ; do
+	case "${1}" in
+	(--fast)
+		export FAST=1
+		;;
+	(-i)
+		shift
+		INDIR="${1}"
+		;;
+	(-V | --version)
+		echo "$(basename "${0}") (Database Test 3) v@PROJECT_VERSION@"
+		;;
+	(-\? | --help)
+		usage
+		exit 0
+		;;
+	(--* | -*)
+		echo "$(basename "${0}"): invalid option -- '${1}'"
+		echo "try \"$(basename "${0}") --help\" for more information."
+		exit 1
+		;;
+	(*)
+		break
+		;;
 	esac
+	shift
 done
 
 if [ "x${INDIR}" = "x" ]; then

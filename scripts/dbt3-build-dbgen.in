@@ -7,9 +7,10 @@
 # Copyright The DBT-3 Authors
 #
 
-usage() {
+usage()
+{
 	cat << EOF
-Database Test 3 (DBT-3)
+$(basename "${0}") is the Database Test 3 (DBT-3) TPC-H Tools builder
 
 Usage:
   $(basename "${0}") [OPTION] DBMS DIRECTORY

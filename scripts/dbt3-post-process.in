@@ -6,6 +6,25 @@
 #
 # Copyright The DBT-3 Authors
 
+usage()
+{
+	cat << EOF
+$(basename "${0}") is the Database Test 3 (DBT-3) post processor
+
+Usage:
+  $(basename "${0}") [OPTION]
+
+Options:
+  -h             generate RST for HTML conversion
+  -i DIRECTORY   DBT-3 results directory
+  -n STREAMS     number of throughput STREAMS
+  -V, --version  output version information, then exit
+  -?, --help     show this help, then exit
+
+@HOMEPAGE@
+EOF
+}
+
 power_query_times() {
 	if [ ! -d "${INDIR}/power" ]; then
 		printf "=======  =========================%s\n" "$(if [ $HTML -eq 1 ]; then printf "  =="; fi)"
@@ -240,32 +259,38 @@ throughput_summary() {
 }
 
 HTML=0
-PLOT_OPTS=""
-while getopts "23hi:n:z" OPT; do
-	case ${OPT} in
-	2)
-		PLOT_OPTS="${PLOT_OPTS} -2"
-		;;
-	3)
-		PLOT_OPTS="${PLOT_OPTS} -3"
-		;;
-	i)
-		INDIR=$OPTARG
+# Custom argument handling for hopefully most portability.
+while [ "${#}" -gt 0 ] ; do
+	case "${1}" in
+	(-i)
+		shift
+		INDIR="${1}"
 		QTIME=$INDIR/q_time.csv
 		;;
-	h)
+	(-h)
 		HTML=1
 		;;
-	n)
-		STREAMS=${OPTARG}
+	(-n)
+		shift
+		STREAMS="${1}"
 		;;
-	z)
-		PLOT_OPTS="${PLOT_OPTS} -z"
+	(-V | --version)
+		echo "$(basename "${0}") (Database Test 3) v@PROJECT_VERSION@"
 		;;
-	\?)
+	(-\? | --help)
+		usage
+		exit 0
+		;;
+	(--* | -*)
+		echo "$(basename "${0}"): invalid option -- '${1}'"
+		echo "try \"$(basename "${0}") --help\" for more information."
 		exit 1
 		;;
+	(*)
+		break
+		;;
 	esac
+	shift
 done
 
 SEED=$(cat "${INDIR}/seed")

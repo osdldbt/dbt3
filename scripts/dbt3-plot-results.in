@@ -8,28 +8,51 @@
 
 usage()
 {
-	echo "usage: $(basename "${0}") -i q_time.csv -o directory"
-	echo " i - query time csv data file"
-	echo " o - output directory to save bar charts"
+	cat << EOF
+$(basename "${0}") is the Database Test 3 (DBT-3) query results plotter
+
+Usage:
+  $(basename "${0}") [OPTION]
+
+Options:
+  -i FILENAME    query time csv data file
+  -o DIRECTORY   output DIRECTORY to save bar chart
+  -V, --version  output version information, then exit
+  -?, --help     show this help, then exit
+
+@HOMEPAGE@
+EOF
 }
 
 OUTDIR="."
-while getopts "hi:o:" opt; do
-	case $opt in
-	h)
+# Custom argument handling for hopefully most portability.
+while [ "${#}" -gt 0 ] ; do
+	case "${1}" in
+	(-i)
+		shift
+		INFILE="${1}"
+		;;
+	(-o)
+		shift
+		OUTDIR="${1}"
+		;;
+	(-V | --version)
+		echo "$(basename "${0}") (Database Test 3) v@PROJECT_VERSION@"
+		;;
+	(-\? | --help)
 		usage
 		exit 0
 		;;
-	i)
-		INFILE=${OPTARG}
-		;;
-	o)
-		OUTDIR=${OPTARG}
-		;;
-	\?)
+	(--* | -*)
+		echo "$(basename "${0}"): invalid option -- '${1}'"
+		echo "try \"$(basename "${0}") --help\" for more information."
 		exit 1
 		;;
+	(*)
+		break
+		;;
 	esac
+	shift
 done
 
 if [ ! -f "${INFILE}" ]; then

@@ -6,28 +6,91 @@
 #
 # Copyright The DBT-3 Authors
 
+usage()
+{
+	cat << EOF
+$(basename "${0}") is the Database Test 3 (DBT-3) throughput stream wrapper
+
+Usage:
+  $(basename "${0}") [OPTION]
+
+Options:
+  -a DBMS        database management system to test
+  -f SCALE       database scale factor, default 1
+  -n STREAMS     number of throughput STREAMS
+  -o DIRECTORY   DIRECTORY to store test results
+  -s SEED        set SEED to a specific value
+  -U             run test as an unprivileged user
+  -Y             enable profiling (Linux only)
+  -V, --version  output version information, then exit
+  -z             do not run refresh streams
+  -?, --help     show this help, then exit
+
+DBMS options are:
+  monetdb    MonetDB
+  mysql      MySQL
+  pgsql      PostgreSQL
+  pgxl       Postgres-XL
+  virtuoso   Virtuoso
+
+PostgreSQL specific options:
+  -e             EXPLAIN ANALYZE
+
+@HOMEPAGE@
+EOF
+}
+
 NO_REFRESH=0
-while getopts "a:ef:n:o:s:Uz" opt; do
-	case $opt in
-	a) DATABASE=$OPTARG
+
+# Custom argument handling for hopefully most portability.
+while [ "${#}" -gt 0 ]; do
+	case "${1}" in
+	(-a)
+		shift
+		DATABASE="${1}"
 		;;
-	e) EXTRA_ARGS="$EXTRA_ARGS -e"
+	(-e)
+		EXTRA_ARGS="$EXTRA_ARGS -e"
 		;;
-	f) scale_factor=$OPTARG
+	(-f)
+		shift
+		scale_factor="${1}"
 		;;
-	n) num_stream=$OPTARG
+	(-n)
+		shift
+		num_stream="${1}"
 		;;
-	o) OUTPUT_DIR=$OPTARG
+	(-o)
+		shift
+		OUTPUT_DIR="${1}"
 		;;
-	s) SEED_FILE=$OPTARG
+	(-s)
+		shift
+		SEED_FILE="${1}"
 		;;
-	U) UNPRIVILEGED_ARG="-U"
+	(-U)
+		UNPRIVILEGED_ARG="-U"
 		;;
-	z) NO_REFRESH=1
+	(-V | --version)
+		echo "$(basename "${0}") (Database Test 3) v@PROJECT_VERSION@"
 		;;
-	\?) exit 1
+	(-z)
+		NO_REFRESH=1
+		;;
+	(-\? | --help)
+		usage
+		exit 0
+		;;
+	(--* | -*)
+		echo "$(basename "${0}"): invalid option -- '${1}'"
+		echo "try \"$(basename "${0}") --help\" for more information."
+		exit 1
+		;;
+	(*)
+		break
 		;;
 	esac
+	shift
 done
 
 if [ "x$DATABASE" = "x" ]; then
