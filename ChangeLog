@@ -1,4 +1,4 @@
-vX.Y.Z
+vX.Y.Z (YYYY-MM-DD)
 
 - Fix post processing RST table format error when seed is too longer than 9
   digits
@@ -28,7 +28,7 @@ vX.Y.Z
 - Add usage message to PostgreSQL scripts
 - Add usage message to top level scripts
 
-v1.11.1
+v1.11.1 (2022-06-03)
 
 - Fix logic for generating data files in load test script
 - Add flag to run test as an unprivileged database super user
@@ -40,7 +40,7 @@ v1.11.1
   recognized
 - Add ignore file for Docker
 
-v1.11.0
+v1.11.0 (2022-05-27)
 
 - Add Docker files to run DBT-3 against PostgreSQL.
 - Update reporting to generate HTML from ReStructuredText
