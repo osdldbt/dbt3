@@ -6,18 +6,53 @@
 #
 # Copyright The DBT-3 Authors
 
+usage()
+{
+	cat << EOF
+$(basename "${0}") is the Database Test 3 (DBT-3) PostgreSQL query time extractor
+
+Usage:
+  $(basename "${0}") [OPTION]
+
+Options:
+  -o DIRECTORY   path to store query data
+  -V, --version  output version information, then exit
+  -?, --help     show this help, then exit
+
+@HOMEPAGE@
+EOF
+}
+
 SQL="SELECT task_name, s_time, e_time, (e_time-s_time) AS diff_time, \
 (extract(hour FROM (e_time-s_time)) * 3600) + (extract(minute FROM \
 (e_time-s_time)) * 60) + (extract(second FROM (e_time-s_time))) AS seconds \
 FROM time_statistics"
 
 ARGS=
-while getopts "o:" opt; do
-	case $opt in
-		o)
-			ARGS="-o $OPTARG/q_time.csv"
-			;;
+# Custom argument handling for hopefully most portability.
+while [ "${#}" -gt 0 ] ; do
+	case "${1}" in
+	(-o)
+		shift
+		ARGS="-o ${1}/q_time.csv"
+		;;
+	(-V | --version)
+		echo "$(basename "${0}") (Database Test 3) v@PROJECT_VERSION@"
+		;;
+	(-\? | --help)
+		usage
+		exit 0
+		;;
+	(--* | -*)
+		echo "$(basename "${0}"): invalid option -- '${1}'"
+		echo "try \"$(basename "${0}") --help\" for more information."
+		exit 1
+		;;
+	(*)
+		break
+		;;
 	esac
+	shift
 done
 
 psql -X -A -F, -t -q ${ARGS} -c "COPY (${SQL}) TO STDOUT (FORMAT CSV, HEADER)"

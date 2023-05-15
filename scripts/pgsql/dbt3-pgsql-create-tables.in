@@ -6,6 +6,23 @@
 #
 # Copyright The DBT-3 Authors
 
+usage()
+{
+	cat << EOF
+$(basename "${0}") is the Database Test 3 (DBT-3) PostgreSQL table creator
+
+Usage:
+  $(basename "${0}") [OPTION]
+
+Options:
+  -t             usage tablespaces
+  -V, --version  output version information, then exit
+  -?, --help     show this help, then exit
+
+@HOMEPAGE@
+EOF
+}
+
 create_table() {
 	SQL=${1}
 
@@ -17,12 +34,29 @@ __EOF__
 
 NUM_OR_FD="NUMERIC"
 USE_TABLESPACES=0
-while getopts "t" OPT; do
-	case ${OPT} in
-	t)
+# Custom argument handling for hopefully most portability.
+while [ "${#}" -gt 0 ] ; do
+	case "${1}" in
+	(-t)
 		USE_TABLESPACES=1
 		;;
+	(-V | --version)
+		echo "$(basename "${0}") (Database Test 3) v@PROJECT_VERSION@"
+		;;
+	(-\? | --help)
+		usage
+		exit 0
+		;;
+	(--* | -*)
+		echo "$(basename "${0}"): invalid option -- '${1}'"
+		echo "try \"$(basename "${0}") --help\" for more information."
+		exit 1
+		;;
+	(*)
+		break
+		;;
 	esac
+	shift
 done
 
 PSQL="psql -v ON_ERROR_STOP=1 -X -A -t"

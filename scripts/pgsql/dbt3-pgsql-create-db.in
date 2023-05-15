@@ -6,6 +6,25 @@
 #
 # Copyright The DBT-3 Authors
 
+usage()
+{
+	cat << EOF
+$(basename "${0}") is the Database Test 3 (DBT-3) PostgreSQL database creator
+
+Usage:
+  $(basename "${0}") [OPTION]
+
+Options:
+  -o DIRECTORY   DIRECTORY to store test results
+  -p             database parameters to use
+  -V, --version  output version information, then exit
+  -x DIRECTORY   set WAL to DIRECTORY
+  -?, --help     show this help, then exit
+
+@HOMEPAGE@
+EOF
+}
+
 # dont start script as root!
 id=`id | sed s/\(.*// | sed s/uid=//`
 
@@ -26,21 +45,38 @@ fi
 
 XLOGPATH=""
 OUTPUT_DIR="."
-while getopts "o:p:x:" OPT; do
-	case ${OPT} in
-	o)
-		OUTPUT_DIR=${OPTARG}
+# Custom argument handling for hopefully most portability.
+while [ "${#}" -gt 0 ] ; do
+	case "${1}" in
+	(-o)
+		shift
+		OUTPUT_DIR="${1}"
 		;;
-	p)
-		PARAMOPT="-p \"$OPTARG\""
+	(-p)
+		shift
+		PARAMOPT="-p \"${1}\""
 		;;
-	x)
-		XLOGPATH=${OPTARG}
+	(-V | --version)
+		echo "$(basename "${0}") (Database Test 3) v@PROJECT_VERSION@"
 		;;
-	\?)
+	(-x)
+		shift
+		XLOGPATH="${1}"
+		;;
+	(-\? | --help)
+		usage
+		exit 0
+		;;
+	(--* | -*)
+		echo "$(basename "${0}"): invalid option -- '${1}'"
+		echo "try \"$(basename "${0}") --help\" for more information."
 		exit 1
 		;;
+	(*)
+		break
+		;;
 	esac
+	shift
 done
 
 dbt3-pgsql-stop-db

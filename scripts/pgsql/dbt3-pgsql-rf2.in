@@ -8,41 +8,57 @@
 
 usage()
 {
-	echo
-	echo "`basename $0` is the DBT-3 PostgreSQL Refresh Stream 2 runner"
-	echo ""
-	echo "Usage:"
-	echo "  `basename $0` [OPTIONS]"
-	echo
-	echo "Generate options:"
-	echo "  -e              EXPLAIN ANALYZE"
-	echo "  -s NUMBER       data set number"
-	echo "  -h              this help message"
-	echo "  -U              run as an unprivileged user"
+	cat << EOF
+$(basename "${0}") is the Database Test 3 (DBT-3) PostgreSQL refresh stream 2 runner
+
+Usage:
+  $(basename "${0}") [OPTION]
+
+Options:
+  -e             use EXPLAIN ANALYZE
+  -f SCALE_FACTOR
+                 database SCALE_FACTOR
+  -s NUMBER      data set NUMBER
+  -U             run test as an unprivileged user
+  -V, --version  output version information, then exit
+  -?, --help     show this help, then exit
+
+@HOMEPAGE@
+EOF
 }
 
 EXPLAIN=0
 
-while getopts "ehs:U" OPT; do
-	case $OPT in
-	e)
+# Custom argument handling for hopefully most portability.
+while [ "${#}" -gt 0 ] ; do
+	case "${1}" in
+	(-e)
 		EXPLAIN=1
 		;;
-	h)
+	(-s)
+		shift
+		SET_NUM="${1}"
+		;;
+	(-U)
+		COPYPREFIX="\\"
+		;;
+	(-V | --version)
+		echo "$(basename "${0}") (Database Test 3) v@PROJECT_VERSION@"
+		;;
+	(-\? | --help)
 		usage
 		exit 0
 		;;
-	s)
-		SET_NUM=$OPTARG
-		;;
-	U)
-		COPYPREFIX="\\"
-		;;
-	\?)
-		usage
+	(--* | -*)
+		echo "$(basename "${0}"): invalid option -- '${1}'"
+		echo "try \"$(basename "${0}") --help\" for more information."
 		exit 1
 		;;
+	(*)
+		break
+		;;
 	esac
+	shift
 done
 
 PSQL="psql -v ON_ERROR_STOP=1 -X"

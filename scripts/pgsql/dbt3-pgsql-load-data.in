@@ -6,6 +6,25 @@
 #
 # Copyright The DBT-3 Authors
 
+usage()
+{
+	cat << EOF
+$(basename "${0}") is the Database Test 3 (DBT-3) PostgreSQL data loader
+
+Usage:
+  $(basename "${0}") [OPTION]
+
+Options:
+  -C PARTITIONS  how many PARTITIONS to break data into
+  -d             load data directory
+  -U             run test as an unprivileged user
+  -V, --version  output version information, then exit
+  -?, --help     show this help, then exit
+
+@HOMEPAGE@
+EOF
+}
+
 load_table()
 {
 	table=${1}
@@ -333,22 +352,36 @@ ALTER TABLE region ADD CONSTRAINT pk_region PRIMARY KEY USING INDEX pk_region;"
 DIRECT_LOAD=0
 NODES=0
 PRIVILEGED=1
-USE_TABLESPACES=0
-while getopts "C:dtU" OPT; do
-	case ${OPT} in
-	C)
-		CHUNKS=$OPTARG
+# Custom argument handling for hopefully most portability.
+while [ "${#}" -gt 0 ] ; do
+	case "${1}" in
+	(-C)
+		shift
+		CHUNKS="${1}"
 		;;
-	d)
+	(-d)
 		DIRECT_LOAD=1
 		;;
-	t)
-		USE_TABLESPACES=1
-		;;
-	U)
+	(-U)
 		PRIVILEGED=0
 		;;
+	(-V | --version)
+		echo "$(basename "${0}") (Database Test 3) v@PROJECT_VERSION@"
+		;;
+	(-\? | --help)
+		usage
+		exit 0
+		;;
+	(--* | -*)
+		echo "$(basename "${0}"): invalid option -- '${1}'"
+		echo "try \"$(basename "${0}") --help\" for more information."
+		exit 1
+		;;
+	(*)
+		break
+		;;
 	esac
+	shift
 done
 
 # Automatically parallelize to the number of available processors if not
