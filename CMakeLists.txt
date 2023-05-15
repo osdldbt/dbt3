@@ -18,6 +18,7 @@ set (
 )
 
 add_subdirectory (appimage)
+add_subdirectory (man)
 add_subdirectory (patches)
 add_subdirectory (queries)
 add_subdirectory (scripts)

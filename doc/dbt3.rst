@@ -134,8 +134,8 @@ Setting DBT-3 Environment Variables
 
 **dbgen**, **qgen** require specific environment variables to be set in order
 to function properly.  The following environment variables are required to be
-set if run manually, otherwise the DBT-3 will set the appropriate based on the
-given command line arguments::
+set if run manually, otherwise the *dbt3-run* script will set the appropriate
+based on the given command line arguments:
 
 * *DSS_PATH=/tmp/dss_path* - Absolute path in which to build flat files.
 * *DSS_QUERY=/tmp/dbt3/queries/pgsql* - Absolute path in which to find query

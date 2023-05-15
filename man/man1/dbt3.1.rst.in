@@ -1,0 +1,57 @@
+======
+ dbt3
+======
+
+---------------
+Database Test 3
+---------------
+
+:Date: @MANDATE@
+:Manual section: 1
+:Manual group: Database Test 3 @PROJECT_VERSION@ Documentation
+:Version: Database Test 3 @PROJECT_VERSION@
+
+SYNOPSIS
+========
+
+**dbt3** [option...] [command [args...]]
+
+DESCRIPTION
+===========
+
+**dbt3** is a script that helps execute all the tools provided by the Database
+Test 3 (DBT-3) test kit, a fair-use implementation of the TPC Benchmark(TM) H.
+
+COMMANDS
+========
+
+The available commands are determined by what is installed by the kit.  Run
+**dbt3** without any command line arguments to see available commands.
+
+OPTIONS
+=======
+
+--verbose  Output versions of additional programs used by DBT-3 when used with
+        -V or --version OPTION
+-V, --version  Output version information, then exit.
+--help  This usage message.  Or **-?**.
+
+ENVIRONMENT
+===========
+
+**PATCHDIR** can be set to specify the series of patches to apply to TPC-H
+Tools when running **build-dbgen**.
+
+**QUERYDIR** can be set to specify a set of queries copy to the TPC-H Tools
+`dbgen/queries` directory when running **build-dbgen**.
+
+EXAMPLES
+========
+
+See documentation in the *doc* directory of the source repository or online at
+https://osdldbt.github.io/dbt3/ for more information.
+
+SEE ALSO
+========
+
+**dbt3-run**\ (1)
