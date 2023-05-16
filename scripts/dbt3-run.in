@@ -57,7 +57,7 @@ DBMS options are:
   virtuoso        Virtuoso
 
 PostgreSQL specific options:
-  -e   EXPLAIN ANALYZE
+  --explain       capture EXPLAIN ANALYZE output as part of the query results
   --load-params=OPTIONS
                   database parameters for the load test
   --power-params=OPTIONS
@@ -140,7 +140,7 @@ while [ "${#}" -gt 0 ] ; do
 	(--dss-query=?*)
 		DSS_QUERY="${1#*--dss-query=}"
 		;;
-	(-e)
+	(--explain)
 		EXTRA_ARGS="$EXTRA_ARGS -e"
 		;;
 	(-f | --scale-factor)

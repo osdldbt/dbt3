@@ -68,7 +68,7 @@ OPTIONS
 
 PostgreSQL specific options:
 
--e  EXPLAIN ANALYZE.
+--explain  Capture EXPLAIN ANALYZE output as part of the query results.
 --load-params=OPTIONS  Additional GUC command line *options* to pass to
         **postgres** for the load test.  This is intended for privileged users
         that can start and stop the **postgres** backend while passing

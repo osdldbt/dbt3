@@ -225,12 +225,12 @@ database before a power or throughput tests can be run individually.
 Addition PostgreSQL execution notes
 -----------------------------------
 
-There is an additional `-e` flag that can be used for testing PostgreSQL with
-the *dbt3-* script that will execute the queries in the power and throughput
-tests using `EXPLAIN (ANALYZE, BUFFERS)` thus returning actual execution plans
-instead of the query results.
+There is an additional `--explain` flag that can be used for testing PostgreSQL
+with the *dbt3-* script that will execute the queries in the power and
+throughput tests using `EXPLAIN (ANALYZE, BUFFERS)` thus returning actual
+execution plans instead of the query results.
 
-If the `-e` flag is used, an additional plan disaster report will be
+If the `--explain` flag is used, an additional plan disaster report will be
 generating showing which queries grossly misestimated the number of rows
 returned at each node of the plan.
 
