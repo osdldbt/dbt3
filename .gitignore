@@ -30,6 +30,8 @@ scripts/sapdb/load_db.sh
 scripts/sapdb/sapdb_profile
 scripts/sapdb/update_statistics.sh
 
+doc/html
+
 TPC-H_Tools_v3.0.0/
 
 tags

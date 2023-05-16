@@ -8,6 +8,7 @@ vX.Y.Z
   database systems
 - Update/rename docker scripts to also support podman
 - Add container script to run a complete test
+- Convert documentation to reStructuredText
 
 v1.11.1
 

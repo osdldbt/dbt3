@@ -1,7 +1,10 @@
-Open Source Development Labs Database Test 3 (DBT-3) User's Guide
-=================================================================
+====================================
+Database Test 3 (DBT-3) User's Guide
+====================================
 
-image:osdl-logo.png[]
+.. image:: osdl-logo.png
+   :width: 600
+   :alt: OSDL Logo
 
 Copyright (c) 2002 by The Open Source Development Laboratory, Inc. This
 material may be distributed only subject to the terms and conditions set forth
@@ -19,6 +22,9 @@ Contributors to this document include:
 * Mary Edie Meredith (OSDL)
 * Mark Wong (OSDL)
 
+.. contents:: Table of Contents
+
+------------
 Introduction
 ------------
 
@@ -27,15 +33,17 @@ Development Lab's Database Test 3 (DBT-3) kit.  This kit provides what is
 needed to execute a workload similar to the TPC-H workload using PostgreSQL,
 MySQL, and MariaDB.
 
+---------------
 Query Templates
-~~~~~~~~~~~~~~~
+---------------
 
 The TPC-H DBGEN tool kit includes the official query syntax for TPC-H queries.
 The tester can substitute DBT-3 queries with TPC-H queries and alter the
 syntax to fit other databases.  A set of query syntax for SAP DB, PostgreSQL,
-MySQL, and MariaDB are included in the kit in the directory dbt3/queries.
+MySQL, and MariaDB are included in the kit in the directory `dbt3/queries`.
 Some of the queries are modified for database specific syntax.
 
+-----
 Setup
 -----
 
@@ -43,10 +51,10 @@ This section covers the steps of getting and installing the DBT-3 test kit
 source code.
 
 Getting and Installing the Kit
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+==============================
 
 Virtuoso
-^^^^^^^^
+--------
 
 In order to keep the scripts simple, the installation of this software needs to
 be the same as the user that will be executing the test kit.  The reason for
@@ -54,52 +62,50 @@ this is because the database location is tied to the parameters set when
 running the Virtuoso configure script.
 
 Required Software
-~~~~~~~~~~~~~~~~~
+=================
 
 In addition to the DBMS software, the following is also required:
 
 * bc http://www.gnu.org/software/bc/bc.html
 * R http://www.r-project.org/
-* sar, pidstat http://pagesperso-orange.fr/sebastien.godard/ (While the
-  scripts assume this particular version of +sar+ and +pidstat+, it is
+* **sar**, **pidstat** http://pagesperso-orange.fr/sebastien.godard/ (While the
+  scripts assume this particular version of **sar** and **pidstat**, it is
   possible to run on non-Linux based operating systems with some modifications
   to the kit.)
 
 DBT-3 Test Kit Source
-^^^^^^^^^^^^^^^^^^^^^
+---------------------
 
 The latest stable version of the kit can be found on SourceForge
-via:
+via: http://sourceforge.net/project/showfiles.php?group_id=52479
 
- http://sourceforge.net/project/showfiles.php?group_id=52479
+The latest development version of the kit can be checked out using git::
 
-The latest development version of the kit can be checked out using git:
-
- git clone git://git.code.sf.net/p/osdldbt/dbt3
+    git clone git://git.code.sf.net/p/osdldbt/dbt3
 
 Building the kit
-^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~
 
-The configure script needs to be run with the specific DBMS to build qgen and
-dbgen.  These programs were developed to be build for specific databases at
-compile time.  Otherwise the rest of the scripts installed by the kit do not
-need to be reinstalled or recreated if a different DBMS is used.
+The configure script needs to be run with the specific DBMS to build **qgen**
+and **dbgen**.  These programs were developed to be build for specific
+databases at compile time.  Otherwise the rest of the scripts installed by the
+kit do not need to be reinstalled or recreated if a different DBMS is used.
 
-For MySQL and MariaDB:
+For MySQL and MariaDB::
 
- ./configure --with-mysql
+    ./configure --with-mysql
 
-For PostgreSQL:
+For PostgreSQL::
 
- ./configure --with-postgresql
+    ./configure --with-postgresql
 
-Once the configure script has been run, the kit is built and installed by:
+Once the configure script has been run, the kit is built and installed by::
 
- make
- make install
+    make
+    make install
 
 Sizing the System
-^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~
 
 The scale factor can actually be any decimal number (like 1.1 or 50) so that
 if the tester wishes, the tester can create a database whose size is not one
@@ -111,30 +117,30 @@ factor.  For example, for scale factor 1, the raw data files' total size is
 roughly 1 GB.
 
 Note:  This kit does not support scale factors less than 1.  Although you can
-build a database using scale factors less than 1, the query generator (qgen)
-will not generate the proper variable values that correspond to scale factors
-less than 1.
+build a database using scale factors less than 1, the query generator
+(**qgen**) will not generate the proper variable values that correspond to
+scale factors less than 1.
 
-The tester needs to allocate space for the flat files generated by dbgen used
-to load the database.  Once the database is loaded and backed up, there is no
-need to retain these flat files.
+The tester needs to allocate space for the flat files generated by **dbgen**
+used to load the database.  Once the database is loaded and backed up, there is
+no need to retain these flat files.
 
 Using the Test Kit
-------------------
+==================
 
 Setting DBT-3 Environment Variables
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------------------
 
-The dbgen, qgen and DBT-3 scripts require specific environment variables
-to be set in order to function properly.  The following environment variables
-are required to be set and there are examples provides in the examples
-directory:
+**dbgen**, **qgen** require specific environment variables to be set in order
+to function properly.  The following environment variables are required to be
+set if run manually, otherwise the DBT-3 will set the appropriate based on the
+given command line arguments:
 
 * *DSS_PATH=/tmp/dss_path* - Absolute path in which to build flat files.
-* *DSS_QUERY=/tmp/dbt3/queries/pgsql* - Absolute path in which to
-  find query templates, this example is for the PostgreSQL templates.
-* *DSS_CONFIG=/tmp/dbt3/src/dbgen* - directory in which to find
-  DBGEN configuration files.
+* *DSS_QUERY=/tmp/dbt3/queries/pgsql* - Absolute path in which to find query
+  templates, this example is for the PostgreSQL templates.
+* *DSS_CONFIG=/tmp/dbt3/src/dbgen* - directory in which to find **dbgen**
+  configuration files.
 
 Testers can choose to run all the tests in DBT-3 as well as part of the tests.
 The following section describes how to run all the tests.
@@ -148,33 +154,36 @@ Each DBMS may have additional environment variables that need to be set.  The
 following sections details the required variables.
 
 MonetDB Environment Variables
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-* *DBDATA=/tmp/moneydb* - This defines where to initialize the MonetDB data
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* *DBDATA=/tmp/monetdb* - This defines where to initialize the MonetDB data
   directory
 * *DBNAME=dbt3* - This is the database name to use.
 
 MySQL/MariaDB Environment Variables
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 * *DBNAME=dbt3* - This is the database name to use.
 * *MYDATA=/tmp/mydata* - This defines where to initialize the MySQL data
   directory
 
 PostgreSQL Environment Variables
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 * *PGDATABASE=dbt3* - This is the database name to use.
 * *PGDATA=/tmp/pgdata* - This defines where the PostgreSQL instance will be
   created.
-* *DEFAULT_LOAD_PARAMETERS=``-c shared_buffers=1GB''* - This defines the
+* *DEFAULT_LOAD_PARAMETERS="-c shared_buffers=1GB"* - This defines the
   database parameters to be set for the load test.  The syntax is that same as
-  that used to set parameters from the command line as if using +pg_ctl+.
+  that used to set parameters from the command line as if using **pg_ctl**.
   (e.g. "-c shared_buffers=1GB")
-* *DEFAULT_POWER_PARAMETERS=``''* - This defines the database parameters to set
+* *DEFAULT_POWER_PARAMETERS=""* - This defines the database parameters to set
   for the power test.
-* *DEFAULT_THROUGHPUT_PARAMETERS=``''* - This defines the database parameters
+* *DEFAULT_THROUGHPUT_PARAMETERS=""* - This defines the database parameters
   to be set for the throughput test.
 
 Postgres-XL Environment Variables
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In addition to the PostgreSQL environment variables, Postgres-XL requires the
 following:
@@ -192,73 +201,75 @@ following:
 * *DNBPP=25432* - Starting listener port number for datanode pooler.
 
 Virtuoso Environment Variables
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 * *VADDIR=/usr/local/virtuoso-opensource/var/lib/virtuoso/db* - Location of
-  virtuoso.ini file.
+  *virtuoso.ini* file.
 
 Quick Start
-^^^^^^^^^^^
+-----------
 
-Only one command needs to be issued to run a complete test:
+Only one command needs to be issued to run a complete test::
 
- dbt3-run-workload -a pgsql -f 1 -o /tmp/results
+    dbt3-run-workload -a pgsql -f 1 -o /tmp/results
 
 This will run the generate the data files for a 1GB scale factor database load,
 power and throughput test, with 1 stream, against PostgreSQL and record the
-results of the test in _/tmp/results_.
+results of the test in `/tmp/results`.
 
-The +dbt3-run-workload+ script can be used to run any combination of a load
+The *dbt3-run-workload* script can be used to run any combination of a load
 test, power test, and throughput test.  A load tests must be run in order to
 create the database before a power or throughput tests can be run
 individually.
 
 Addition PostgreSQL execution notes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+-----------------------------------
 
-There is an additional _-e_ flag that can be used for testing PostgreSQL with
-the +dbt3-run-workload_ script that will execute the queries in the power and
-throughput tests using *EXPLAIN (ANALYZE, BUFFERS)* thus returning actual
+There is an additional `-e` flag that can be used for testing PostgreSQL with
+the *dbt3-run-workload* script that will execute the queries in the power and
+throughput tests using `EXPLAIN (ANALYZE, BUFFERS)` thus returning actual
 execution plans instead of the query results.
 
-If the _-e_ flag is used, an additional plan disaster report will be
+If the `-e` flag is used, an additional plan disaster report will be
 generating showing which queries grossly misestimated the number of rows
 returned at each node of the plan.
 
 Addition Postgres-XL execution notes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+------------------------------------
 
 See additional notes for the base PostgreSQL version for items that also apply
 to Postgres-XL.
 
 A Postgres-XL cluster can be built in many different ways.  The scripts in this
-kit builds them only in one specific configuration:
+kit builds them only in one specific configuration::
 
-                    +-------------+
-                    | GTM Master  |
-                    | Coordinator |
-                    +-------------+
-                   /       |       \
-                  /        |        \
-                 /         |         \
-                /          |          \
- +-------------+    +-------------+    ...
- |  GTM Proxy  |    |  GTM Proxy  |
- |  Datanode   |----|  Datanode   |----
- +-------------+    +-------------+
+                       +-------------+
+                       | GTM Master  |
+                       | Coordinator |
+                       +-------------+
+                      /       |       \
+                     /        |        \
+                    /         |         \
+                   /          |          \
+    +-------------+    +-------------+    ...
+    |  GTM Proxy  |    |  GTM Proxy  |
+    |  Datanode   |----|  Datanode   |----
+    +-------------+    +-------------+
 
 Test Results
-------------
+============
 
 The results directory, as specified when running the
-+dbt3-run-workload-scripts+ by the _-o_ option, will contain the calculated
+*dbt3-run-workload-scripts* by the `-o` option, will contain the calculated
 metrics of the test as well as charts of the system and database statistics
 summarized in the +index.html+ file in the results directory.
 
 The query results chart display the execute time of each query for the power
 test, and the arithmetic mean of each of the streams in the throughput test.
 
-image:q_time.png[]
+.. image:: q_time.png
+   :width: 600
+   :alt: OSDL Logo
 
 The links to the load test, power test, and throughput test summaries will have
 links to processor and disk utilization charts as well as operating system and
@@ -266,68 +277,68 @@ database parameters used in each test.  The power test and throughput test will
 also have links to the query plans and query results.
 
 Tips & Tricks
--------------
+=============
 
 Linux perf tool
-~~~~~~~~~~~~~~~
+---------------
 
 The scripts assume that the kernel address maps are not restricted if the Linux
-perf tool is used.  To make sure they are unrestricted, set the Linux kernel
-parameter to zero by:
+**perf** tool is used.  To make sure they are unrestricted, set the Linux
+kernel parameter to zero by::
 
- echo 0 > /proc/sys/kernel/kptr_restrict
- echo -1 > /proc/sys/kernel/perf_event_paranoid
+    echo 0 > /proc/sys/kernel/kptr_restrict
+    echo -1 > /proc/sys/kernel/perf_event_paranoid
 
-or editing +/etc/sysctl.conf+ with:
+or editing `/etc/sysctl.conf` with::
 
- kernel.kptr_restrict = 0
- kernel.perf_event_paranoid = -1
+    kernel.kptr_restrict = 0
+    kernel.perf_event_paranoid = -1
 
-then as *root* run:
+then as **root** run::
 
- sysctl -p
+    sysctl -p
 
 MySQL/MariaDB Options
-~~~~~~~~~~~~~~~~~~~~~
+---------------------
 
-When using +mysqladmin+ to start the database, options will be loaded from one
-of these locations, if they exist: +/etc/my.cnf+, +/etc/mysql/my.cnf+, or
-+~/.my.cnf+.  The environment variable *MYSQL_HOME* can also be used to
-specify where a my.cnf file exists.
+When using **mysqladmin** to start the database, options will be loaded from one
+of these locations, if they exist: `/etc/my.cnf`, `/etc/mysql/my.cnf`, or
+`~/.my.cnf`.  The environment variable `MYSQL_HOME` can also be used to
+specify where a *my.cnf* file exists.
 
 QGEN
-~~~~
+----
 
-The +qgen+ program can be manually run to inspect the SQL statement to that
+The `qgen` program can be manually run to inspect the SQL statement to that
 will be executed by the test.
 
-For example (see +qgen -h+ for option descriptions) to see what the first
-query to be executed:
+For example (see `qgen -h` for option descriptions) to see what the first
+query to be executed::
 
- qgen -c -r 0 -p 0 -s 1 5
+    qgen -c -r 0 -p 0 -s 1 5
 
-Results in the following query for PostgreSQL.
+Results in the following query for PostgreSQL::
 
- -- using 0 as a seed to the RNG
- -- @(#)14.sql	2.1.8.1
- -- TPC-H/TPC-R Promotion Effect Query (Q14)
- -- Functional Query Definition
- -- Approved February 1998
- BEGIN;
+    -- using 0 as a seed to the RNG
+    -- @(#)14.sql	2.1.8.1
+    -- TPC-H/TPC-R Promotion Effect Query (Q14)
+    -- Functional Query Definition
+    -- Approved February 1998
+    BEGIN;
  
  
  
- select
- 	100.00 * sum(case
- 		when p_type like 'PROMO%'
- 			then l_extendedprice * (1 - l_discount)
- 		else 0
- 	end) / sum(l_extendedprice * (1 - l_discount)) as promo_revenue
- from
- 	lineitem,
- 	part
- where
- 	l_partkey = p_partkey
- 	and l_shipdate >= date '1993-01-01'
- 	and l_shipdate < cast(date '1993-01-01' + interval '1 month' as date);
- COMMIT;
+    select
+ 	   100.00 * sum(case
+ 		   when p_type like 'PROMO%'
+ 			   then l_extendedprice * (1 - l_discount)
+ 		   else 0
+ 	   end) / sum(l_extendedprice * (1 - l_discount)) as promo_revenue
+    from
+ 	   lineitem,
+ 	   part
+    where
+ 	   l_partkey = p_partkey
+ 	   and l_shipdate >= date '1993-01-01'
+ 	   and l_shipdate < cast(date '1993-01-01' + interval '1 month' as date);
+    COMMIT;
