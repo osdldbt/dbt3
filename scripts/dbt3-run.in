@@ -46,8 +46,6 @@ Generate options:
                   selecting individual tests disables the other tests unless
                   explicitly specified again
   --tpchtools=TPCHTOOLS
-                  TPCHTOOLS is the TPC-H Tools directory
-  -u              use tablespaces
   -?, --help      this help message
 
 DBMS options are:
@@ -65,6 +63,7 @@ PostgreSQL specific options:
                   database parameters for the power test
   --throughput-params=OPTIONS
                   database parameters for the throughput test
+  --tablespaces   use tablespaces
 
 DIRECTORY is the path to save test results.
 
@@ -233,7 +232,7 @@ while [ "${#}" -gt 0 ] ; do
 	(--tpchtools=?*)
 		TPCHTOOLS="${1#*--tpchtools=}"
 		;;
-	(-u)
+	(--tablespaces)
 		TABLESPACES_FLAG="-t"
 		;;
 	(--privileged)

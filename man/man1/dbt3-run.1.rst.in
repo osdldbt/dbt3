@@ -63,7 +63,6 @@ OPTIONS
         Selecting individual tests disables the other tests unless explicitly
         specified again.
 --tpchtools=DIRECTORY  *directory* to TPC-H Tools.
--u  Use tablespaces.
 --help  This usage message.  Or **-?**.
 
 PostgreSQL specific options:
@@ -77,6 +76,7 @@ PostgreSQL specific options:
         **postgres** for the power test.  This is intended for privileged users
         that can start and stop the **postgres** backend while passing
         parameter options directly to **postgres**.
+--tablespaces  Use tablespaces.
 --throughput-params=OPTIONS  Additional GUC command line *options* to pass to
         **postgres** for the throughput test.  This is intended for privileged
         users that can start and stop the **postgres** backend while passing
