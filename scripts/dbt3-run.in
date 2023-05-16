@@ -40,7 +40,7 @@ Generate options:
   --profile       enable software profiling (Linux only)
   -R              materialized view mode
   --resort        sort data load files, only applies when generating flat files
-  -s SEED         seed to use for power and throughput tests
+  --seed=SEED     seed to use for power and throughput tests
   --stats         enable system and database stats collection
   --throughput    run throughput test, default run load, power and throughput,
                   selecting individual tests disables the other tests unless
@@ -204,9 +204,12 @@ while [ "${#}" -gt 0 ] ; do
 	(--resort)
 		RESORT_ARG="-c"
 		;;
-	(-s)
+	(--seed)
 		shift
 		SEED=$1
+		;;
+	(--seed=?*)
+		SEED="${1#*--seed=}"
 		;;
 	(--stats)
 		STATS_ARG="-S"

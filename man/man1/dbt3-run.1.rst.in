@@ -56,7 +56,7 @@ OPTIONS
         **ts-profile** for usage notes.
 -R  Materialized view mode.
 --resort  Sort data load files, only applies when generating flat files.
--s SEED  *seed* to use for power and throughput tests.
+--seed SEED  *seed* to use for power and throughput tests.
 --stats  Enable system and database statistics collection by using
         **ts-sysstat**.
 --throughput  Run throughput test, default run load, power and throughput.
