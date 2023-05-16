@@ -25,7 +25,6 @@ OPTIONS
 =======
 
 --comment COMMENTS  Provide *comments* to save with the test.
--C  Sort data load files.
 --db-name NAME  *name* of the database, default dbt3.
 --dss=DIRECTORY  *directory* for temporary DSS files, default */tmp/dss*.
 --dss-query DIRECTORY  *directory* to query templates, default
@@ -56,6 +55,7 @@ OPTIONS
         have **readprofile**, **oprofile** or **perf** set up.  See
         **ts-profile** for usage notes.
 -R  Materialized view mode.
+--resort  Sort data load files, only applies when generating flat files.
 -s SEED  *seed* to use for power and throughput tests.
 --stats  Enable system and database statistics collection by using
         **ts-sysstat**.

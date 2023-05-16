@@ -15,7 +15,6 @@ Usage:
   $(basename "${0}") [OPTIONS] DBMS DIRECTORY
 
 Generate options:
-  -C              sort data load files
   --comments=COMMENTS
                   provide COMMENTS to save with the test
   --db-name       databse name, default $DBNAME
@@ -40,6 +39,7 @@ Generate options:
   --privileged    run test as a privileged user
   --profile       enable software profiling (Linux only)
   -R              materialized view mode
+  --resort        sort data load files, only applies when generating flat files
   -s SEED         seed to use for power and throughput tests
   --stats         enable system and database stats collection
   --throughput    run throughput test, default run load, power and throughput,
@@ -109,9 +109,6 @@ fi
 # Custom argument handling for hopefully most portability.
 while [ "${#}" -gt 0 ] ; do
 	case "${1}" in
-	(-C)
-		RESORT_ARG="-c"
-		;;
 	(--comment)
 		shift
 		COMMENT=${1}
@@ -203,6 +200,9 @@ while [ "${#}" -gt 0 ] ; do
 		;;
 	(-R)
 		WORKLOAD_ARG="-R"
+		;;
+	(--resort)
+		RESORT_ARG="-c"
 		;;
 	(-s)
 		shift
