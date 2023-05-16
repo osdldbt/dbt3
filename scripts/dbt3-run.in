@@ -27,7 +27,6 @@ Generate options:
                   database scale factor, default 1
   --file-load     load database from flat files, default is to load database
                   directly
-  -g              generate flat files
   --load          run load test, default run load, power and throughput,
                   selecting individual tests disables the other tests unless
                   explicitly specified again
@@ -76,7 +75,6 @@ DBNAME="dbt3"
 DIRECT_LOAD_ARG="-d"
 DSS_PATH="/tmp/dss"
 COMMENT=""
-GENERATE=0
 MPP=0
 PRIVILEGED=0
 RUN_ALL_TESTS=1
@@ -155,9 +153,6 @@ while [ "${#}" -gt 0 ] ; do
 		;;
 	(--file-load)
 		DIRECT_LOAD_ARG=""
-		;;
-	(-g)
-		GENERATE=1
 		;;
 	(--load)
 		RUN_LOAD_TEST=1
@@ -390,7 +385,6 @@ if [ ${RUN_LOAD_TEST} -eq 1 ]; then
 			-o $OUTPUT_DIR/load \
 			${LOAD_PARAMETERS_ARG} \
 			-f $SCALE_FACTOR \
-			-g $GENERATE \
 			${WORKLOAD_ARG} \
 			$RESORT_ARG \
 			$MPP_ARG \

@@ -32,7 +32,6 @@ OPTIONS
 -f SCALE_FACTOR, --scale-factor=SCALE_FACTOR  Database SCALE_FACTOR, default 1.
 --file-load  Load database from flat files, default is to load database
         directly.
--g  Generate flat files.
 --load  Run load test, default run load, power and throughput.  Selecting
         individual tests disables the other tests unless explicitly specified
         again.
