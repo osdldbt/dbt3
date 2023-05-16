@@ -15,8 +15,9 @@ Usage:
   $(basename "${0}") [OPTIONS] DBMS DIRECTORY
 
 Generate options:
-  -c COMMENTS     provide COMMENTS to save with the test
   -C              sort data load files
+  --comments=COMMENTS
+                  provide COMMENTS to save with the test
   --db-name       databse name, default $DBNAME
   --dss=DIRECTORY
                   DIRECTORY for temporary DSS files, default $DSS_PATH
@@ -108,12 +109,15 @@ fi
 # Custom argument handling for hopefully most portability.
 while [ "${#}" -gt 0 ] ; do
 	case "${1}" in
-	(-c)
+	(-C)
+		RESORT_ARG="-c"
+		;;
+	(--comment)
 		shift
 		COMMENT=${1}
 		;;
-	(-C)
-		RESORT_ARG="-c"
+	(--comment=?*)
+		COMMENT=${1#*--comment=}
 		;;
 	(-D)
 		shift

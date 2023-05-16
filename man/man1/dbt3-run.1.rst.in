@@ -24,7 +24,7 @@ DESCRIPTION
 OPTIONS
 =======
 
--c COMMENTS  Provide *comments* to save with the test.
+--comment COMMENTS  Provide *comments* to save with the test.
 -C  Sort data load files.
 --db-name NAME  *name* of the database, default dbt3.
 --dss=DIRECTORY  *directory* for temporary DSS files, default */tmp/dss*.
