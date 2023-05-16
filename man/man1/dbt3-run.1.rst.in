@@ -43,6 +43,9 @@ OPTIONS
         from 1,000 to 2,999, eight STREAMS from 3,000 to 9,999, nine STREAMS
         from 10,000 to 29,999, ten STREAMS from 30,000 to 99,999, or eleven
         STREAMS from 100,000 onward.
+--privileged  Run test as a privileged operating system and database user.
+        This means the user has the ability to stop and start the database
+        between the individual tests, as allowed per specification.
 --profile  Enable software profiling collection by using **ts-profile**
         provided by Touchstone Tools.  Currently only for Linux systems that
         have **readprofile**, **oprofile** or **perf** set up.  See
@@ -53,7 +56,6 @@ OPTIONS
         **ts-sysstat**.
 --tpchtools=DIRECTORY  *directory* to TPC-H Tools.
 -u  Use tablespaces.
--U  Run test as an unprivileged operating system and database user.
 -z  Do not run refresh streams.
 --help  This usage message.  Or **-?**.
 

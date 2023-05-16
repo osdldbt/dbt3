@@ -30,6 +30,7 @@ Generate options:
   -f SCALE        database scale factor, default 1
   -g              generate flat files
   -n STREAMS      number of throughput STREAMS
+  --privileged    run test as a privileged user
   --profile       enable software profiling (Linux only)
   -R              materialized view mode
   -s SEED         seed to use for power and throughput tests
@@ -37,7 +38,6 @@ Generate options:
   --tpchtools=TPCHTOOLS
                   TPCHTOOLS is the TPC-H Tools directory
   -u              use tablespaces
-  -U              run test as an unprivileged user
   -z              do not run refresh streams
   -?, --help      this help message
 
@@ -69,7 +69,7 @@ FLAG_POWER_TEST=""
 FLAG_THROUGHPUT_TEST=""
 GENERATE=0
 MPP=0
-PRIVILEGED=1
+PRIVILEGED=0
 RUN_ALL_TESTS=1
 RUN_LOAD_TEST=0
 RUN_POWER_TEST=0
@@ -84,6 +84,7 @@ SEED=0
 STATS_ARG=""
 STREAMS=""
 EXTRA_ARGS=""
+UNPRIVILEGED_ARG="-U"
 WORKLOAD="H"
 
 if [ -n "$DEFAULT_LOAD_PARAMETERS" ]; then
@@ -206,9 +207,9 @@ while [ "${#}" -gt 0 ] ; do
 	(-u)
 		TABLESPACES_FLAG="-t"
 		;;
-	(-U)
-		PRIVILEGED=0
-		UNPRIVILEGED_ARG="-U"
+	(--privileged)
+		PRIVILEGED=1
+		UNPRIVILEGED_ARG=""
 		;;
 	(-z)
 		NO_REFRESH_FLAG="-z"
