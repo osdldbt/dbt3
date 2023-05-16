@@ -31,6 +31,7 @@ vX.Y.Z (YYYY-MM-DD)
 - Add "run" man page
 - Make unprivileged user the default mode "run" script mode
 - Replace some short options with long options
+- Direct load database by default
 
 v1.11.1 (2022-06-03)
 

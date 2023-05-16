@@ -26,12 +26,13 @@ OPTIONS
 
 -c COMMENTS  Provide *comments* to save with the test.
 -C  Sort data load files.
--d  Direct data load.
 --db-name NAME  *name* of the database, default dbt3.
 --dss=DIRECTORY  *directory* for temporary DSS files, default */tmp/dss*.
 --dss-query DIRECTORY  *directory* to query templates, default
         *tpchtools*/dbgen/queries/*dbms*.
--f SCALE_FACTOR  Database SCALE_FACTOR, default 1.
+-f SCALE_FACTOR, --scale-factor=SCALE_FACTOR  Database SCALE_FACTOR, default 1.
+--file-load  Load database from flat files, default is to load database
+        directly.
 -g  Generate flat files.
 --load  Run load test, default run load, power and throughput.  Selecting
         individual tests disables the other tests unless explicitly specified

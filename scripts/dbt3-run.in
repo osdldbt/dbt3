@@ -17,14 +17,16 @@ Usage:
 Generate options:
   -c COMMENTS     provide COMMENTS to save with the test
   -C              sort data load files
-  -d              direct data load
   --db-name       databse name, default $DBNAME
   --dss=DIRECTORY
                   DIRECTORY for temporary DSS files, default $DSS_PATH
   --dss-query=DIRECTORY
                   DIRECTORY to query templates, default is to use
                   TPCHTOOLS/dbgen/queries/DBMS
-  -f SCALE        database scale factor, default 1
+  -f SCALE_FACTOR, --scale-factor=SCALE_FACTOR
+                  database scale factor, default 1
+  --file-load     load database from flat files, default is to load database
+                  directly
   -g              generate flat files
   -n STREAMS      number of throughput STREAMS
   --load          run load test, default run load, power and throughput,
@@ -68,7 +70,7 @@ EOF
 
 DATABASE=""
 DBNAME="dbt3"
-DIRECT_LOAD_ARG=""
+DIRECT_LOAD_ARG="-d"
 DSS_PATH="/tmp/dss"
 COMMENT=""
 GENERATE=0
@@ -111,9 +113,6 @@ while [ "${#}" -gt 0 ] ; do
 	(-C)
 		RESORT_ARG="-c"
 		;;
-	(-d)
-		DIRECT_LOAD_ARG="-d"
-		;;
 	(-D)
 		shift
 		CHUNK_ARG="-C $1"
@@ -145,6 +144,9 @@ while [ "${#}" -gt 0 ] ; do
 	(-f)
 		shift
 		SCALE_FACTOR="${1}"
+		;;
+	(--file-load)
+		DIRECT_LOAD_ARG=""
 		;;
 	(-g)
 		GENERATE=1
