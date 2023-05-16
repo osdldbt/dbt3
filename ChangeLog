@@ -30,6 +30,7 @@ vX.Y.Z (YYYY-MM-DD)
 - Change "run" script usage and default for simpler usage
 - Add "run" man page
 - Make unprivileged user the default mode "run" script mode
+- Replace some short options with long options
 
 v1.11.1 (2022-06-03)
 

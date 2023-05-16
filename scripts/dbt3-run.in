@@ -15,9 +15,6 @@ Usage:
   $(basename "${0}") [OPTIONS] DBMS DIRECTORY
 
 Generate options:
-  -1              only run load test
-  -2              only run power test
-  -3              only run throughput test
   -c COMMENTS     provide COMMENTS to save with the test
   -C              sort data load files
   -d              direct data load
@@ -30,11 +27,20 @@ Generate options:
   -f SCALE        database scale factor, default 1
   -g              generate flat files
   -n STREAMS      number of throughput STREAMS
+  --load          run load test, default run load, power and throughput,
+                  selecting individual tests disables the other tests unless
+                  explicitly specified again
+  --power         run power test, default run load, power and throughput,
+                  selecting individual tests disables the other tests unless
+                  explicitly specified again
   --privileged    run test as a privileged user
   --profile       enable software profiling (Linux only)
   -R              materialized view mode
   -s SEED         seed to use for power and throughput tests
   --stats         enable system and database stats collection
+  --throughput    run throughput test, default run load, power and throughput,
+                  selecting individual tests disables the other tests unless
+                  explicitly specified again
   --tpchtools=TPCHTOOLS
                   TPCHTOOLS is the TPC-H Tools directory
   -u              use tablespaces
@@ -65,8 +71,6 @@ DBNAME="dbt3"
 DIRECT_LOAD_ARG=""
 DSS_PATH="/tmp/dss"
 COMMENT=""
-FLAG_POWER_TEST=""
-FLAG_THROUGHPUT_TEST=""
 GENERATE=0
 MPP=0
 PRIVILEGED=0
@@ -100,20 +104,6 @@ fi
 # Custom argument handling for hopefully most portability.
 while [ "${#}" -gt 0 ] ; do
 	case "${1}" in
-	(-1)
-		RUN_LOAD_TEST=1
-		RUN_ALL_TESTS=0
-		;;
-	(-2)
-		RUN_POWER_TEST=1
-		FLAG_POWER_TEST="-2"
-		RUN_ALL_TESTS=0
-		;;
-	(-3)
-		RUN_THROUGHPUT_TEST=1
-		FLAG_THROUGHPUT_TEST="-3"
-		RUN_ALL_TESTS=0
-		;;
 	(-c)
 		shift
 		COMMENT=${1}
@@ -159,6 +149,10 @@ while [ "${#}" -gt 0 ] ; do
 	(-g)
 		GENERATE=1
 		;;
+	(--load)
+		RUN_LOAD_TEST=1
+		RUN_ALL_TESTS=0
+		;;
 	(-n | --streams)
 		shift
 		STREAMS=$1
@@ -173,6 +167,10 @@ while [ "${#}" -gt 0 ] ; do
 		# PostgreSQL only.
 		shift
 		LOAD_PARAMETERS="$LOAD_PARAMETERS ${1}"
+		;;
+	(--power)
+		RUN_POWER_TEST=1
+		RUN_ALL_TESTS=0
 		;;
 	(--profile)
 		PROFILE_ARG="-Y"
@@ -196,6 +194,10 @@ while [ "${#}" -gt 0 ] ; do
 		;;
 	(--stats)
 		STATS_ARG="-S"
+		;;
+	(--throughput)
+		RUN_THROUGHPUT_TEST=1
+		RUN_ALL_TESTS=0
 		;;
 	(--tpchtools)
 		shift
@@ -352,8 +354,6 @@ if [ ${RUN_ALL_TESTS} -eq 1 ]; then
 	RUN_LOAD_TEST=1
 	RUN_POWER_TEST=1
 	RUN_THROUGHPUT_TEST=1
-	FLAG_POWER_TEST="-2"
-	FLAG_THROUGHPUT_TEST="-3"
 fi
 
 if [ "x${COMMENT}" != "x" ]; then
@@ -481,15 +481,10 @@ for HOSTNAME in ${datanodeMasterServers[*]}; do
 done
 wait
 
-dbt3-post-process \
-		-i $OUTPUT_DIR \
-		-n $STREAMS \
-		$NO_REFRESH_FLAG \
-		$FLAG_POWER_TEST \
-		${FLAG_THROUGHPUT_TEST} > ${OUTPUT_DIR}/summary.rst
+eval "dbt3-post-process -i $OUTPUT_DIR -n $STREAMS ${NO_REFRESH_FLAG}" \
+		> "${OUTPUT_DIR}/summary.rst"
 
-LOADDIR=${OUTPUT_DIR}/load
-if [ -d "${LOADDIR}" ]; then
+if [ ${RUN_LOAD_TEST} -eq 1 ]; then
 	LOAD=$(grep LOAD ${OUTPUT_DIR}/q_time.csv | awk -F, '{ print $5 }')
 	# Round to 2 decimal places, convert to hours.
 	LOAD=$(echo "scale=2; ${LOAD} / 3600" | bc -l)
@@ -498,31 +493,31 @@ else
 fi
 
 QTIMECSV="${OUTPUT_DIR}/q_time.csv"
-POWERDIR="power"
-if [ -d "${OUTPUT_DIR}/${POWERDIR}" ]; then
-	POWER=$(dbt3-power-score -i $QTIMECSV -s $SCALE_FACTOR)
+if [ ${RUN_POWER_TEST} -eq 1 ]; then
+	POWER="$(printf "%.2f" "$(dbt3-power-score -i "${QTIMECSV}" \
+			-s "${SCALE_FACTOR}")")"
 else
 	POWER="N/A"
 fi
 
-THROUGHPUTDIR="throughput"
-if [ -d "${OUTPUT_DIR}/${THROUGHPUTDIR}" ]; then
-	THROUGHPUT=$(dbt3-throughput-score -i $QTIMECSV -s $SCALE_FACTOR -n $STREAMS)
+if [ ${RUN_THROUGHPUT_TEST} -eq 1 ]; then
+	THROUGHPUT="$(printf "%.2f" "$(dbt3-throughput-score -i "${QTIMECSV}" \
+			-s "${SCALE_FACTOR}" -n "${STREAMS}")")"
 else
 	THROUGHPUT="N/A"
 fi
 
-if [ ! "${POWER}" = "N/A" ] && [ ! "${THROUGHPUT}" = "N/A" ]; then
+if [ ${RUN_POWER_TEST} -eq 1 ] && [ ${RUN_THROUGHPUT_TEST} -eq 1 ]; then
 	COMPOSITE=$(echo "scale=2; sqrt(${POWER} * ${THROUGHPUT})" | bc -l)
 else
 	COMPOSITE="N/A"
 fi
 
 echo ""
-printf "Composite score: %.2f\n" "${COMPOSITE}"
-echo "Load time (hours): " $LOAD
-printf "Power score: %.2f\n" "${POWER}"
-echo "Throughput Score: " $THROUGHPUT
+echo "Composite score: ${COMPOSITE}"
+echo "Load time (hours): ${LOAD}"
+echo "Power score: ${POWER}"
+echo "Throughput Score: ${THROUGHPUT}"
 echo ""
 
 echo "Done!"
