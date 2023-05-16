@@ -58,9 +58,12 @@ DBMS options are:
 
 PostgreSQL specific options:
   -e   EXPLAIN ANALYZE
-  -p   database parameters for the load test
-  -q   database parameters for the power test
-  -r   database parameters for the throughput test
+  --load-params=OPTIONS
+                  database parameters for the load test
+  --power-params=OPTIONS
+                  database parameters for the power test
+  --throughput-params=OPTIONS
+                  database parameters for the throughput test
 
 DIRECTORY is the path to save test results.
 
@@ -160,6 +163,13 @@ while [ "${#}" -gt 0 ] ; do
 		RUN_LOAD_TEST=1
 		RUN_ALL_TESTS=0
 		;;
+	(--load-params)
+		shift
+		LOAD_PARAMETERS="$LOAD_PARAMETERS ${1}"
+		;;
+	(--load-params=?*)
+		LOAD_PARAMETERS="$LOAD_PARAMETERS ${1#*--load-params=}"
+		;;
 	(-n | --streams)
 		shift
 		STREAMS=$1
@@ -173,30 +183,22 @@ while [ "${#}" -gt 0 ] ; do
 	(--no-refresh)
 		NO_REFRESH_FLAG="-z"
 		;;
-	(-p)
-		# PostgreSQL only.
-		shift
-		LOAD_PARAMETERS="$LOAD_PARAMETERS ${1}"
-		;;
 	(--power)
 		RUN_POWER_TEST=1
 		RUN_ALL_TESTS=0
 		;;
-	(--profile)
-		PROFILE_ARG="-Y"
-		;;
-	(-q)
-		# PostgreSQL only.
+	(--power-params)
 		shift
 		POWER_PARAMETERS="$POWER_PARAMETERS ${1}"
 		;;
+	(--power-params=?*)
+		POWER_PARAMETERS="$POWER_PARAMETERS ${1#*--power-params=}"
+		;;
+	(--profile)
+		PROFILE_ARG="-Y"
+		;;
 	(-R)
 		WORKLOAD_ARG="-R"
-		;;
-	(-r)
-		# PostgreSQL only.
-		shift
-		THROUGHPUT_PARAMETERS="$THROUGHPUT_PARAMETERS ${1}"
 		;;
 	(-s)
 		shift
@@ -208,6 +210,14 @@ while [ "${#}" -gt 0 ] ; do
 	(--throughput)
 		RUN_THROUGHPUT_TEST=1
 		RUN_ALL_TESTS=0
+		;;
+	(--throughput-params)
+		shift
+		THROUGHPUT_PARAMETERS="$THROUGHPUT_PARAMETERS ${1}"
+		;;
+	(--throughput-params=?*)
+		shift
+		THROUGHPUT_PARAMETERS="$THROUGHPUT_PARAMETERS ${1#*--throughput-params=}"
 		;;
 	(--tpchtools)
 		shift

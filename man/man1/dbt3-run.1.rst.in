@@ -69,18 +69,18 @@ OPTIONS
 PostgreSQL specific options:
 
 -e  EXPLAIN ANALYZE.
--p OPTIONS  GUC command line *options* to pass to **postgres** for the load
-        test.  This is intended for privileged users that can start and stop
-        the **postgres** backend while passing parameter options directly to
-        **postgres**.
--q OPTIONS  GUC command line *options* to pass to **postgres** for the power
-        test.  This is intended for privileged users that can start and stop
-        the **postgres** backend while passing parameter options directly to
-        **postgres**.
--r OPTIONS  GUC command line *options* to pass to **postgres** for the
-        throughput test.  This is intended for privileged users that can start
-        and stop the **postgres** backend while passing parameter options
-        directly to **postgres**.
+--load-params=OPTIONS  Additional GUC command line *options* to pass to
+        **postgres** for the load test.  This is intended for privileged users
+        that can start and stop the **postgres** backend while passing
+        parameter options directly to **postgres**.
+--power-params=OPTIONS  Additional GUC command line *options* to pass to
+        **postgres** for the power test.  This is intended for privileged users
+        that can start and stop the **postgres** backend while passing
+        parameter options directly to **postgres**.
+--throughput-params=OPTIONS  Additional GUC command line *options* to pass to
+        **postgres** for the throughput test.  This is intended for privileged
+        users that can start and stop the **postgres** backend while passing
+        parameter options directly to **postgres**.
 
 *dbms* options are:
 
@@ -91,6 +91,16 @@ PostgreSQL specific options:
 * virtuoso Virtuoso
 
 *directory* is the path to save test results.
+
+ENVIRONMENT
+===========
+
+The environment variables **LOAD_PARAMETERS**, **POWER_PARAMETERS**, and
+**THROUGHPUT_PARAMETERS** can be set to pass database configuration parameters
+to the load, power, and throughput test, respectively.  This currently requires
+elevated privileges because of the way these parameters are passed to the
+database system.  The command line parameters will append configuration
+settings to these environment variables, as opposed to override them.
 
 EXAMPLES
 ========

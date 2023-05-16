@@ -33,6 +33,7 @@ vX.Y.Z (YYYY-MM-DD)
 - Replace some short options with long options
 - Direct load database by default
 - Add --scale-factor long option
+- Add long options for test specific database parameters
 
 v1.11.1 (2022-06-03)
 
