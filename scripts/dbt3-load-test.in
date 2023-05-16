@@ -153,6 +153,8 @@ elif [ "x$DATABASE" = "xpgxl" ]; then
 	done
 fi
 
+mkdir -p "${OUTPUT_DIR}/output"
+
 # Automatically parallelize to the number of available processors if not
 # specified otherwise.
 if [ "x${CHUNKS}" = "x" ]; then
@@ -221,12 +223,15 @@ elif [ $GENERATE -ne 0 ] || [ $have_all_files -eq 0 ]; then
 		fi
 	else
 		i=1
-		eval "\"${DBGEN}\" -s ${SF} -T n &"
-		eval "\"${DBGEN}\" -s ${SF} -T r &"
+		eval "\"${DBGEN}\" -s ${SF} -T n &" \
+				> "${OUTPUT_DIR}/output/dbgen-n.log" 2>&1
+		eval "\"${DBGEN}\" -s ${SF} -T r &" \
+				> "${OUTPUT_DIR}/output/dbgen-r.log" 2>&1
 		wait
 		for TABLE in c O L P S s; do
 			for i in $(seq 1 ${CHUNKS}); do
-				eval "\"$DBGEN\" -s $SF -C $CHUNKS -S $i -T $TABLE &"
+				eval "\"$DBGEN\" -s $SF -C $CHUNKS -S $i -T $TABLE &" \
+						> "${OUTPUT_DIR}/output/dbgen-${TABLE}.log" 2>&1
 			done
 			wait
 		done
@@ -271,8 +276,8 @@ if [ $PROFILE -eq 1 ]; then
 	ts-profile -o "${OUTPUT_DIR}/profile" sleep 1 &
 fi
 
-"dbt3-${DATABASE}-load-data" -C "${CHUNKS}" "${DIRECT_LOAD_ARG}" \
-		"${UNPRIVILEGED_ARG}" || exit 1
+eval "dbt3-${DATABASE}-load-data -C ${CHUNKS} -o ${OUTPUT_DIR} \
+		${DIRECT_LOAD_ARG} ${UNPRIVILEGED_ARG}" || exit 1
 
 dbt3-$DATABASE-time-statistics -e -n LOAD || exit 1
 e_time=`date +%s`
