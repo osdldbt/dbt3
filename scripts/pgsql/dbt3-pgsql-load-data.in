@@ -17,6 +17,7 @@ Usage:
 Options:
   -C PARTITIONS  how many PARTITIONS to break data into
   -d             load data directory
+  -o DIRECTORY   DIRECTORY to save any output, default current directory
   -U             run test as an unprivileged user
   -V, --version  output version information, then exit
   -?, --help     show this help, then exit
@@ -33,13 +34,13 @@ load_table()
 	if [ $DIRECT_LOAD -eq 0 ]; then
 		if [ $CHUNKS -eq 1 ] || [ "$table" = "nation" ] || \
 				[ "$table" = "region" ]; then
-			$PSQL << __EOF__
+			$PSQL << __EOF__ > "${OUTDIR}/output/load-${table}.log" 2>&1
 COPY $table FROM '$DSS_PATH/$file' USING DELIMITERS '|';
 __EOF__
 		else
 			i=1
 			while [ $i -le $CHUNKS ]; do
-				$PSQL << __EOF__ &
+				$PSQL << __EOF__ > "${OUTDIR}/output/load-${table}-${i}.log" 2>&1 &
 COPY $table FROM '$DSS_PATH/$file.$i' USING DELIMITERS '|';
 __EOF__
 				i=$(( $i + 1 ))
@@ -70,28 +71,32 @@ __EOF__
 		if [ $CHUNKS -eq 1 ] || [ "$table" = "nation" ] || \
 				[ "$table" = "region" ]; then
 			if [ $PRIVILEGED -eq 1 ]; then
-				$PSQL <<- __EOF__ &
+				$PSQL <<- __EOF__ > "${OUTDIR}/output/load-${table}.log" 2>&1 &
 						COPY $table
 						FROM PROGRAM '"$DBGEN" -s $SCALE_FACTOR -T $FLAG -o'
 						USING DELIMITERS '|';
 				__EOF__
 			else
-				"$DBGEN" -s $SCALE_FACTOR -T $FLAG -o | \
-						$PSQL -c "COPY $table FROM STDIN USING DELIMITERS '|'" &
+				eval "\"$DBGEN\" -s $SCALE_FACTOR -T $FLAG -o | \
+						$PSQL \
+						-c \"COPY $table FROM STDIN USING DELIMITERS '|'\" &" \
+							> "${OUTDIR}/output/load-${table}.log" 2>&1
 			fi
 		else
 			i=1
 			while [ $i -le $CHUNKS ]; do
 				if [ $PRIVILEGED -eq 1 ]; then
-					$PSQL <<- __EOF__ &
+					$PSQL <<- __EOF__ > "${OUTDIR}/output/load-${table}-${i}.log" 2>&1 &
 						COPY $table
 						FROM PROGRAM
 						'"$DBGEN" -s $SCALE_FACTOR -T $FLAG -o -C $CHUNKS -S $i'
 						USING DELIMITERS '|';
 					__EOF__
 				else
-					"$DBGEN" -s $SCALE_FACTOR -T $FLAG -o -C $CHUNKS -S $i | \
-							$PSQL -c "COPY $table FROM STDIN USING DELIMITERS '|'" &
+					eval "\"$DBGEN\" -s $SCALE_FACTOR -T $FLAG -o -C $CHUNKS \
+							-S $i | $PSQL \
+							-c \"COPY $table FROM STDIN USING DELIMITERS '|'\" &" \
+							> "${OUTDIR}/output/load-${table}-${i}.log" 2>&1
 				fi
 				i=$(( $i + 1 ))
 			done
@@ -351,6 +356,7 @@ ALTER TABLE region ADD CONSTRAINT pk_region PRIMARY KEY USING INDEX pk_region;"
 
 DIRECT_LOAD=0
 NODES=0
+OUTDIR="."
 PRIVILEGED=1
 # Custom argument handling for hopefully most portability.
 while [ "${#}" -gt 0 ] ; do
@@ -361,6 +367,10 @@ while [ "${#}" -gt 0 ] ; do
 		;;
 	(-d)
 		DIRECT_LOAD=1
+		;;
+	(-o)
+		shift
+		OUTDIR="${1}"
 		;;
 	(-U)
 		PRIVILEGED=0
@@ -383,6 +393,8 @@ while [ "${#}" -gt 0 ] ; do
 	esac
 	shift
 done
+
+mkdir -p "${OUTDIR}/output"
 
 # Automatically parallelize to the number of available processors if not
 # specified otherwise.

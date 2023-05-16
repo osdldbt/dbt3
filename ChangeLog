@@ -35,6 +35,7 @@ vX.Y.Z (YYYY-MM-DD)
 - Add --scale-factor long option
 - Add long options for test specific database parameters
 - Save dbgen data generation output to files instead of streaming to stdout
+- Save pgsql load output to files instead of streaming to stdout
 
 v1.11.1 (2022-06-03)
 
