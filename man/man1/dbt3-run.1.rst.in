@@ -1,0 +1,101 @@
+==========
+ dbt3-run
+==========
+
+---------------
+Database Test 3
+---------------
+
+:Date: @MANDATE@
+:Manual section: 1
+:Manual group: Database Test 3 @PROJECT_VERSION@ Documentation
+:Version: Database Test 3 @PROJECT_VERSION@
+
+SYNOPSIS
+========
+
+**dbt3-run** [option...] dbms directory
+
+DESCRIPTION
+===========
+
+**dbt3-run** is a wrapper script that helps execute this kit's workload.
+
+OPTIONS
+=======
+
+-1  Only run load test.
+-2  Only run power test.
+-3  Only run throughput test.
+-c COMMENTS  Provide *comments* to save with the test.
+-C  Sort data load files.
+-d  Direct data load.
+--db-name NAME  *name* of the database, default dbt3.
+--dss=DIRECTORY  *directory* for temporary DSS files, default */tmp/dss*.
+--dss-query DIRECTORY  *directory* to query templates, default
+        *tpchtools*/dbgen/queries/*dbms*.
+-f SCALE_FACTOR  Database SCALE_FACTOR, default 1.
+-g  Generate flat files.
+-n STREAMS, --streams=STREAMS  Number of throughput STREAMS.  Default varies
+        based on SCALE_FACTOR.  Two STREAMS when the SCALE_FACTOR is from 1 to
+        9, three STREAMS from 10 to 29, four STREAMS from 30 to 99, five
+        STREAMS from 100 to 299, six STREAMS from 300 to 999, seven STREAMS
+        from 1,000 to 2,999, eight STREAMS from 3,000 to 9,999, nine STREAMS
+        from 10,000 to 29,999, ten STREAMS from 30,000 to 99,999, or eleven
+        STREAMS from 100,000 onward.
+--profile  Enable software profiling collection by using **ts-profile**
+        provided by Touchstone Tools.  Currently only for Linux systems that
+        have **readprofile**, **oprofile** or **perf** set up.  See
+        **ts-profile** for usage notes.
+-R  Materialized view mode.
+-s SEED  *seed* to use for power and throughput tests.
+--stats  Enable system and database statistics collection by using
+        **ts-sysstat**.
+--tpchtools=DIRECTORY  *directory* to TPC-H Tools.
+-u  Use tablespaces.
+-U  Run test as an unprivileged operating system and database user.
+-z  Do not run refresh streams.
+--help  This usage message.  Or **-?**.
+
+PostgreSQL specific options:
+
+-e  EXPLAIN ANALYZE.
+-p OPTIONS  GUC command line *options* to pass to **postgres** for the load
+        test.  This is intended for privileged users that can start and stop
+        the **postgres** backend while passing parameter options directly to
+        **postgres**.
+-q OPTIONS  GUC command line *options* to pass to **postgres** for the power
+        test.  This is intended for privileged users that can start and stop
+        the **postgres** backend while passing parameter options directly to
+        **postgres**.
+-r OPTIONS  GUC command line *options* to pass to **postgres** for the
+        throughput test.  This is intended for privileged users that can start
+        and stop the **postgres** backend while passing parameter options
+        directly to **postgres**.
+
+*dbms* options are:
+
+* monetdb MonetDB
+* mysql MySQL
+* pgsql PostgreSQL
+* pgxl Postgres-XL
+* virtuoso Virtuoso
+
+*directory* is the path to save test results.
+
+EXAMPLES
+========
+
+A simple example of running a default 1 GB scale factor test against a locally
+running PostgreSQL database::
+
+    dbt3 run pgsql results
+
+See documentation in the *doc* directory of the source repository or online at
+https://osdldbt.github.io/dbt3/ for more information.
+
+SEE ALSO
+========
+
+**dbt3**\ (1), **oprofile**\ (1), **perf**\ (1), **readprofile**\ (8),
+**ts-profile**\ (1), **ts-sysstat**\ (1)

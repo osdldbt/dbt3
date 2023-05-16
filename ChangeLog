@@ -27,6 +27,8 @@ vX.Y.Z (YYYY-MM-DD)
 - Convert post-processing script to use sqlite3
 - Add usage message to PostgreSQL scripts
 - Add usage message to top level scripts
+- Change "run" script usage and default for simpler usage
+- Add "run" man page
 
 v1.11.1 (2022-06-03)
 

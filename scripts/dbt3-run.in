@@ -12,26 +12,24 @@ usage()
 $(basename "${0}") is the DBT-3 workload runner
 
 Usage:
-  $(basename "${0}") [OPTIONS]
+  $(basename "${0}") [OPTIONS] DBMS DIRECTORY
 
 Generate options:
   -1              only run load test
   -2              only run power test
   -3              only run throughput test
-  -a DBMS         database management system to test
-  -c              comment about the test
-  -C              flag to resort data load files
+  -c COMMENTS     provide COMMENTS to save with the test
+  -C              sort data load files
   -d              direct data load
-  --dbname        databse name, default $DBNAME
-  --dss=PATH      PATH to temporary DSS files, default $DSS_PATH
+  --db-name       databse name, default $DBNAME
+  --dss=DIRECTORY
+                  DIRECTORY for temporary DSS files, default $DSS_PATH
   --dss-query=DIRECTORY
-                  DIRECTORY to query templates, default
+                  DIRECTORY to query templates, default is to use
                   TPCHTOOLS/dbgen/queries/DBMS
   -f SCALE        database scale factor, default 1
   -g              generate flat files
-  -l PORT         database port
-  -n STREAMS      number of throughput streams
-  -o DIRECTORY    path to store test results
+  -n STREAMS      number of throughput STREAMS
   --profile       enable software profiling (Linux only)
   -R              materialized view mode
   -s SEED         seed to use for power and throughput tests
@@ -55,6 +53,8 @@ PostgreSQL specific options:
   -p   database parameters for the load test
   -q   database parameters for the power test
   -r   database parameters for the throughput test
+
+DIRECTORY is the path to save test results.
 
 @HOMEPAGE@
 EOF
@@ -113,11 +113,6 @@ while [ "${#}" -gt 0 ] ; do
 		FLAG_THROUGHPUT_TEST="-3"
 		RUN_ALL_TESTS=0
 		;;
-	(-a)
-		shift
-		DATABASE=${1}
-		export DATABASE=${DATABASE}
-		;;
 	(-c)
 		shift
 		COMMENT=${1}
@@ -132,12 +127,12 @@ while [ "${#}" -gt 0 ] ; do
 		shift
 		CHUNK_ARG="-C $1"
 		;;
-	(--dbname)
+	(--db-name)
 		shift
 		DBNAME="${1}"
 		;;
-	(--dbname=?*)
-		DBNAME="${1#*--dbname=}"
+	(--db-name=?*)
+		DBNAME="${1#*--db-name=}"
 		;;
 	(--dss)
 		shift
@@ -173,31 +168,26 @@ while [ "${#}" -gt 0 ] ; do
 	(--streams=?*)
 		STREAMS="${1#*--streams=}"
 		;;
-	(-o)
-		shift
-		OUTPUT_DIR="${1}"
-		if [ -d "$OUTPUT_DIR" ]; then
-			echo "The directory \"$OUTPUT_DIR\" already exists, specify a different location."
-			exit 1
-		fi
-		;;
 	(-p)
 		# PostgreSQL only.
-		LOAD_PARAMETERS="$LOAD_PARAMETERS $OPTARG"
+		shift
+		LOAD_PARAMETERS="$LOAD_PARAMETERS ${1}"
 		;;
 	(--profile)
 		PROFILE_ARG="-Y"
 		;;
 	(-q)
 		# PostgreSQL only.
-		POWER_PARAMETERS="$POWER_PARAMETERS $OPTARG"
+		shift
+		POWER_PARAMETERS="$POWER_PARAMETERS ${1}"
 		;;
 	(-R)
 		WORKLOAD_ARG="-R"
 		;;
 	(-r)
 		# PostgreSQL only.
-		THROUGHPUT_PARAMETERS="$THROUGHPUT_PARAMETERS $OPTARG"
+		shift
+		THROUGHPUT_PARAMETERS="$THROUGHPUT_PARAMETERS ${1}"
 		;;
 	(-s)
 		shift
@@ -241,6 +231,25 @@ while [ "${#}" -gt 0 ] ; do
 	esac
 	shift
 done
+
+if [ $# -eq 0 ]; then
+	printf "Specify which DBMS system to test, try \"%s\" " \
+			"$(basename "${0}")"
+	echo "for more information."
+	exit 1
+fi
+
+export DATABASE="${1}"
+shift
+
+if [ $# -eq 0 ]; then
+	echo "Specify the location to save test results, where directory does "
+	printf "not exist yet, try \"%s\" " "$(basename "${0}")"
+	echo "for more information."
+	exit 1
+fi
+
+OUTPUT_DIR="${1}"
 
 mkdir -p "${DSS_PATH}"
 if [ ! -d "${DSS_PATH}" ]; then

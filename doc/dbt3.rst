@@ -212,7 +212,7 @@ Quick Start
 
 Only one command needs to be issued to run a complete test::
 
-    dbt3-run --tpchtools="TPC-H V3.0.1" -a pgsql -f 1 -o /tmp/results
+    dbt3-run --tpchtools="TPC-H V3.0.1" pgsql /tmp/results
 
 This will run the generate the data files for a 1GB scale factor database load,
 power and throughput test, with 1 stream, against PostgreSQL and record the
@@ -259,10 +259,10 @@ kit builds them only in one specific configuration::
 Test Results
 ============
 
-The results directory, as specified when running the *dbt3-run* scripts by the
-`-o` option, will contain the calculated metrics of the test as well as charts
-of the system and database statistics summarized in the *index.html* file in
-the results directory.
+The results directory created from running tests with the *dbt3-run* script
+will contain the calculated metrics of the test as well as charts of the system
+and database statistics summarized in the *index.html* file in the results
+directory.
 
 The query results chart display the execute time of each query for the power
 test, and the arithmetic mean of each of the streams in the throughput test.
