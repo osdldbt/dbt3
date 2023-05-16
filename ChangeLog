@@ -32,6 +32,7 @@ vX.Y.Z (YYYY-MM-DD)
 - Make unprivileged user the default mode "run" script mode
 - Replace some short options with long options
 - Direct load database by default
+- Add --scale-factor long option
 
 v1.11.1 (2022-06-03)
 

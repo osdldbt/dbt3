@@ -141,9 +141,15 @@ while [ "${#}" -gt 0 ] ; do
 	(-e)
 		EXTRA_ARGS="$EXTRA_ARGS -e"
 		;;
-	(-f)
+	(-f | --scale-factor)
 		shift
 		SCALE_FACTOR="${1}"
+		;;
+	(-f?*)
+		SCALE_FACTOR="${1#*-f}"
+		;;
+	(--scale-factor=?*)
+		SCALE_FACTOR="${1#*--scale-factor=}"
 		;;
 	(--file-load)
 		DIRECT_LOAD_ARG=""
