@@ -44,6 +44,7 @@ OPTIONS
         from 1,000 to 2,999, eight STREAMS from 3,000 to 9,999, nine STREAMS
         from 10,000 to 29,999, ten STREAMS from 30,000 to 99,999, or eleven
         STREAMS from 100,000 onward.
+--no-refresh  Do not run refresh streams.
 --power  Run power test, default run load, power and throughput. Selecting
         individual tests disables the other tests unless explicitly specified
         again.
@@ -63,7 +64,6 @@ OPTIONS
         specified again.
 --tpchtools=DIRECTORY  *directory* to TPC-H Tools.
 -u  Use tablespaces.
--z  Do not run refresh streams.
 --help  This usage message.  Or **-?**.
 
 PostgreSQL specific options:

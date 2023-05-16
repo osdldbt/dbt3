@@ -28,10 +28,11 @@ Generate options:
   --file-load     load database from flat files, default is to load database
                   directly
   -g              generate flat files
-  -n STREAMS      number of throughput STREAMS
   --load          run load test, default run load, power and throughput,
                   selecting individual tests disables the other tests unless
                   explicitly specified again
+  -n STREAMS      number of throughput STREAMS
+  --no-refresh    do not run refresh streams
   --power         run power test, default run load, power and throughput,
                   selecting individual tests disables the other tests unless
                   explicitly specified again
@@ -46,7 +47,6 @@ Generate options:
   --tpchtools=TPCHTOOLS
                   TPCHTOOLS is the TPC-H Tools directory
   -u              use tablespaces
-  -z              do not run refresh streams
   -?, --help      this help message
 
 DBMS options are:
@@ -80,7 +80,6 @@ RUN_ALL_TESTS=1
 RUN_LOAD_TEST=0
 RUN_POWER_TEST=0
 RUN_THROUGHPUT_TEST=0
-NO_REFRESH=0
 NODES=${#datanodeMasterServers[@]}
 OUTPUT_DIR=""
 PROFILE_ARG=""
@@ -171,6 +170,9 @@ while [ "${#}" -gt 0 ] ; do
 	(--streams=?*)
 		STREAMS="${1#*--streams=}"
 		;;
+	(--no-refresh)
+		NO_REFRESH_FLAG="-z"
+		;;
 	(-p)
 		# PostgreSQL only.
 		shift
@@ -220,9 +222,6 @@ while [ "${#}" -gt 0 ] ; do
 	(--privileged)
 		PRIVILEGED=1
 		UNPRIVILEGED_ARG=""
-		;;
-	(-z)
-		NO_REFRESH_FLAG="-z"
 		;;
 	(-V | --version)
 		echo "$(basename "${0}") (Database Test 3) v@PROJECT_VERSION@"
