@@ -162,12 +162,8 @@ SCALE_FACTOR=$(grep scale_factor "${INDIR}/config.txt" | awk '{print $2}')
 SF=$(grep scale_factor ${INDIR}/config.txt | awk '{print $2}')
 STREAMS=$(grep num_stream ${INDIR}/config.txt | awk '{print $2}')
 
-dbt3-post-process \
-		-i "${INDIR}" \
-		-n "${STREAMS}" \
-		-2 \
-		-3 \
-		-h > "${INDIR}/with-links-summary.rst"
+dbt3-post-process --query --links "${INDIR}" \
+		> "${INDIR}/with-links-summary.rst"
 
 LOADDIR=${INDIR}/load
 if [ -d "${LOADDIR}" ]; then

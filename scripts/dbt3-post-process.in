@@ -12,14 +12,16 @@ usage()
 $(basename "${0}") is the Database Test 3 (DBT-3) post processor
 
 Usage:
-  $(basename "${0}") [OPTION]
+  $(basename "${0}") [OPTION] DIRECTORY
 
 Options:
-  -h             generate RST for HTML conversion
-  -i DIRECTORY   DBT-3 results directory
-  -n STREAMS     number of throughput STREAMS
+  --links        generate reStructuredText (rst) with links for HTML report
+                 preparation
+  --query        generate power and throughput test query summary
   -V, --version  output version information, then exit
   -?, --help     show this help, then exit
+
+DIRECTORY is the location of DBT-3 results.
 
 @HOMEPAGE@
 EOF
@@ -259,20 +261,16 @@ throughput_summary() {
 }
 
 HTML=0
+QUERY=0
+
 # Custom argument handling for hopefully most portability.
 while [ "${#}" -gt 0 ] ; do
 	case "${1}" in
-	(-i)
-		shift
-		INDIR="${1}"
-		QTIME=$INDIR/q_time.csv
-		;;
-	(-h)
+	(--links)
 		HTML=1
 		;;
-	(-n)
-		shift
-		STREAMS="${1}"
+	(--query)
+		QUERY=1
 		;;
 	(-V | --version)
 		echo "$(basename "${0}") (Database Test 3) v@PROJECT_VERSION@"
@@ -293,7 +291,60 @@ while [ "${#}" -gt 0 ] ; do
 	shift
 done
 
+if [ "${#}" -eq 0 ]; then
+	printf "Specify which DBT-3 results directory to process, try \"%s -?\" " \
+			"$(basename "${0}")"
+	echo "for more information."
+	exit 1
+fi
+
+INDIR="${1}"
+QTIME="${INDIR}/q_time.csv"
+
 SEED=$(cat "${INDIR}/seed")
+SF=$(grep scale_factor "${INDIR}/config.txt" | awk '{print $2}')
+STREAMS=$(grep num_stream "${INDIR}/config.txt" | awk '{print $2}')
+
+LOADDIR=${INDIR}/load
+if [ -d "${LOADDIR}" ]; then
+	LOAD=$(grep LOAD "${QTIME}" | awk -F, '{ print $5 }')
+	# Round to 2 decimal places, convert to hours.
+	LOAD_HOUR=$(echo "scale=2; ${LOAD} / 3600" | bc -l)
+else
+	LOAD_HOUR="N/A"
+fi
+
+POWERDIR="power"
+if [ -d "${INDIR}/${POWERDIR}" ]; then
+	POWER="$(printf "%.2f" "$(dbt3-power-score -i "${QTIME}" -s "${SF}")")"
+else
+	POWER="N/A"
+fi
+
+THROUGHPUTDIR="throughput"
+if [ -d "${INDIR}/${THROUGHPUTDIR}" ]; then
+	THROUGHPUT=$(dbt3-throughput-score -i "${QTIME}" -s "${SF}" \
+			-n "${STREAMS}")
+else
+	THROUGHPUT="N/A"
+fi
+
+if [ ! "${POWER}" = "N/A" ] && [ ! "${THROUGHPUT}" = "N/A" ]; then
+	COMPOSITE=$(echo "scale=2; sqrt(${POWER} * ${THROUGHPUT})" | bc -l)
+else
+	COMPOSITE="N/A"
+fi
+
+if [ $QUERY -eq 0 ]; then
+	cat <<- EOF
+		       Composite Score: $(printf "%11s" "${COMPOSITE}")
+		Load Test Time (hours): $(printf "%11s" "${LOAD_HOUR}")
+		      Power Test Score: $(printf "%11s" "${POWER}")
+		 Throughput Test Score: $(printf "%11s" "${THROUGHPUT}")
+	EOF
+
+	exit 0
+fi
 
 cat << EOF
 Power Test

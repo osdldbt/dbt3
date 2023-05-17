@@ -491,50 +491,21 @@ if [ $PRIVILEGED -eq 1 ]; then
 	dbt3-${DATABASE}-stop-db
 fi
 
-# Calculate metrics.
-echo "Post processing query results... "
 for HOSTNAME in ${datanodeMasterServers[*]}; do
 	rsync -av $HOSTNAME:$OUTPUT_DIR/ $OUTPUT_DIR/ &
 done
 wait
 
-eval "dbt3-post-process -i $OUTPUT_DIR -n $STREAMS ${NO_REFRESH_FLAG}" \
-		> "${OUTPUT_DIR}/summary.rst"
-
-if [ ${RUN_LOAD_TEST} -eq 1 ]; then
-	LOAD=$(grep LOAD ${OUTPUT_DIR}/q_time.csv | awk -F, '{ print $5 }')
-	# Round to 2 decimal places, convert to hours.
-	LOAD=$(echo "scale=2; ${LOAD} / 3600" | bc -l)
-else
-	LOAD="N/A"
-fi
-
-QTIMECSV="${OUTPUT_DIR}/q_time.csv"
-if [ ${RUN_POWER_TEST} -eq 1 ]; then
-	POWER="$(printf "%.2f" "$(dbt3-power-score -i "${QTIMECSV}" \
-			-s "${SCALE_FACTOR}")")"
-else
-	POWER="N/A"
-fi
-
-if [ ${RUN_THROUGHPUT_TEST} -eq 1 ]; then
-	THROUGHPUT="$(printf "%.2f" "$(dbt3-throughput-score -i "${QTIMECSV}" \
-			-s "${SCALE_FACTOR}" -n "${STREAMS}")")"
-else
-	THROUGHPUT="N/A"
-fi
-
-if [ ${RUN_POWER_TEST} -eq 1 ] && [ ${RUN_THROUGHPUT_TEST} -eq 1 ]; then
-	COMPOSITE=$(echo "scale=2; sqrt(${POWER} * ${THROUGHPUT})" | bc -l)
-else
-	COMPOSITE="N/A"
-fi
-
-echo ""
-echo "Composite score: ${COMPOSITE}"
-echo "Load time (hours): ${LOAD}"
-echo "Power score: ${POWER}"
-echo "Throughput Score: ${THROUGHPUT}"
+# Calculate metrics.
+echo "Post processing query results... "
 echo ""
 
-echo "Done!"
+SCOREFILE="${OUTPUT_DIR}/score.txt"
+QUERYFILE="${OUTPUT_DIR}/summary.rst"
+
+dbt3-post-process --query "${OUTPUT_DIR}" > "${QUERYFILE}"
+dbt3-post-process "${OUTPUT_DIR}" > "${SCOREFILE}"
+cat "${SCOREFILE}"
+
+echo ""
+echo "See query summary in: ${QUERYFILE}"
