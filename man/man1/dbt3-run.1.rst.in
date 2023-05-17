@@ -115,5 +115,5 @@ https://osdldbt.github.io/dbt3/ for more information.
 SEE ALSO
 ========
 
-**dbt3**\ (1), **oprofile**\ (1), **perf**\ (1), **readprofile**\ (8),
-**ts-profile**\ (1), **ts-sysstat**\ (1)
+**dbt3**\ (1), **dbt3-report**\ (1), **oprofile**\ (1), **perf**\ (1),
+**readprofile**\ (8), **ts-profile**\ (1), **ts-sysstat**\ (1)

@@ -20,11 +20,6 @@ configure_file(
     @ONLY
 )
 configure_file(
-    dbt3-generate-report.in
-    ${CMAKE_BINARY_DIR}/dbt3-generate-report
-    @ONLY
-)
-configure_file(
     dbt3-get-config.in
     ${CMAKE_BINARY_DIR}/dbt3-get-config
     @ONLY
@@ -52,6 +47,11 @@ configure_file(
 configure_file(
     dbt3-power-test.in
     ${CMAKE_BINARY_DIR}/dbt3-power-test
+    @ONLY
+)
+configure_file(
+    dbt3-report.in
+    ${CMAKE_BINARY_DIR}/dbt3-report
     @ONLY
 )
 configure_file(
@@ -84,13 +84,13 @@ install (
     PROGRAMS ${CMAKE_BINARY_DIR}/dbt3
              ${CMAKE_BINARY_DIR}/dbt3-build-dbgen
              ${CMAKE_BINARY_DIR}/dbt3-compare-results
-             ${CMAKE_BINARY_DIR}/dbt3-generate-report
              ${CMAKE_BINARY_DIR}/dbt3-get-config
              ${CMAKE_BINARY_DIR}/dbt3-load-test
              ${CMAKE_BINARY_DIR}/dbt3-plot-results
              ${CMAKE_BINARY_DIR}/dbt3-post-process
              ${CMAKE_BINARY_DIR}/dbt3-power-score
              ${CMAKE_BINARY_DIR}/dbt3-power-test
+             ${CMAKE_BINARY_DIR}/dbt3-report
              ${CMAKE_BINARY_DIR}/dbt3-run
              ${CMAKE_BINARY_DIR}/dbt3-throughput-score
              ${CMAKE_BINARY_DIR}/dbt3-throughput-stream

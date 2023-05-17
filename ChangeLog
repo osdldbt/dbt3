@@ -36,6 +36,7 @@ vX.Y.Z (YYYY-MM-DD)
 - Add long options for test specific database parameters
 - Save dbgen data generation output to files instead of streaming to stdout
 - Save pgsql load output to files instead of streaming to stdout
+- Rename generate-report script to simply "report"
 
 v1.11.1 (2022-06-03)
 

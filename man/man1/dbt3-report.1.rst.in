@@ -1,0 +1,49 @@
+==========
+ dbt3-run
+==========
+
+---------------
+Database Test 3
+---------------
+
+:Date: @MANDATE@
+:Manual section: 1
+:Manual group: Database Test 3 @PROJECT_VERSION@ Documentation
+:Version: Database Test 3 @PROJECT_VERSION@
+
+SYNOPSIS
+========
+
+**dbt3-run** [option...] directory
+
+DESCRIPTION
+===========
+
+**dbt3-report** generates an HTML report of the results from a DBT-3
+test.
+
+OPTIONS
+=======
+
+--fast  Disable chart plotting for development purposes.
+--help  This usage message.  Or **-?**.
+-V, --version  Output version information, then exit.
+
+*directory* is the path of the DBT-3 test results.
+
+
+EXAMPLES
+========
+
+Generate an HTML report for a test saved in the `results` directory that will
+create a `results/report.html` that can view in a web browser::
+
+    dbt3 report results
+
+See documentation in the *doc* directory of the source repository or online at
+https://osdldbt.github.io/dbt3/ for more information.
+
+SEE ALSO
+========
+
+**dbt3**\ (1), **dbt3-run**\ (1)

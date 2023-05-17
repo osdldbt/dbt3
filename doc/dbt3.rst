@@ -421,6 +421,17 @@ More detailed query results will be in the `summary.rst` file::
          Avg      0.04      4.30      0.04
     ========  ========  ========  ========
 
+A comprehensive HTML report can be generated with the **dbt3-report** script by
+specifying the DBT-3 `results` directory::
+
+    dbt3-report results
+
+This report will have:
+
+* charts for system statistics, if collected
+* charts for database statistics, if collected
+* chart of the power and throughput test query execution times
+
 -----------------
 Developer's Guide
 -----------------
