@@ -1,4 +1,4 @@
-vX.Y.Z (YYYY-MM-DD)
+v2.0.0 (2023-05-17)
 
 - Fix post processing RST table format error when seed is too longer than 9
   digits
