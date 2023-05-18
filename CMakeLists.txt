@@ -105,7 +105,6 @@ add_custom_target(appimage-podman
                    `ldd ${GNUPLOT} | grep libpangocairo-1\\.0\\. | cut -d \" \" -f 3`
                    `ldd ${GNUPLOT} | grep libthai\\. | cut -d \" \" -f 3`
                    `ldd ${PSQL} | grep libcrypto\\. | cut -d \" \" -f 3`
-                   `ldd ${PSQL} | grep libpq\\. | cut -d \" \" -f 3`
                    `ldd ${PSQL} | grep libssl\\. | cut -d \" \" -f 3`
             AppDir/usr/lib
     COMMAND VERSION=${PROJECT_VERSION} /usr/local/squashfs-root/AppRun
