@@ -25,7 +25,7 @@ elif [ "$ENGINE" = "podman" ]; then
 	IMAGE="quay.io/fedora/fedora"
 fi
 
-CONTAINER_DIR=$(dirname "$(readlink -f "$0")")
+CONTAINER_DIR="$(dirname "$(realpath "${0}")")"
 
 # TODO: Allow the user to specify the PostgreSQL version to use.
 PGORG="https://www.postgresql.org/versions.json"

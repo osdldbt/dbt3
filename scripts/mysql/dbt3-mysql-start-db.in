@@ -38,7 +38,7 @@ done
 
 # The location of the log file needs to be an absolute path, otherwise it's
 # relative to $MYDATA.
-LOGPATH=`readlink -f $OUTDIR`
+LOGPATH="$(realpath "${OUTDIR}")"
 
 mysqld_safe $DEFAULTS_FILE_ARG --datadir=$MYDATA \
 		--log-error=$LOGPATH/$LOGFILE > /dev/null 2>&1 &

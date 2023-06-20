@@ -3,6 +3,7 @@ vX.Y.Z (YYYY-MM-DD)
 - Update AppImage container file to use Ubuntu 14.04
 - Add missing libraries to AppImage for gnuplot
 - Add fonts to AppImage for gnuplot
+- Replace readlink with realpath
 
 v2.0.0 (2023-05-17)
 

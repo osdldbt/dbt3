@@ -53,7 +53,7 @@ fi
 
 CONTAINER_NAME="dbt3-${DBMS}-0"
 CONTAINER_TAG="dbt3-${DBMS}"
-CONTAINERDIR=$(dirname "$(readlink -f "$0")")
+CONTAINERDIR="$(dirname "$(realpath "${0}")")"
 
 RESULTSDIR="${CONTAINERDIR}/results"
 mkdir -p "$RESULTSDIR"

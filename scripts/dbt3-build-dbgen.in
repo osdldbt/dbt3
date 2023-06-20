@@ -87,7 +87,7 @@ shift
 if [ $# -eq 0 ]; then
 	errormsg "missing DIRECTORY command line parameter"
 fi
-DBGENDIR=$(readlink -f "${1}")
+DBGENDIR="$(realpath "${1}")"
 shift
 
 if [ "${PATCHDIR}" = "" ]; then
