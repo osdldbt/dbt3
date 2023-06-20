@@ -4,6 +4,7 @@ vX.Y.Z (YYYY-MM-DD)
 - Add missing libraries to AppImage for gnuplot
 - Add fonts to AppImage for gnuplot
 - Replace readlink with realpath
+- Quiet pgsql-report when database stats are not collected
 
 v2.0.0 (2023-05-17)
 

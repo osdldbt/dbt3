@@ -57,11 +57,14 @@ links_indexes()
 {
 	NAME=$1
 
-	grep ^public\. "${INDIR}/${NAME}/dbstat/index-list.txt" | \
-			grep -v "\.pg_catalog\." | while IFS= read -r INDEX; do
-		printf "\`%s <%s/dbstat/index/%s/>\`__ " "${INDEX}" "${NAME}" \
-				"${INDEX}"
-	done
+	INDEXFILE="${INDIR}/${NAME}/dbstat/index-list.txt"
+	if [ -f "${INDEXFILE}" ]; then
+		grep ^public\. "${INDEXFILE}" | \
+				grep -v "\.pg_catalog\." | while IFS= read -r INDEX; do
+			printf "\`%s <%s/dbstat/index/%s/>\`__ " "${INDEX}" "${NAME}" \
+					"${INDEX}"
+		done
+	fi
 }
 
 links_table_metrics()
@@ -82,11 +85,14 @@ links_tables()
 {
 	NAME=$1
 
-	grep ^public\. "${INDIR}/${NAME}/dbstat/table-list.txt" | \
-			while IFS= read -r TABLE; do
-		printf "\`%s <%s/dbstat/table/%s/>\`__ " \
-				"${TABLE}" "${NAME}" "${TABLE}"
-	done
+	TABLEFILE="${INDIR}/${NAME}/dbstat/table-list.txt"
+	if [ -f "${TABLEFILE}" ]; then
+		grep ^public\. "${TABLEFILE}" | \
+				while IFS= read -r TABLE; do
+			printf "\`%s <%s/dbstat/table/%s/>\`__ " \
+					"${TABLE}" "${NAME}" "${TABLE}"
+		done
+	fi
 }
 
 list_processes()
@@ -106,20 +112,22 @@ summarize()
 	DIRECTORY=$2
 	PIDSTATDIR="${INDIR}/${DIRECTORY}/sysstat"
 
-	which dbt-pgsql-generate-db-report > /dev/null 2>&1
-	if [ $? -eq 0 ]; then
+	DBSTATDIR="${INDIR}/${DIRECTORY}/dbstat"
+	if [ ! -d "${DBSTATDIR}" ]; then
+		return
+	fi
+
+	if which dbt-pgsql-generate-db-report > /dev/null 2>&1; then
 		dbt-pgsql-generate-db-report -t "Database Test 3" -d dbt3 \
-				-i "${INDIR}/${DIRECTORY}/dbstat"
+				-i "${DBSTATDIR}"
 	fi
-	which dbt-pgsql-generate-table-report > /dev/null 2>&1
-	if [ $? -eq 0 ]; then
+	if which dbt-pgsql-generate-table-report > /dev/null 2>&1; then
 		dbt-pgsql-generate-table-report -t "Database Test 3" \
-				-i "${INDIR}/${DIRECTORY}/dbstat/table-list.txt"
+				-i "${DBSTATDIR}/table-list.txt"
 	fi
-	which dbt-pgsql-generate-index-report > /dev/null 2>&1
-	if [ $? -eq 0 ]; then
+	if which dbt-pgsql-generate-index-report > /dev/null 2>&1; then
 		dbt-pgsql-generate-index-report -t "Database Test 3" \
-				-i "${INDIR}/${DIRECTORY}/dbstat/index-list.txt"
+				-i "${DBSTATDIR}/index-list.txt"
 	fi
 
 	cat << __EOF__
