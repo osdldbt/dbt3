@@ -126,7 +126,9 @@ if [ $FAST -ne 1 ]; then
 	for TEST in load power throughput; do
 		find "${INDIR}/${TEST}" -type d -name sysstat 2> /dev/null| \
 				while IFS= read -r SARDIR; do
-			ts-plot-sar -i "${SARDIR}/sar"
+			if [ -f "${SARDIR}/sar" ]; then
+				ts-plot-sar -i "${SARDIR}/sar"
+			fi
 		done
 	done
 fi
