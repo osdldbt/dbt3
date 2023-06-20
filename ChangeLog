@@ -1,3 +1,7 @@
+vX.Y.Z (YYYY-MM-DD)
+
+- Update AppImage container file to use Ubuntu 14.04
+
 v2.0.0 (2023-05-17)
 
 - Fix post processing RST table format error when seed is too longer than 9
