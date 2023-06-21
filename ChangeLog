@@ -1,4 +1,4 @@
-vX.Y.Z (YYYY-MM-DD)
+v2.0.1 (2023-06-20)
 
 - Update AppImage container file to use Ubuntu 14.04
 - Add missing libraries to AppImage for gnuplot
