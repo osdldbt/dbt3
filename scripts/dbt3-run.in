@@ -254,7 +254,7 @@ while [ "${#}" -gt 0 ] ; do
 done
 
 if [ $# -eq 0 ]; then
-	printf "Specify which DBMS system to test, try \"%s\" " \
+	printf "Specify which DBMS system to test, try \"%s --help\" " \
 			"$(basename "${0}")"
 	echo "for more information."
 	exit 1
@@ -265,7 +265,7 @@ shift
 
 if [ $# -eq 0 ]; then
 	echo "Specify the location to save test results, where directory does "
-	printf "not exist yet, try \"%s\" " "$(basename "${0}")"
+	printf "not exist yet, try \"%s --help\" " "$(basename "${0}")"
 	echo "for more information."
 	exit 1
 fi
