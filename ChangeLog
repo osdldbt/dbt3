@@ -1,3 +1,8 @@
+vX.Y.Z (YYYY-MM-DD)
+
+- Remove fonts from AppImage; it was a partial solution so instead rely on
+  font config and fonts to be installed on the host
+
 v2.0.1 (2023-06-20)
 
 - Update AppImage container file to use Ubuntu 14.04
