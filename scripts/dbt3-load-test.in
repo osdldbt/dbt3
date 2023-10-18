@@ -106,7 +106,7 @@ while [ "${#}" -gt 0 ] ; do
 		PARAMETERS_ARG="-p \"${1}\""
 		;;
 	(-t)
-		TABLESPACE_FLAG="-t -b"
+		TABLESPACE_FLAG="-t"
 		;;
 	(-S)
 		STATS=1

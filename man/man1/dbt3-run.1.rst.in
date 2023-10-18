@@ -75,7 +75,7 @@ PostgreSQL specific options:
         **postgres** for the power test.  This is intended for privileged users
         that can start and stop the **postgres** backend while passing
         parameter options directly to **postgres**.
---tablespaces  Use tablespaces.
+--tablespaces=DIRECTORY  Create and use tablespaces under *directory*.
 --throughput-params=OPTIONS  Additional GUC command line *options* to pass to
         **postgres** for the throughput test.  This is intended for privileged
         users that can start and stop the **postgres** backend while passing

@@ -62,7 +62,8 @@ PostgreSQL specific options:
                   database parameters for the power test
   --throughput-params=OPTIONS
                   database parameters for the throughput test
-  --tablespaces   use tablespaces
+  --tablespaces=DIRECTORY
+                  use and create tablespaces under DIRECTORY
 
 DIRECTORY is the path to save test results.
 
@@ -229,6 +230,11 @@ while [ "${#}" -gt 0 ] ; do
 		;;
 	(--tablespaces)
 		TABLESPACES_FLAG="-t"
+		export TSDIR="${1}"
+		;;
+	(--tablespaces=?*)
+		TABLESPACES_FLAG="-t"
+		export TSDIR="${1#*--tablespaces=}"
 		;;
 	(--privileged)
 		PRIVILEGED=1
