@@ -277,7 +277,7 @@ if [ $PROFILE -eq 1 ]; then
 fi
 
 eval "dbt3-${DATABASE}-load-data -C ${CHUNKS} -o ${OUTPUT_DIR} \
-		${DIRECT_LOAD_ARG} ${UNPRIVILEGED_ARG}" || exit 1
+		${DIRECT_LOAD_ARG} ${UNPRIVILEGED_ARG} ${TABLESPACE_FLAG}" || exit 1
 
 dbt3-$DATABASE-time-statistics -e -n LOAD || exit 1
 e_time=`date +%s`
