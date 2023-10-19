@@ -6,6 +6,7 @@ vX.Y.Z (YYYY-MM-DD)
 - Update run script to take the tablespace directory as an argument instead of
   requiring the TSDIR environment variable be set
 - Implement tablespaces for PostgreSQL indexes when tablespaces are used
+- pgsql-load-data: add --relax argument to use indexes out of spec
 
 v2.0.1 (2023-06-20)
 

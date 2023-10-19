@@ -126,12 +126,14 @@ supplier_ind()
 		${TS_SUPPLIER_S_SUPPKEY_IDX_LIKE}
 		WHERE s_comment LIKE '%Customer%Complaints%';
 	EOF
-	$PSQL <<- EOF &
-		CREATE INDEX supplier_s_nationkey_s_suppkey_idx
-		ON supplier (s_nationkey, s_suppkey)
-		WITH (fillfactor = 100)
-		${TS_SUPPLIER_S_NATIONKEY_S_SUPPKEY_IDX};
-	EOF
+	if [ ${STRICT} -eq 0 ]; then
+		$PSQL <<- EOF &
+			CREATE INDEX supplier_s_nationkey_s_suppkey_idx
+			ON supplier (s_nationkey, s_suppkey)
+			WITH (fillfactor = 100)
+			${TS_SUPPLIER_S_NATIONKEY_S_SUPPKEY_IDX};
+		EOF
+	fi
 
 	wait
 
@@ -153,29 +155,31 @@ part_ind()
 		WITH (fillfactor = 100)
 		${TS_PK_PART};
 	EOF
-	$PSQL <<- EOF &
-		CREATE INDEX part_p_type_p_partkey_idx
-		ON part(p_type, p_partkey)
-		WITH (fillfactor = 100)
-		${TS_PART_P_TYPE_P_PARTKEY_IDX};
-	EOF
-	$PSQL <<- EOF &
-		CREATE INDEX part_p_container_p_brand_p_partkey_idx
-		ON part(p_container, p_brand, p_partkey)
-		WITH (fillfactor = 100)
-		${TS_PART_P_CONTAINER_P_BRAND_P_PARTKEY_IDX};
-	EOF
-	$PSQL <<- EOF &
-		CREATE INDEX part_ios_test1
-		ON part USING btree (p_size, p_partkey, p_brand, p_type)
-		WITH (fillfactor = 100)
-		${TS_PART_IOS_TEST1};
-	EOF
-	$PSQL <<- EOF &
-		CREATE INDEX part_p_size_idx
-		ON part USING BRIN (p_size)
-		${TS_PART_P_SIZE_IDX};
-	EOF
+	if [ ${STRICT} -eq 0 ]; then
+		$PSQL <<- EOF &
+			CREATE INDEX part_p_type_p_partkey_idx
+			ON part(p_type, p_partkey)
+			WITH (fillfactor = 100)
+			${TS_PART_P_TYPE_P_PARTKEY_IDX};
+		EOF
+		$PSQL <<- EOF &
+			CREATE INDEX part_p_container_p_brand_p_partkey_idx
+			ON part(p_container, p_brand, p_partkey)
+			WITH (fillfactor = 100)
+			${TS_PART_P_CONTAINER_P_BRAND_P_PARTKEY_IDX};
+		EOF
+		$PSQL <<- EOF &
+			CREATE INDEX part_ios_test1
+			ON part USING btree (p_size, p_partkey, p_brand, p_type)
+			WITH (fillfactor = 100)
+			${TS_PART_IOS_TEST1};
+		EOF
+		$PSQL <<- EOF &
+			CREATE INDEX part_p_size_idx
+			ON part USING BRIN (p_size)
+			${TS_PART_P_SIZE_IDX};
+		EOF
+	fi
 
 	wait
 
@@ -230,24 +234,26 @@ customer_ind()
 		WITH (fillfactor = 100)
 		${TS_CUSTOMER_C_NATIONKEY_C_CUSTKEY_IDX};
 	EOF
-	$PSQL <<- EOF &
-		CREATE INDEX customer_c_phone_idx_c_acctbal
-		ON customer (substr(c_phone::text, 1, 2))
-		${TS_CUSTOMER_C_PHONE_IDX_C_ACCTBAL}
-		WHERE c_acctbal > 0.00;
-	EOF
-	$PSQL <<- EOF &
-		CREATE INDEX customer_c_phone_c_acctbal_c_custkey_idx
-		ON customer (substring(c_phone from 1 for 2), c_acctbal, c_custkey)
-		WITH (fillfactor = 100)
-		${TS_CUSTOMER_C_PHONE_C_ACCTBAL_C_CUSTKEY_IDX};
-	EOF
-	$PSQL <<- EOF &
-		CREATE INDEX customer_c_mktsegment_c_custkey_idx
-		ON customer (c_mktsegment, c_custkey)
-		WITH (fillfactor = 100)
-		${TS_CUSTOMER_C_MKTSEGMENT_C_CUSTKEY_IDX};
-	EOF
+	if [ ${STRICT} -eq 0 ]; then
+		$PSQL <<- EOF &
+			CREATE INDEX customer_c_phone_idx_c_acctbal
+			ON customer (substr(c_phone::text, 1, 2))
+			${TS_CUSTOMER_C_PHONE_IDX_C_ACCTBAL}
+			WHERE c_acctbal > 0.00;
+		EOF
+		$PSQL <<- EOF &
+			CREATE INDEX customer_c_phone_c_acctbal_c_custkey_idx
+			ON customer (substring(c_phone from 1 for 2), c_acctbal, c_custkey)
+			WITH (fillfactor = 100)
+			${TS_CUSTOMER_C_PHONE_C_ACCTBAL_C_CUSTKEY_IDX};
+		EOF
+		$PSQL <<- EOF &
+			CREATE INDEX customer_c_mktsegment_c_custkey_idx
+			ON customer (c_mktsegment, c_custkey)
+			WITH (fillfactor = 100)
+			${TS_CUSTOMER_C_MKTSEGMENT_C_CUSTKEY_IDX};
+		EOF
+	fi
 
 	wait
 
@@ -268,12 +274,14 @@ orders_ind()
 		ON orders (o_orderkey) WITH (fillfactor = 100)
 		${TS_PK_ORDERS};
 	EOF
-	$PSQL <<- EOF &
-		CREATE INDEX orders_o_orderkey_o_orderdate_idx
-		ON orders (o_orderkey, o_orderdate)
-		WITH (fillfactor = 100)
-		${TS_ORDERS_O_ORDERKEY_O_ORDERDATE_IDX};
-	EOF
+	if [ ${STRICT} -eq 0 ]; then
+		$PSQL <<- EOF &
+			CREATE INDEX orders_o_orderkey_o_orderdate_idx
+			ON orders (o_orderkey, o_orderdate)
+			WITH (fillfactor = 100)
+			${TS_ORDERS_O_ORDERKEY_O_ORDERDATE_IDX};
+		EOF
+	fi
 	$PSQL <<- EOF &
 		CREATE INDEX orders_o_custkey_idx
 		ON orders (o_custkey)
@@ -306,12 +314,14 @@ lineitem_ind()
 		WITH (fillfactor = 100)
 		${TS_PK_LINEITEM};
 	EOF
-	$PSQL <<- EOF &
-		CREATE INDEX lineitem_l_partkey_l_quantity_l_shipmode_idx
-		ON lineitem (l_partkey, l_quantity, l_shipmode)
-		WITH (fillfactor = 100)
-		${TS_LINEITEM_L_PARTKEY_L_QUANTITY_L_SHIPMODE_IDX};
-	EOF
+	if [ ${STRICT} -eq 0 ]; then
+		$PSQL <<- EOF &
+			CREATE INDEX lineitem_l_partkey_l_quantity_l_shipmode_idx
+			ON lineitem (l_partkey, l_quantity, l_shipmode)
+			WITH (fillfactor = 100)
+			${TS_LINEITEM_L_PARTKEY_L_QUANTITY_L_SHIPMODE_IDX};
+		EOF
+	fi
 	$PSQL <<- EOF &
 		CREATE INDEX lineitem_l_orderkey_idx_l_returnflag
 		ON lineitem (l_orderkey)
@@ -327,12 +337,14 @@ lineitem_ind()
 		WHERE l_commitdate < l_receiptdate
 		  AND l_shipdate < l_commitdate;
 	EOF
-	$PSQL <<- EOF &
-		CREATE INDEX lineitem_l_orderkey_l_suppkey_l_quantity_idx
-		ON lineitem (l_orderkey, l_suppkey, l_quantity)
-		WITH (fillfactor = 100)
-		${TS_LINEITEM_L_ORDERKEY_L_SUPPKEY_L_QUANTITY_IDX};
-	EOF
+	if [ ${STRICT} -eq 0 ]; then
+		$PSQL <<- EOF &
+			CREATE INDEX lineitem_l_orderkey_l_suppkey_l_quantity_idx
+			ON lineitem (l_orderkey, l_suppkey, l_quantity)
+			WITH (fillfactor = 100)
+			${TS_LINEITEM_L_ORDERKEY_L_SUPPKEY_L_QUANTITY_IDX};
+		EOF
+	fi
 	# Q4, Q21
 	$PSQL <<- EOF &
 		CREATE INDEX lineitem_l_orderkey_l_suppkey_idx
@@ -341,12 +353,14 @@ lineitem_ind()
 		${TS_LINEITEM_L_ORDERKEY_L_SUPPKEY_IDX}
 		WHERE l_commitdate < l_receiptdate;
 	EOF
-	$PSQL <<- EOF &
-		CREATE INDEX lineitem_l_partkey_l_suppkey_l_shipdate_l_quantity_idx
-		ON lineitem (l_partkey, l_suppkey, l_shipdate, l_quantity)
-		WITH (fillfactor = 100)
-		${TS_LINEITEM_L_PARTKEY_L_SUPPKEY_L_SHIPDATE_L_QUANTITY_IDX};
-	EOF
+	if [ ${STRICT} -eq 0 ]; then
+		$PSQL <<- EOF &
+			CREATE INDEX lineitem_l_partkey_l_suppkey_l_shipdate_l_quantity_idx
+			ON lineitem (l_partkey, l_suppkey, l_shipdate, l_quantity)
+			WITH (fillfactor = 100)
+			${TS_LINEITEM_L_PARTKEY_L_SUPPKEY_L_SHIPDATE_L_QUANTITY_IDX};
+		EOF
+	fi
 	$PSQL <<- EOF &
 		CREATE INDEX lineitem_l_shipdate_idx
 		ON lineitem USING BRIN (l_shipdate)
@@ -411,6 +425,7 @@ DIRECT_LOAD=0
 NODES=0
 OUTDIR="."
 PRIVILEGED=1
+STRICT=1
 USE_TABLESPACES=0
 # Custom argument handling for hopefully most portability.
 while [ "${#}" -gt 0 ] ; do
@@ -425,6 +440,9 @@ while [ "${#}" -gt 0 ] ; do
 	(-o)
 		shift
 		OUTDIR="${1}"
+		;;
+	(--relax)
+		STRICT=0
 		;;
 	(-t)
 		USE_TABLESPACES=1
@@ -488,25 +506,35 @@ if [ ${USE_TABLESPACES} -eq 1 ]; then
 	TS_PK_NATION_DIR="${TSDIR}/pk_nation/ts"
 	TS_PK_REGION_DIR="${TSDIR}/pk_region/ts"
 	TS_SUPPLIER_S_SUPPKEY_IDX_LIKE_DIR="${TSDIR}/supplier_s_suppkey_idx_like/ts"
-	TS_SUPPLIER_S_NATIONKEY_S_SUPPKEY_IDX_DIR="${TSDIR}/supplier_s_nationkey_s_suppkey_idx/ts"
-	TS_PART_P_TYPE_P_PARTKEY_IDX_DIR="${TSDIR}/part_p_type_p_partkey_idx/ts"
-	TS_PART_P_CONTAINER_P_BRAND_P_PARTKEY_IDX_DIR="${TSDIR}/part_p_container_p_brand_p_partkey_idx/ts"
-	TS_PART_IOS_TEST1_DIR="${TSDIR}/part_ios_test1/ts"
-	TS_PART_P_SIZE_IDX_DIR="${TSDIR}/part_p_size_idx/ts"
+	if [ ${STRICT} -eq 0 ]; then
+		TS_SUPPLIER_S_NATIONKEY_S_SUPPKEY_IDX_DIR="${TSDIR}/supplier_s_nationkey_s_suppkey_idx/ts"
+		TS_PART_P_TYPE_P_PARTKEY_IDX_DIR="${TSDIR}/part_p_type_p_partkey_idx/ts"
+		TS_PART_P_CONTAINER_P_BRAND_P_PARTKEY_IDX_DIR="${TSDIR}/part_p_container_p_brand_p_partkey_idx/ts"
+		TS_PART_IOS_TEST1_DIR="${TSDIR}/part_ios_test1/ts"
+		TS_PART_P_SIZE_IDX_DIR="${TSDIR}/part_p_size_idx/ts"
+	fi
 	TS_PARTSUPP_PS_SUPPKEY_IDX_DIR="${TSDIR}/partsupp_ps_suppkey_idx/ts"
 	TS_CUSTOMER_C_NATIONKEY_C_CUSTKEY_IDX_DIR="${TSDIR}/customer_c_nationkey_c_custkey_idx/ts"
-	TS_CUSTOMER_C_PHONE_IDX_C_ACCTBAL_DIR="${TSDIR}/customer_c_phone_idx_c_acctbal/ts"
-	TS_CUSTOMER_C_PHONE_C_ACCTBAL_C_CUSTKEY_IDX_DIR="${TSDIR}/customer_c_phone_c_acctbal_c_custkey_idx/ts"
-	TS_CUSTOMER_C_MKTSEGMENT_C_CUSTKEY_IDX_DIR="${TSDIR}/customer_c_mktsegment_c_custkey_idx/ts"
-	TS_ORDERS_O_ORDERKEY_O_ORDERDATE_IDX_DIR="${TSDIR}/orders_o_orderkey_o_orderdate_idx/ts"
+	if [ ${STRICT} -eq 0 ]; then
+		TS_CUSTOMER_C_PHONE_IDX_C_ACCTBAL_DIR="${TSDIR}/customer_c_phone_idx_c_acctbal/ts"
+		TS_CUSTOMER_C_PHONE_C_ACCTBAL_C_CUSTKEY_IDX_DIR="${TSDIR}/customer_c_phone_c_acctbal_c_custkey_idx/ts"
+		TS_CUSTOMER_C_MKTSEGMENT_C_CUSTKEY_IDX_DIR="${TSDIR}/customer_c_mktsegment_c_custkey_idx/ts"
+		TS_ORDERS_O_ORDERKEY_O_ORDERDATE_IDX_DIR="${TSDIR}/orders_o_orderkey_o_orderdate_idx/ts"
+	fi
 	TS_ORDERS_O_CUSTKEY_IDX_DIR="${TSDIR}/orders_o_custkey_idx/ts"
 	TS_ORDERS_O_ORDERDATE_IDX_DIR="${TSDIR}/orders_o_orderdate_idx/ts"
-	TS_LINEITEM_L_PARTKEY_L_QUANTITY_L_SHIPMODE_IDX_DIR="${TSDIR}/lineitem_l_partkey_l_quantity_l_shipmode_idx/ts"
+	if [ ${STRICT} -eq 0 ]; then
+		TS_LINEITEM_L_PARTKEY_L_QUANTITY_L_SHIPMODE_IDX_DIR="${TSDIR}/lineitem_l_partkey_l_quantity_l_shipmode_idx/ts"
+	fi
 	TS_LINEITEM_L_ORDERKEY_IDX_L_RETURNFLAG_DIR="${TSDIR}/lineitem_l_orderkey_idx_l_returnflag/ts"
 	TS_LINEITEM_L_ORDERKEY_IDX_PART2_DIR="${TSDIR}/lineitem_l_orderkey_idx_part2/ts"
-	TS_LINEITEM_L_ORDERKEY_L_SUPPKEY_L_QUANTITY_IDX_DIR="${TSDIR}/lineitem_l_orderkey_l_suppkey_l_quantity_idx/ts"
+	if [ ${STRICT} -eq 0 ]; then
+		TS_LINEITEM_L_ORDERKEY_L_SUPPKEY_L_QUANTITY_IDX_DIR="${TSDIR}/lineitem_l_orderkey_l_suppkey_l_quantity_idx/ts"
+	fi
 	TS_LINEITEM_L_ORDERKEY_L_SUPPKEY_IDX_DIR="${TSDIR}/lineitem_l_orderkey_l_suppkey_idx/ts"
-	TS_LINEITEM_L_PARTKEY_L_SUPPKEY_L_SHIPDATE_L_QUANTITY_IDX_DIR="${TSDIR}/lineitem_l_partkey_l_suppkey_l_shipdate_l_quantity_idx/ts"
+	if [ ${STRICT} -eq 0 ]; then
+		TS_LINEITEM_L_PARTKEY_L_SUPPKEY_L_SHIPDATE_L_QUANTITY_IDX_DIR="${TSDIR}/lineitem_l_partkey_l_suppkey_l_shipdate_l_quantity_idx/ts"
+	fi
 	TS_LINEITEM_L_SHIPDATE_IDX_DIR="${TSDIR}/lineitem_l_shipdate_idx/ts"
 	TS_LINEITEM_L_RECEIPTDATE_IDX_DIR="${TSDIR}/lineitem_l_receiptdate_idx/ts"
 
@@ -519,25 +547,35 @@ if [ ${USE_TABLESPACES} -eq 1 ]; then
 	mkdir -p ${TS_PK_NATION_DIR} || exit 1
 	mkdir -p ${TS_PK_REGION_DIR} || exit 1
 	mkdir -p ${TS_SUPPLIER_S_SUPPKEY_IDX_LIKE_DIR} || exit 1
-	mkdir -p ${TS_SUPPLIER_S_NATIONKEY_S_SUPPKEY_IDX_DIR} || exit 1
-	mkdir -p ${TS_PART_P_TYPE_P_PARTKEY_IDX_DIR} || exit 1
-	mkdir -p ${TS_PART_P_CONTAINER_P_BRAND_P_PARTKEY_IDX_DIR} || exit 1
-	mkdir -p ${TS_PART_IOS_TEST1_DIR} || exit 1
-	mkdir -p ${TS_PART_P_SIZE_IDX_DIR} || exit 1
+	if [ ${STRICT} -eq 0 ]; then
+		mkdir -p ${TS_SUPPLIER_S_NATIONKEY_S_SUPPKEY_IDX_DIR} || exit 1
+		mkdir -p ${TS_PART_P_TYPE_P_PARTKEY_IDX_DIR} || exit 1
+		mkdir -p ${TS_PART_P_CONTAINER_P_BRAND_P_PARTKEY_IDX_DIR} || exit 1
+		mkdir -p ${TS_PART_IOS_TEST1_DIR} || exit 1
+		mkdir -p ${TS_PART_P_SIZE_IDX_DIR} || exit 1
+	fi
 	mkdir -p ${TS_PARTSUPP_PS_SUPPKEY_IDX_DIR} || exit 1
 	mkdir -p ${TS_CUSTOMER_C_NATIONKEY_C_CUSTKEY_IDX_DIR} || exit 1
-	mkdir -p ${TS_CUSTOMER_C_PHONE_IDX_C_ACCTBAL_DIR} || exit 1
-	mkdir -p ${TS_CUSTOMER_C_PHONE_C_ACCTBAL_C_CUSTKEY_IDX_DIR} || exit 1
-	mkdir -p ${TS_CUSTOMER_C_MKTSEGMENT_C_CUSTKEY_IDX_DIR} || exit 1
-	mkdir -p ${TS_ORDERS_O_ORDERKEY_O_ORDERDATE_IDX_DIR} || exit 1
+	if [ ${STRICT} -eq 0 ]; then
+		mkdir -p ${TS_CUSTOMER_C_PHONE_IDX_C_ACCTBAL_DIR} || exit 1
+		mkdir -p ${TS_CUSTOMER_C_PHONE_C_ACCTBAL_C_CUSTKEY_IDX_DIR} || exit 1
+		mkdir -p ${TS_CUSTOMER_C_MKTSEGMENT_C_CUSTKEY_IDX_DIR} || exit 1
+		mkdir -p ${TS_ORDERS_O_ORDERKEY_O_ORDERDATE_IDX_DIR} || exit 1
+	fi
 	mkdir -p ${TS_ORDERS_O_CUSTKEY_IDX_DIR} || exit 1
 	mkdir -p ${TS_ORDERS_O_ORDERDATE_IDX_DIR} || exit 1
-	mkdir -p ${TS_LINEITEM_L_PARTKEY_L_QUANTITY_L_SHIPMODE_IDX_DIR} || exit 1
+	if [ ${STRICT} -eq 0 ]; then
+		mkdir -p ${TS_LINEITEM_L_PARTKEY_L_QUANTITY_L_SHIPMODE_IDX_DIR} || exit 1
+	fi
 	mkdir -p ${TS_LINEITEM_L_ORDERKEY_IDX_L_RETURNFLAG_DIR} || exit 1
 	mkdir -p ${TS_LINEITEM_L_ORDERKEY_IDX_PART2_DIR} || exit 1
-	mkdir -p ${TS_LINEITEM_L_ORDERKEY_L_SUPPKEY_L_QUANTITY_IDX_DIR} || exit 1
+	if [ ${STRICT} -eq 0 ]; then
+		mkdir -p ${TS_LINEITEM_L_ORDERKEY_L_SUPPKEY_L_QUANTITY_IDX_DIR} || exit 1
+	fi
 	mkdir -p ${TS_LINEITEM_L_ORDERKEY_L_SUPPKEY_IDX_DIR} || exit 1
-	mkdir -p ${TS_LINEITEM_L_PARTKEY_L_SUPPKEY_L_SHIPDATE_L_QUANTITY_IDX_DIR} || exit 1
+	if [ ${STRICT} -eq 0 ]; then
+		mkdir -p ${TS_LINEITEM_L_PARTKEY_L_SUPPKEY_L_SHIPDATE_L_QUANTITY_IDX_DIR} || exit 1
+	fi
 	mkdir -p ${TS_LINEITEM_L_SHIPDATE_IDX_DIR} || exit 1
 	mkdir -p ${TS_LINEITEM_L_RECEIPTDATE_IDX_DIR} || exit 1
 
@@ -550,25 +588,35 @@ if [ ${USE_TABLESPACES} -eq 1 ]; then
 	TS_PK_NATION="TABLESPACE dbt3_pk_nation"
 	TS_PK_REGION="TABLESPACE dbt3_pk_region"
 	TS_SUPPLIER_S_SUPPKEY_IDX_LIKE="TABLESPACE dbt3_supplier_s_suppkey_idx_like"
-	TS_SUPPLIER_S_NATIONKEY_S_SUPPKEY_IDX="TABLESPACE dbt3_supplier_s_nationkey_s_suppkey_idx"
-	TS_PART_P_TYPE_P_PARTKEY_IDX="TABLESPACE dbt3_part_p_type_p_partkey_idx"
-	TS_PART_P_CONTAINER_P_BRAND_P_PARTKEY_IDX="TABLESPACE dbt3_part_p_container_p_brand_p_partkey_idx"
-	TS_PART_IOS_TEST1="TABLESPACE dbt3_part_ios_test1"
-	TS_PART_P_SIZE_IDX="TABLESPACE dbt3_part_p_size_idx"
+	if [ ${STRICT} -eq 0 ]; then
+		TS_SUPPLIER_S_NATIONKEY_S_SUPPKEY_IDX="TABLESPACE dbt3_supplier_s_nationkey_s_suppkey_idx"
+		TS_PART_P_TYPE_P_PARTKEY_IDX="TABLESPACE dbt3_part_p_type_p_partkey_idx"
+		TS_PART_P_CONTAINER_P_BRAND_P_PARTKEY_IDX="TABLESPACE dbt3_part_p_container_p_brand_p_partkey_idx"
+		TS_PART_IOS_TEST1="TABLESPACE dbt3_part_ios_test1"
+		TS_PART_P_SIZE_IDX="TABLESPACE dbt3_part_p_size_idx"
+	fi
 	TS_PARTSUPP_PS_SUPPKEY_IDX="TABLESPACE dbt3_partsupp_ps_suppkey_idx"
 	TS_CUSTOMER_C_NATIONKEY_C_CUSTKEY_IDX="TABLESPACE dbt3_customer_c_nationkey_c_custkey_idx"
-	TS_CUSTOMER_C_PHONE_IDX_C_ACCTBAL="TABLESPACE dbt3_customer_c_phone_idx_c_acctbal"
-	TS_CUSTOMER_C_PHONE_C_ACCTBAL_C_CUSTKEY_IDX="TABLESPACE dbt3_customer_c_phone_c_acctbal_c_custkey_idx"
-	TS_CUSTOMER_C_MKTSEGMENT_C_CUSTKEY_IDX="TABLESPACE dbt3_customer_c_mktsegment_c_custkey_idx"
-	TS_ORDERS_O_ORDERKEY_O_ORDERDATE_IDX="TABLESPACE dbt3_orders_o_orderkey_o_orderdate_idx"
+	if [ ${STRICT} -eq 0 ]; then
+		TS_CUSTOMER_C_PHONE_IDX_C_ACCTBAL="TABLESPACE dbt3_customer_c_phone_idx_c_acctbal"
+		TS_CUSTOMER_C_PHONE_C_ACCTBAL_C_CUSTKEY_IDX="TABLESPACE dbt3_customer_c_phone_c_acctbal_c_custkey_idx"
+		TS_CUSTOMER_C_MKTSEGMENT_C_CUSTKEY_IDX="TABLESPACE dbt3_customer_c_mktsegment_c_custkey_idx"
+		TS_ORDERS_O_ORDERKEY_O_ORDERDATE_IDX="TABLESPACE dbt3_orders_o_orderkey_o_orderdate_idx"
+	fi
 	TS_ORDERS_O_CUSTKEY_IDX="TABLESPACE dbt3_orders_o_custkey_idx"
 	TS_ORDERS_O_ORDERDATE_IDX="TABLESPACE dbt3_orders_o_orderdate_idx"
-	TS_LINEITEM_L_PARTKEY_L_QUANTITY_L_SHIPMODE_IDX="TABLESPACE dbt3_lineitem_l_partkey_l_quantity_l_shipmode_idx"
+	if [ ${STRICT} -eq 0 ]; then
+		TS_LINEITEM_L_PARTKEY_L_QUANTITY_L_SHIPMODE_IDX="TABLESPACE dbt3_lineitem_l_partkey_l_quantity_l_shipmode_idx"
+	fi
 	TS_LINEITEM_L_ORDERKEY_IDX_L_RETURNFLAG="TABLESPACE dbt3_lineitem_l_orderkey_idx_l_returnflag"
 	TS_LINEITEM_L_ORDERKEY_IDX_PART2="TABLESPACE dbt3_lineitem_l_orderkey_idx_part2"
-	TS_LINEITEM_L_ORDERKEY_L_SUPPKEY_L_QUANTITY_IDX="TABLESPACE dbt3_lineitem_l_orderkey_l_suppkey_l_quantity_idx"
+	if [ ${STRICT} -eq 0 ]; then
+		TS_LINEITEM_L_ORDERKEY_L_SUPPKEY_L_QUANTITY_IDX="TABLESPACE dbt3_lineitem_l_orderkey_l_suppkey_l_quantity_idx"
+	fi
 	TS_LINEITEM_L_ORDERKEY_L_SUPPKEY_IDX="TABLESPACE dbt3_lineitem_l_orderkey_l_suppkey_idx"
-	TS_LINEITEM_L_PARTKEY_L_SUPPKEY_L_SHIPDATE_L_QUANTITY_IDX="TABLESPACE dbt3_lineitem_l_partkey_l_suppkey_l_shipdate_l_quantity_idx"
+	if [ ${STRICT} -eq 0 ]; then
+		TS_LINEITEM_L_PARTKEY_L_SUPPKEY_L_SHIPDATE_L_QUANTITY_IDX="TABLESPACE dbt3_lineitem_l_partkey_l_suppkey_l_shipdate_l_quantity_idx"
+	fi
 	TS_LINEITEM_L_SHIPDATE_IDX="TABLESPACE dbt3_lineitem_l_shipdate_idx"
 	TS_LINEITEM_L_RECEIPTDATE_IDX="TABLESPACE dbt3_lineitem_l_receiptdate_idx"
 
@@ -585,28 +633,32 @@ if [ ${USE_TABLESPACES} -eq 1 ]; then
 		CREATE ${TS_PK_NATION} LOCATION '${TS_PK_NATION_DIR}';
 		CREATE ${TS_PK_REGION} LOCATION '${TS_PK_REGION_DIR}';
 		CREATE ${TS_SUPPLIER_S_SUPPKEY_IDX_LIKE} LOCATION '${TS_SUPPLIER_S_SUPPKEY_IDX_LIKE_DIR}';
-		CREATE ${TS_SUPPLIER_S_NATIONKEY_S_SUPPKEY_IDX} LOCATION '${TS_SUPPLIER_S_NATIONKEY_S_SUPPKEY_IDX_DIR}';
-		CREATE ${TS_PART_P_TYPE_P_PARTKEY_IDX} LOCATION '${TS_PART_P_TYPE_P_PARTKEY_IDX_DIR}';
-		CREATE ${TS_PART_P_CONTAINER_P_BRAND_P_PARTKEY_IDX} LOCATION '${TS_PART_P_CONTAINER_P_BRAND_P_PARTKEY_IDX_DIR}';
-		CREATE ${TS_PART_IOS_TEST1} LOCATION '${TS_PART_IOS_TEST1_DIR}';
-		CREATE ${TS_PART_P_SIZE_IDX} LOCATION '${TS_PART_P_SIZE_IDX_DIR}';
 		CREATE ${TS_PARTSUPP_PS_SUPPKEY_IDX} LOCATION '${TS_PARTSUPP_PS_SUPPKEY_IDX_DIR}';
 		CREATE ${TS_CUSTOMER_C_NATIONKEY_C_CUSTKEY_IDX} LOCATION '${TS_CUSTOMER_C_NATIONKEY_C_CUSTKEY_IDX_DIR}';
-		CREATE ${TS_CUSTOMER_C_PHONE_IDX_C_ACCTBAL} LOCATION '${TS_CUSTOMER_C_PHONE_IDX_C_ACCTBAL_DIR}';
-		CREATE ${TS_CUSTOMER_C_PHONE_C_ACCTBAL_C_CUSTKEY_IDX} LOCATION '${TS_CUSTOMER_C_PHONE_C_ACCTBAL_C_CUSTKEY_IDX_DIR}';
-		CREATE ${TS_CUSTOMER_C_MKTSEGMENT_C_CUSTKEY_IDX} LOCATION '${TS_CUSTOMER_C_MKTSEGMENT_C_CUSTKEY_IDX_DIR}';
-		CREATE ${TS_ORDERS_O_ORDERKEY_O_ORDERDATE_IDX} LOCATION '${TS_ORDERS_O_ORDERKEY_O_ORDERDATE_IDX_DIR}';
 		CREATE ${TS_ORDERS_O_CUSTKEY_IDX} LOCATION '${TS_ORDERS_O_CUSTKEY_IDX_DIR}';
 		CREATE ${TS_ORDERS_O_ORDERDATE_IDX} LOCATION '${TS_ORDERS_O_ORDERDATE_IDX_DIR}';
-		CREATE ${TS_LINEITEM_L_PARTKEY_L_QUANTITY_L_SHIPMODE_IDX} LOCATION '${TS_LINEITEM_L_PARTKEY_L_QUANTITY_L_SHIPMODE_IDX_DIR}';
 		CREATE ${TS_LINEITEM_L_ORDERKEY_IDX_L_RETURNFLAG} LOCATION '${TS_LINEITEM_L_ORDERKEY_IDX_L_RETURNFLAG_DIR}';
 		CREATE ${TS_LINEITEM_L_ORDERKEY_IDX_PART2} LOCATION '${TS_LINEITEM_L_ORDERKEY_IDX_PART2_DIR}';
-		CREATE ${TS_LINEITEM_L_ORDERKEY_L_SUPPKEY_L_QUANTITY_IDX} LOCATION '${TS_LINEITEM_L_ORDERKEY_L_SUPPKEY_L_QUANTITY_IDX_DIR}';
 		CREATE ${TS_LINEITEM_L_ORDERKEY_L_SUPPKEY_IDX} LOCATION '${TS_LINEITEM_L_ORDERKEY_L_SUPPKEY_IDX_DIR}';
-		CREATE ${TS_LINEITEM_L_PARTKEY_L_SUPPKEY_L_SHIPDATE_L_QUANTITY_IDX} LOCATION '${TS_LINEITEM_L_PARTKEY_L_SUPPKEY_L_SHIPDATE_L_QUANTITY_IDX_DIR}';
 		CREATE ${TS_LINEITEM_L_SHIPDATE_IDX} LOCATION '${TS_LINEITEM_L_SHIPDATE_IDX_DIR}';
 		CREATE ${TS_LINEITEM_L_RECEIPTDATE_IDX} LOCATION '${TS_LINEITEM_L_RECEIPTDATE_IDX_DIR}';
 	EOF
+	if [ ${STRICT} -eq 0 ]; then
+		${PSQL} <<- EOF
+			CREATE ${TS_SUPPLIER_S_NATIONKEY_S_SUPPKEY_IDX} LOCATION '${TS_SUPPLIER_S_NATIONKEY_S_SUPPKEY_IDX_DIR}';
+			CREATE ${TS_PART_P_TYPE_P_PARTKEY_IDX} LOCATION '${TS_PART_P_TYPE_P_PARTKEY_IDX_DIR}';
+			CREATE ${TS_PART_P_CONTAINER_P_BRAND_P_PARTKEY_IDX} LOCATION '${TS_PART_P_CONTAINER_P_BRAND_P_PARTKEY_IDX_DIR}';
+			CREATE ${TS_PART_IOS_TEST1} LOCATION '${TS_PART_IOS_TEST1_DIR}';
+			CREATE ${TS_PART_P_SIZE_IDX} LOCATION '${TS_PART_P_SIZE_IDX_DIR}';
+			CREATE ${TS_CUSTOMER_C_PHONE_IDX_C_ACCTBAL} LOCATION '${TS_CUSTOMER_C_PHONE_IDX_C_ACCTBAL_DIR}';
+			CREATE ${TS_CUSTOMER_C_PHONE_C_ACCTBAL_C_CUSTKEY_IDX} LOCATION '${TS_CUSTOMER_C_PHONE_C_ACCTBAL_C_CUSTKEY_IDX_DIR}';
+			CREATE ${TS_CUSTOMER_C_MKTSEGMENT_C_CUSTKEY_IDX} LOCATION '${TS_CUSTOMER_C_MKTSEGMENT_C_CUSTKEY_IDX_DIR}';
+			CREATE ${TS_ORDERS_O_ORDERKEY_O_ORDERDATE_IDX} LOCATION '${TS_ORDERS_O_ORDERKEY_O_ORDERDATE_IDX_DIR}';
+			CREATE ${TS_LINEITEM_L_PARTKEY_L_QUANTITY_L_SHIPMODE_IDX} LOCATION '${TS_LINEITEM_L_PARTKEY_L_QUANTITY_L_SHIPMODE_IDX_DIR}';
+			CREATE ${TS_LINEITEM_L_ORDERKEY_L_SUPPKEY_L_QUANTITY_IDX} LOCATION '${TS_LINEITEM_L_ORDERKEY_L_SUPPKEY_L_QUANTITY_IDX_DIR}';
+			CREATE ${TS_LINEITEM_L_PARTKEY_L_SUPPKEY_L_SHIPDATE_L_QUANTITY_IDX} LOCATION '${TS_LINEITEM_L_PARTKEY_L_SUPPKEY_L_SHIPDATE_L_QUANTITY_IDX_DIR}';
+		EOF
+	fi
 fi
 
 echo "Loading tables `date`"
