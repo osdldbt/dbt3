@@ -33,6 +33,8 @@ scripts/sapdb/update_statistics.sh
 doc/html
 
 TPC-H_Tools_v3.0.0/
+TPC-H\ V3.0.1/
+dbgen
 
 tags
 
