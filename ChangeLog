@@ -1,3 +1,7 @@
+vX.Y.Z (YYYY-MM-DD)
+
+- Set APPDIR in AppRun script to able to easier use an extracted AppImage
+
 v2.0.2 (2023-10-18)
 
 - Remove fonts from AppImage; it was a partial solution so instead rely on
