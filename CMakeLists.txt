@@ -88,39 +88,14 @@ set (PSQL "AppDir/usr/bin/psql")
 
 add_custom_target(appimage-podman
     COMMAND cp -aLr /usr/local/AppDir .
-    COMMAND cp -aL ${CMAKE_BINARY_DIR}/AppRun
-                   ${APPIMAGE_SOURCE_DIR}/dbt3.desktop
-                   ${APPIMAGE_SOURCE_DIR}/dbt3.svg
-            AppDir
-    COMMAND mkdir -p AppDir/usr/share/metainfo
-    COMMAND cp -aL ${APPIMAGE_SOURCE_DIR}/dbt3.appdata.xml
-            AppDir/usr/share/metainfo
-    COMMAND mkdir -p AppDir/usr/lib
-    COMMAND cp -aL `ldd ${GNUPLOT} | grep libcairo\\\\\\\\. | cut -d \" \" -f 3`
-                   `ldd ${GNUPLOT} | grep libdatrie\\\\\\\\. | cut -d \" \" -f 3`
-                   `ldd ${GNUPLOT} | grep libEGL\\\\\\\\. | cut -d \" \" -f 3`
-                   `ldd ${GNUPLOT} | grep libfontconfig\\\\\\\\. | cut -d \" \" -f 3`
-                   `ldd ${GNUPLOT} | grep libfreetype\\\\\\\\. | cut -d \" \" -f 3`
-                   `ldd ${GNUPLOT} | grep libfribidi\\\\\\\\. | cut -d \" \" -f 3`
-                   `ldd ${GNUPLOT} | grep libgraphite2\\\\\\\\. | cut -d \" \" -f 3`
-                   `ldd ${GNUPLOT} | grep harfbuzz\\\\\\\\. | cut -d \" \" -f 3`
-                   `ldd ${GNUPLOT} | grep libpango-1\\\\\\\\.0\\\\\\\\. | cut -d \" \" -f 3`
-                   `ldd ${GNUPLOT} | grep libpangoft2-1\\\\\\\\.0\\\\\\\\. | cut -d \" \" -f 3`
-                   `ldd ${GNUPLOT} | grep libpangocairo-1\\\\\\\\.0\\\\\\\\. | cut -d \" \" -f 3`
-                   `ldd ${GNUPLOT} | grep libpixman-1\\\\\\\\. | cut -d \" \" -f 3`
-                   `ldd ${GNUPLOT} | grep libpng12\\\\\\\\. | cut -d \" \" -f 3`
-                   `ldd ${GNUPLOT} | grep libthai\\\\\\\\. | cut -d \" \" -f 3`
-                   `ldd ${GNUPLOT} | grep libxcb\\\\\\\\. | cut -d \" \" -f 3`
-                   `ldd ${GNUPLOT} | grep libxcb-render\\\\\\\\. | cut -d \" \" -f 3`
-                   `ldd ${GNUPLOT} | grep libxcb-shm\\\\\\\\. | cut -d \" \" -f 3`
-                   `ldd ${GNUPLOT} | grep libX11\\\\\\\\. | cut -d \" \" -f 3`
-                   `ldd ${GNUPLOT} | grep libXau\\\\\\\\. | cut -d \" \" -f 3`
-                   `ldd ${GNUPLOT} | grep libXdmcp\\\\\\\\. | cut -d \" \" -f 3`
-                   `ldd ${GNUPLOT} | grep libXext\\\\\\\\. | cut -d \" \" -f 3`
-                   `ldd ${GNUPLOT} | grep libXrender\\\\\\\\. | cut -d \" \" -f 3`
-                   `ldd ${PSQL} | grep libcrypto\\\\\\\\. | cut -d \" \" -f 3`
-                   `ldd ${PSQL} | grep libssl\\\\\\\\. | cut -d \" \" -f 3`
-            AppDir/usr/lib
     COMMAND VERSION=${PROJECT_VERSION} /usr/local/squashfs-root/AppRun
-            --comp=xz AppDir
+            --appdir AppDir
+            --custom-apprun=${CMAKE_BINARY_DIR}/AppRun
+            --desktop-file=${APPIMAGE_SOURCE_DIR}/dbt3.desktop
+            --executable=/usr/bin/perl
+            --executable=/usr/bin/psql
+            --executable=/usr/local/bin/gnuplot
+            --executable=/usr/local/bin/sqlite3
+            --icon-file=${APPIMAGE_SOURCE_DIR}/dbt3.svg
+            --output appimage
 )

@@ -1,4 +1,4 @@
-.PHONY: appimage clean debug default package release
+.PHONY: appimage clean dbgen debug default package release
 
 default:
 	@echo "targets: appimage (Linux only), clean, debug, package, release"
@@ -7,6 +7,16 @@ appimage:
 	cmake -H. -Bbuilds/appimage -DCMAKE_INSTALL_PREFIX=/usr
 	cd builds/appimage && make -s
 	cd builds/appimage && make -s install DESTDIR=AppDir
+	cd builds/appimage && make -s appimage-podman
+
+dbgen:
+	cmake -H. -Bbuilds/appimage -DCMAKE_INSTALL_PREFIX=/usr
+	cd builds/appimage && make -s
+	cd builds/appimage && make -s install DESTDIR=AppDir
+	mkdir -p /usr/local/AppDir/opt/
+	cp -pr dbgen /usr/local/AppDir/opt/
+	builds/appimage/AppDir/usr/bin/dbt3-build-dbgen pgsql \
+			/usr/local/AppDir/opt/dbgen
 	cd builds/appimage && make -s appimage-podman
 
 debug:
