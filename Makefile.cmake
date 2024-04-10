@@ -9,14 +9,15 @@ appimage:
 	cd builds/appimage && make -s install DESTDIR=AppDir
 	cd builds/appimage && make -s appimage-podman
 
-dbgen:
+dbgen-pgsql:
 	cmake -H. -Bbuilds/appimage -DCMAKE_INSTALL_PREFIX=/usr
 	cd builds/appimage && make -s
 	cd builds/appimage && make -s install DESTDIR=AppDir
 	mkdir -p /usr/local/AppDir/opt/
 	cp -pr dbgen /usr/local/AppDir/opt/
-	builds/appimage/AppDir/usr/bin/dbt3-build-dbgen pgsql \
-			/usr/local/AppDir/opt/dbgen
+	builds/appimage/AppDir/usr/bin/dbt3-build-dbgen --patch-dir=patches \
+			--query-dir=queries/pgsql pgsql /usr/local/AppDir/opt/dbgen
+	cp -p queries/pgsql/*.sql /usr/local/AppDir/opt/dbgen/dbgen/queries/
 	cd builds/appimage && make -s appimage-podman
 
 debug:

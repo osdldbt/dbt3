@@ -91,6 +91,7 @@ SEED=0
 STATS_ARG=""
 STREAMS=""
 EXTRA_ARGS=""
+TPCHTOOLS=""
 UNPRIVILEGED_ARG="-U"
 WORKLOAD="H"
 
@@ -102,6 +103,10 @@ if [ -n "$DEFAULT_POWER_PARAMETERS" ]; then
 fi
 if [ -n "$DEFAULT_THROUGHPUT_PARAMETERS" ]; then
 	THROUGHPUT_PARAMETERS="$DEFAULT_THROUGHPUT_PARAMETERS"
+fi
+
+if [ ! "${APPDIR}" = "" ]; then
+	TPCHTOOLS="${APPDIR}/opt/dbgen"
 fi
 
 # Custom argument handling for hopefully most portability.

@@ -4,6 +4,7 @@ vX.Y.Z (YYYY-MM-DD)
 - Remove activate script, less to maintain and the AppRun can be used instead
 - Create AppImage on Debian 10 (buster), previously Ubuntu 14.04 (Trust Tahr)
 - Fix build-dbgen script to handle relative paths
+- Allow creating AppImage built with TPC-H Tools binaries
 
 v2.0.2 (2023-10-18)
 
