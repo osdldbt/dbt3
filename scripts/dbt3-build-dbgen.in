@@ -46,17 +46,17 @@ while [ "${#}" -gt 0 ] ; do
 	case "${1}" in
 	(--patch-dir)
 		shift
-		PATCHDIR="${1}"
+        PATCHDIR=$(realpath "${1}")
 		;;
 	(--patch-dir=?*)
-		PATCHDIR="${1#*--patch-dir=}"
+        PATCHDIR=$(realpath "${1#*--patch-dir=}")
 		;;
 	(--query-dir)
 		shift
-		QUERYDIR="${1}"
+        QUERYDIR=$(realpath "${1}")
 		;;
 	(--query-dir=?*)
-		QUERYDIR="${1#*--query-dir=}"
+        QUERYDIR=$(realpath "${1#*--query-dir=}")
 		;;
 	(-V | --version)
 		echo "$(basename "${0}") (Database Test 3) v@PROJECT_VERSION@"
