@@ -1,4 +1,4 @@
-vX.Y.Z (YYYY-MM-DD)
+v2.0.3 (2024-04-10)
 
 - Set APPDIR in AppRun script to able to easier use an extracted AppImage
 - Remove activate script, less to maintain and the AppRun can be used instead
