@@ -1,3 +1,7 @@
+vX.Y.Z (YYYY-MM-DD)
+
+- pgsql-load-data: fix script to wait until VACUUM ANALYZE is done
+
 v2.0.3 (2024-04-10)
 
 - Set APPDIR in AppRun script to able to easier use an extracted AppImage

@@ -140,6 +140,7 @@ supplier_ind()
 	$PSQL <<- EOF &
 		VACUUM ANALYZE supplier;
 	EOF
+	wait
 }
 
 part()
@@ -186,6 +187,7 @@ part_ind()
 	$PSQL <<- EOF &
 		VACUUM ANALYZE part;
 	EOF
+	wait
 }
 
 partsupp()
@@ -213,6 +215,7 @@ partsupp_ind()
 	$PSQL <<- EOF &
 		VACUUM ANALYZE partsupp;
 	EOF
+	wait
 }
 
 customer()
@@ -260,6 +263,7 @@ customer_ind()
 	$PSQL <<- EOF &
 		VACUUM ANALYZE customer;
 	EOF
+	wait
 }
 
 orders()
@@ -299,6 +303,7 @@ orders_ind()
 	$PSQL <<- EOF &
 		VACUUM ANALYZE orders;
 	EOF
+	wait
 }
 
 lineitem()
@@ -377,6 +382,7 @@ lineitem_ind()
 	$PSQL <<- EOF &
 		VACUUM ANALYZE lineitem;
 	EOF
+	wait
 }
 
 nation()
@@ -398,6 +404,7 @@ nation_ind()
 	$PSQL <<- EOF &
 		VACUUM ANALYZE nation;
 	EOF
+	wait
 }
 
 region()
@@ -419,6 +426,7 @@ region_ind()
 	$PSQL <<- EOF &
 		VACUUM ANALYZE region;
 	EOF
+	wait
 }
 
 DIRECT_LOAD=0
@@ -672,7 +680,7 @@ lineitem
 nation
 region
 
-echo "Building indexes `date`"
+echo "Building indexes & vacuum analyze $(date)"
 
 supplier_ind &
 part_ind &
