@@ -1,4 +1,4 @@
-vX.Y.Z (YYYY-MM-DD)
+v2.0.4 (2024-04-21)
 
 - pgsql-load-data: fix script to wait until VACUUM ANALYZE is done
 
