@@ -19,7 +19,7 @@ if [ "$ARCH" = "" ]; then
 	ARCH="x86_64"
 fi
 
-if [ "${EGEN}" -eq 1 ]; then
+if [ ! "${EGEN}" = "" ] && [ "${EGEN}" -eq 1 ]; then
     TARGET="dbgen-${DBMS}"
 fi
 
