@@ -27,6 +27,7 @@ Options:
   -l             only load data
   -o DIRECTORY   path to store test results
   -R             materialized view mode
+  --relax        run with relaxed specification adherence, varies by DBMS
   -S             enable system and database stats collection
   -U             run test as an unprivileged user
   -Y             enable profiling (Linux only)
@@ -104,6 +105,9 @@ while [ "${#}" -gt 0 ] ; do
 	(-p)
 		shift
 		PARAMETERS_ARG="-p \"${1}\""
+		;;
+	(--relax)
+		RELAX_ARG="--relax"
 		;;
 	(-t)
 		TABLESPACE_FLAG="-t"
@@ -277,7 +281,8 @@ if [ $PROFILE -eq 1 ]; then
 fi
 
 eval "dbt3-${DATABASE}-load-data -C ${CHUNKS} -o ${OUTPUT_DIR} \
-		${DIRECT_LOAD_ARG} ${UNPRIVILEGED_ARG} ${TABLESPACE_FLAG}" || exit 1
+		${DIRECT_LOAD_ARG} ${UNPRIVILEGED_ARG} ${TABLESPACE_FLAG} \
+		${RELAX_ARG}" || exit 1
 
 dbt3-$DATABASE-time-statistics -e -n LOAD || exit 1
 e_time=`date +%s`

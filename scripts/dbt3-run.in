@@ -38,6 +38,8 @@ Generate options:
   --privileged    run test as a privileged user
   --profile       enable software profiling (Linux only)
   -R              materialized view mode
+  --relax         run load test with relaxed specification adherence, varies by
+                  DBMS
   --resort        sort data load files, only applies when generating flat files
   --seed=SEED     seed to use for power and throughput tests
   --stats         enable system and database stats collection

@@ -18,6 +18,7 @@ Options:
   -C PARTITIONS  how many PARTITIONS to break data into
   -d             load data directory
   -o DIRECTORY   DIRECTORY to save any output, default current directory
+  --relax        build additional indexes not allowed by the specification
   -t             use tablespaces
   -U             run test as an unprivileged user
   -V, --version  output version information, then exit

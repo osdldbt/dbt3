@@ -55,6 +55,7 @@ OPTIONS
         have **readprofile**, **oprofile** or **perf** set up.  See
         **ts-profile** for usage notes.
 -R  Materialized view mode.
+--relax  Run load test with relaxed specification adherence, varies by *dbms*.
 --resort  Sort data load files, only applies when generating flat files.
 --seed SEED  *seed* to use for power and throughput tests.
 --stats  Enable system and database statistics collection by using

@@ -1,3 +1,8 @@
+vX.Y.Z (YYYY-MM-DD)
+
+- Add --relax flag to the run script so that load tests can be run to with
+  relaxed adherence to the specification
+
 v2.0.4 (2024-04-21)
 
 - pgsql-load-data: fix script to wait until VACUUM ANALYZE is done
