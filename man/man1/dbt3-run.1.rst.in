@@ -29,19 +29,20 @@ OPTIONS
 --dss=DIRECTORY  *directory* for temporary DSS files, default */tmp/dss*.
 --dss-query DIRECTORY  *directory* to query templates, default
         *tpchtools*/dbgen/queries/*dbms*.
--f SCALE_FACTOR, --scale-factor=SCALE_FACTOR  Database SCALE_FACTOR, default 1.
+-f SCALE_FACTOR, --scale-factor=SCALE_FACTOR  Database *scale_factor*, default
+        1.
 --file-load  Load database from flat files, default is to load database
         directly.
 --load  Run load test, default run load, power and throughput.  Selecting
         individual tests disables the other tests unless explicitly specified
         again.
--n STREAMS, --streams=STREAMS  Number of throughput STREAMS.  Default varies
-        based on SCALE_FACTOR.  Two STREAMS when the SCALE_FACTOR is from 1 to
-        9, three STREAMS from 10 to 29, four STREAMS from 30 to 99, five
-        STREAMS from 100 to 299, six STREAMS from 300 to 999, seven STREAMS
-        from 1,000 to 2,999, eight STREAMS from 3,000 to 9,999, nine STREAMS
-        from 10,000 to 29,999, ten STREAMS from 30,000 to 99,999, or eleven
-        STREAMS from 100,000 onward.
+-n STREAMS, --streams=STREAMS  Number of throughput *stream*.  Default varies
+        based on SCALE_FACTOR.  Two *stream* when the SCALE_FACTOR is from 1 to
+        9, three *stream* from 10 to 29, four *stream* from 30 to 99, five
+        *stream* from 100 to 299, six *stream* from 300 to 999, seven *stream*
+        from 1,000 to 2,999, eight *stream* from 3,000 to 9,999, nine *stream*
+        from 10,000 to 29,999, ten *stream* from 30,000 to 99,999, or eleven
+        *stream* from 100,000 onward.
 --no-refresh  Do not run refresh streams.
 --power  Run power test, default run load, power and throughput. Selecting
         individual tests disables the other tests unless explicitly specified
