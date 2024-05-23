@@ -2,6 +2,7 @@ vX.Y.Z (YYYY-MM-DD)
 
 - Add --relax flag to the run script so that load tests can be run to with
   relaxed adherence to the specification
+- Fix post-process script to calculate min, max and average correctly
 
 v2.0.4 (2024-04-21)
 

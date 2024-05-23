@@ -155,11 +155,11 @@ throughput_query() {
 	printf "     Min"
 	for Q in $(seq "${Q0}" "${Q1}"); do
 		if [ "${Q}" -eq 23 ]; then
-			STRING="^PERF\.THRUPUT\.RFST.*\.RF1,"
+			STRING="^PERF\.THRUPUT\.RFST[0-9]\+\.RF1,"
 		elif [ "${Q}" -eq 24 ]; then
-			STRING="^PERF\.THRUPUT\.RFST.*\.RF2,"
+			STRING="^PERF\.THRUPUT\.RFST[0-9]\+\.RF2,"
 		else
-			STRING="^PERF\.THRUPUT\.QS${STREAM}\.Q${Q},"
+			STRING="^PERF\.THRUPUT\.QS[0-9]\+\.Q${Q},"
 		fi
 
 		if [ $HTML -eq 1 ]; then
@@ -177,11 +177,11 @@ throughput_query() {
 	printf "     Max"
 	for Q in $(seq "${Q0}" "${Q1}"); do
 		if [ "${Q}" -eq 23 ]; then
-			STRING="^PERF\.THRUPUT\.RFST.*\.RF1,"
+			STRING="^PERF\.THRUPUT\.RFST[0-9]\+\.RF1,"
 		elif [ "${Q}" -eq 24 ]; then
-			STRING="^PERF\.THRUPUT\.RFST.*\.RF2,"
+			STRING="^PERF\.THRUPUT\.RFST[0-9]\+\.RF2,"
 		else
-			STRING="^PERF\.THRUPUT\.QS${STREAM}\.Q${Q},"
+			STRING="^PERF\.THRUPUT\.QS[0-9]\+\.Q${Q},"
 		fi
 
 		if [ $HTML -eq 1 ]; then
@@ -199,11 +199,11 @@ throughput_query() {
 	printf "     Avg"
 	for Q in $(seq "${Q0}" "${Q1}"); do
 		if [ "${Q}" -eq 23 ]; then
-			STRING="^PERF\.THRUPUT\.RFST.*\.RF1,"
+			STRING="^PERF\.THRUPUT\.RFST[0-9]\+\.RF1,"
 		elif [ "${Q}" -eq 24 ]; then
-			STRING="^PERF\.THRUPUT\.RFST.*\.RF2,"
+			STRING="^PERF\.THRUPUT\.RFST[0-9]\+\.RF2,"
 		else
-			STRING="^PERF\.THRUPUT\.QS${STREAM}\.Q${Q},"
+			STRING="^PERF\.THRUPUT\.QS[0-9]\+\.Q${Q},"
 		fi
 
 		if [ $HTML -eq 1 ]; then
