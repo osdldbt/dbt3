@@ -1,4 +1,4 @@
-vX.Y.Z (YYYY-MM-DD)
+v2.0.5 (2024-05-24)
 
 - Add --relax flag to the run script so that load tests can be run to with
   relaxed adherence to the specification
