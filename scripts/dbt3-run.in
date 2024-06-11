@@ -203,6 +203,9 @@ while [ "${#}" -gt 0 ] ; do
 	(-R)
 		WORKLOAD_ARG="-R"
 		;;
+	(--relax)
+		RELAX_ARG="--relax"
+		;;
 	(--resort)
 		RESORT_ARG="-c"
 		;;
@@ -406,6 +409,7 @@ if [ ${RUN_LOAD_TEST} -eq 1 ]; then
 			$UNPRIVILEGED_ARG \
 			$STATS_ARG \
 			$PROFILE_ARG \
+			${RELAX_ARG} \
 			${TABLESPACES_FLAG} || exit 1
 else
 	#

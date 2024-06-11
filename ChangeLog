@@ -1,3 +1,7 @@
+vX.Y.Z (YYYY-MM-DD)
+
+- Fix use of --relax flag in run script
+
 v2.0.5 (2024-05-24)
 
 - Add --relax flag to the run script so that load tests can be run to with
