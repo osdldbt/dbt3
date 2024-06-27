@@ -52,11 +52,11 @@ EOF
 }
 
 stop_procs() {
-	if which ts-sysstat > /dev/null 2>&1; then
-		ts-sysstat -o "${OUTPUT_DIR}/sysstat" -s &
+	if which ts > /dev/null 2>&1; then
+		ts sysstat -o "${OUTPUT_DIR}/sysstat" -s &
 	fi
-	if which "ts-${DATABASE}-stat" > /dev/null 2>&1; then
-		eval "ts-${DATABASE}-stat -o ${OUTPUT_DIR}/dbstat -s &"
+	if which ts > /dev/null 2>&1; then
+		eval "ts ${DATABASE}-stat -o ${OUTPUT_DIR}/dbstat -s &"
 	fi
 }
 trap 'stop_procs' INT TERM
@@ -164,25 +164,23 @@ dbt3-$TAG-time-statistics -s -n PERF.THRUPUT || exit 1
 
 # Start collecting system statistics. 
 if [ $STATS -eq 1 ]; then
-	if ! which ts-sysstat > /dev/null 2>&1; then
-		echo "WARNING: ts-sysstat not found for system stats collection"
+	if ! which ts > /dev/null 2>&1; then
+		echo "WARNING: ts not found for system stats collection"
 	else
-		ts-sysstat -o "${OUTPUT_DIR}/sysstat" &
+		ts sysstat -o "${OUTPUT_DIR}/sysstat" &
 	fi
 
 	# Collect database statistics
-	if ! which "ts-${DATABASE}-stat" > /dev/null 2>&1; then
-		printf "WARNING: %s not found for database stats " \
-				"ts-${DATABASE}-stat"
-		echo "collection"
+	if ! which ts > /dev/null 2>&1; then
+		echo "WARNING: ts not found for database stats collection"
 	else
-		eval "ts-${DATABASE}-stat -o ${OUTPUT_DIR}/dbstat &"
+		eval "ts ${DATABASE}-stat -o ${OUTPUT_DIR}/dbstat &"
 	fi
 fi
 
 if [ "${MPP}" -eq 0 ] && [ "${PROFILE}" -eq 1 ]; then
 	PERFDIR="${OUTPUT_DIR}/profile"
-	ts-profile -o "${PERFDIR}" sleep 1 &
+	ts profile -o "${PERFDIR}" sleep 1 &
 fi
 
 # Start the streams.
@@ -203,5 +201,5 @@ fi
 
 if [ "${MPP}" -eq 0 ] && [ "${PROFILE}" -eq 1 ]; then
 	echo "Generating profiling reports for throughput test..."
-	ts-profile -o "${PERFDIR}" -p
+	ts profile -o "${PERFDIR}" -p
 fi

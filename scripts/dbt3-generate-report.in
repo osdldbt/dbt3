@@ -127,7 +127,7 @@ if [ $FAST -ne 1 ]; then
 	for TEST in load power throughput; do
 		find "${INDIR}/${TEST}" -type d -name sysstat 2> /dev/null| \
 				while IFS= read -r SARDIR; do
-			ts-plot-sar -i "${SARDIR}/sar" &
+			ts plot-sar -i "${SARDIR}/sar" &
 		done
 	done
 	wait
@@ -138,7 +138,7 @@ if [ $FAST -ne 1 ]; then
 	for TEST in load power throughput; do
 		find "${INDIR}/${TEST}" -type f -name pidstat.txt 2> /dev/null | \
 				while IFS= read -r PIDSTATFILE; do
-			ts-process-pidstat -i "${PIDSTATFILE}" &
+			ts process-pidstat -i "${PIDSTATFILE}" &
 		done
 	done
 	wait
@@ -147,7 +147,7 @@ if [ $FAST -ne 1 ]; then
 		find "${INDIR}/${TEST}" -type f -name pidstat.csv 2> /dev/null | \
 				while IFS= read -r PIDSTATCSV; do
 			PIDSTATDIR="$(dirname "${PIDSTATCSV}")"
-			ts-plot-pidstat -i "${PIDSTATCSV}" -o "${PIDSTATDIR}/pidstat" &
+			ts plot-pidstat -i "${PIDSTATCSV}" -o "${PIDSTATDIR}/pidstat" &
 		done
 	done
 	wait
