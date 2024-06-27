@@ -2,6 +2,7 @@ vX.Y.Z (YYYY-MM-DD)
 
 - Fix use of --relax flag in run script
 - Update use of touchstone scripts to call ts for stats collection
+- pgsql: just ANALYZE, not VACUUM each table
 
 v2.0.5 (2024-05-24)
 

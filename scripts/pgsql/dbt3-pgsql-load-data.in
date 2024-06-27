@@ -139,7 +139,7 @@ supplier_ind()
 	wait
 
 	$PSQL <<- EOF &
-		VACUUM ANALYZE supplier;
+		ANALYZE supplier;
 	EOF
 	wait
 }
@@ -186,7 +186,7 @@ part_ind()
 	wait
 
 	$PSQL <<- EOF &
-		VACUUM ANALYZE part;
+		ANALYZE part;
 	EOF
 	wait
 }
@@ -214,7 +214,7 @@ partsupp_ind()
 	wait
 
 	$PSQL <<- EOF &
-		VACUUM ANALYZE partsupp;
+		ANALYZE partsupp;
 	EOF
 	wait
 }
@@ -262,7 +262,7 @@ customer_ind()
 	wait
 
 	$PSQL <<- EOF &
-		VACUUM ANALYZE customer;
+		ANALYZE customer;
 	EOF
 	wait
 }
@@ -302,7 +302,7 @@ orders_ind()
 	wait
 
 	$PSQL <<- EOF &
-		VACUUM ANALYZE orders;
+		ANALYZE orders;
 	EOF
 	wait
 }
@@ -381,7 +381,7 @@ lineitem_ind()
 	wait
 
 	$PSQL <<- EOF &
-		VACUUM ANALYZE lineitem;
+		ANALYZE lineitem;
 	EOF
 	wait
 }
@@ -403,7 +403,7 @@ nation_ind()
 	wait
 
 	$PSQL <<- EOF &
-		VACUUM ANALYZE nation;
+		ANALYZE nation;
 	EOF
 	wait
 }
@@ -425,7 +425,7 @@ region_ind()
 	wait
 
 	$PSQL <<- EOF &
-		VACUUM ANALYZE region;
+		ANALYZE region;
 	EOF
 	wait
 }
