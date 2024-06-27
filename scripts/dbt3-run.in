@@ -326,9 +326,15 @@ export DSS_QUERY
 echo "DSS_QUERY set to ${DSS_QUERY}"
 
 if [ "x${OUTPUT_DIR}" = "x" ]; then
-	>&2 echo "Error: use -o to set output directory"
+	>&2 echo "Error: output directory not specified"
 	exit 1
 fi
+
+if [ -d "${OUTPUT_DIR}" ]; then
+	>&2 echo "Error: stopping to prevent overwriting existing output directory"
+	exit 1
+fi
+
 mkdir -p "${OUTPUT_DIR}"
 
 if [ "${DATABASE}" = "pgsql" ]; then
