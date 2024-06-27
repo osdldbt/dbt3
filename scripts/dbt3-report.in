@@ -121,16 +121,15 @@ fi
 
 INDIR="${1}"
 
-echo "Generating sar charts..."
 if [ $FAST -ne 1 ]; then
+	echo "Generating sar charts..."
 	for TEST in load power throughput; do
-		find "${INDIR}/${TEST}" -type d -name sysstat 2> /dev/null| \
-				while IFS= read -r SARDIR; do
-			if [ -d "${SARDIR}/sar" ]; then
-				ts plot-sar -i "${SARDIR}/sar"
-			fi
-		done
+		SARDIR="${INDIR}/${TEST}/sysstat/sar"
+		if [ -d "${SARDIR}" ]; then
+			ts plot-sar -i "${SARDIR}" &
+		fi
 	done
+	wait
 fi
 
 if [ $FAST -ne 1 ]; then
