@@ -133,22 +133,17 @@ if [ $FAST -ne 1 ]; then
 	done
 fi
 
-echo "Processing pidstat files..."
 if [ $FAST -ne 1 ]; then
+	echo "Processing pidstat files..."
 	for TEST in load power throughput; do
-		find "${INDIR}/${TEST}" -type f -name pidstat.txt 2> /dev/null | \
-				while IFS= read -r PIDSTATFILE; do
-			ts process-pidstat -i "${PIDSTATFILE}"
-		done
+		PIDSTATFILE="${INDIR}/${TEST}/sysstat/pidstat.txt"
+		if [ -f "${PIDSTATFILE}" ]; then
+			(ts process-pidstat -i "${PIDSTATFILE}" && \
+					ts plot-pidstat -i "$(dirname "${PIDSTATCSV}")" \
+					-o "$(dirname "${PIDSTATCSV}")/pidstat") &
+		fi
 	done
-
-	for TEST in load power throughput; do
-		find "${INDIR}/${TEST}" -type f -name pidstat.csv 2> /dev/null | \
-				while IFS= read -r PIDSTATCSV; do
-			PIDSTATDIR="$(dirname "${PIDSTATCSV}")"
-			ts plot-pidstat -i "${PIDSTATCSV}" -o "${PIDSTATDIR}/pidstat"
-		done
-	done
+	wait
 fi
 
 DATE=$(grep "^date" ${INDIR}/config.txt | cut -d ":" -f2-)
