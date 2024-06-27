@@ -138,8 +138,8 @@ if [ $FAST -ne 1 ]; then
 		PIDSTATFILE="${INDIR}/${TEST}/sysstat/pidstat.txt"
 		if [ -f "${PIDSTATFILE}" ]; then
 			(ts process-pidstat -i "${PIDSTATFILE}" && \
-					ts plot-pidstat -i "$(dirname "${PIDSTATCSV}")" \
-					-o "$(dirname "${PIDSTATCSV}")/pidstat") &
+					ts plot-pidstat -i "${INDIR}/${TEST}/sysstat/pidstat.csv" \
+					-o "${INDIR}/${TEST}/sysstat/pidstat") &
 		fi
 	done
 	wait
