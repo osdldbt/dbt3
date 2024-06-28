@@ -1,4 +1,4 @@
-vX.Y.Z (YYYY-MM-DD)
+v2.0.6 (2024-06-28)
 
 - Fix use of --relax flag in run script
 - Update use of touchstone scripts to call ts for stats collection
