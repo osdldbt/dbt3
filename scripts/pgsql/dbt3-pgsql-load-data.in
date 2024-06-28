@@ -670,26 +670,15 @@ if [ ${USE_TABLESPACES} -eq 1 ]; then
 	fi
 fi
 
-echo "Loading tables `date`"
+echo "Loading data, building indexes, analyzing $(date)"
 
-supplier
-part
-partsupp
-customer
-orders
-lineitem
-nation
-region
-
-echo "Building indexes & vacuum analyze $(date)"
-
-supplier_ind &
-part_ind &
-partsupp_ind &
-customer_ind &
-orders_ind &
-lineitem_ind &
-nation_ind &
-region_ind &
+(supplier && supplier_ind) &
+(part && part_ind) &
+(partsupp && partsupp_ind) &
+(customer && customer_ind) &
+(orders && orders_ind) &
+(lineitem && lineitem_ind) &
+(nation && nation_ind) &
+(region && region_ind) &
 
 wait
