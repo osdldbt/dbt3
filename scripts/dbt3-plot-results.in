@@ -142,6 +142,12 @@ if [ "${TCOUNT}" -ne 0 ]; then
 	fi
 	PLOTLINE="${PLOTLINE} '${TDATAFILE}' using 2:xtic(1) title 'Throughput'"
 fi
+if [ "${PCOUNT}" -ne 0 ]; then
+	PLOTLINE="${PLOTLINE}, gmean with lines title 'Geometric Mean of Power Test' ls 1 dashtype 2"
+fi
+if [ "${TCOUNT}" -ne 0 ]; then
+	PLOTLINE="${PLOTLINE}, amean with lines title 'Arithmetic Mean of Throughput Test' ls 2"
+fi
 
 gnuplot << EOF
 set terminal pngcairo size 1600,1000
@@ -151,6 +157,18 @@ set output "${OUTDIR}/q_time.png"
 set ylabel "Seconds"
 set style data histogram
 set style fill solid
+stats '${PDATAFILE}' using 2 nooutput
+p_lines = STATS_records
+p_sum_log = 0
+do for [i=0:p_lines-1] {
+    stats '${PDATAFILE}' using (log(\$2)) every ::i::i nooutput
+    p_sum_log = p_sum_log + STATS_sum
+}
+gmean = exp(p_sum_log / p_lines)
+stats '${TDATAFILE}' using 2 nooutput
+t_lines = STATS_records
+t_sum = STATS_sum
+amean = t_sum / t_lines
 plot ${PLOTLINE}
 EOF
 

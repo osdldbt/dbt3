@@ -1,3 +1,8 @@
+vX.Y.Z (YYYY-MM-DD)
+
+- Add power test geometric mean and throughput test arithmetic mean lines back
+  on the query execution bar plot, lost when converted script to gnuplot
+
 v2.0.6 (2024-06-28)
 
 - Fix use of --relax flag in run script
