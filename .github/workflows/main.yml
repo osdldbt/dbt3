@@ -39,7 +39,7 @@ jobs:
           for asset in $(find . -name '*.sha256'); do
             assets+=("$asset")
           done
-          tag_name="${GITHUB_REF##*/}"
-          gh release create $tag_name ${assets[@]}
+          tag="${GITHUB_REF##*/}"
+          gh release create --repo="${GITHUB_REPOSITORY}" ${tag} ${assets[@]}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
