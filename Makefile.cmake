@@ -7,9 +7,8 @@ default:
 
 appimage:
 	cmake -H. -Bbuilds/appimage -DCMAKE_INSTALL_PREFIX=/usr
-	cd builds/appimage && make -s
-	cd builds/appimage && make -s install DESTDIR=AppDir
-	cd builds/appimage && make -s appimage-podman
+	cd builds/appimage && make install DESTDIR=../AppDir
+	cd builds/appimage && make appimage
 
 dbgen-pgsql:
 	cmake -H. -Bbuilds/appimage -DCMAKE_INSTALL_PREFIX=/usr

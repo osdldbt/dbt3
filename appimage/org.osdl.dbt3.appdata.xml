@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-	<id>dbt3</id>
-	<metadata_license>Artistic-2.0</metadata_license>
+	<id>org.osdl.dbt3</id>
+	<metadata_license>CC0-1.0</metadata_license>
 	<project_license>Artistic-2.0</project_license>
 	<name>DBT-3</name>
 	<summary>
@@ -13,7 +13,7 @@
             Implementation.
         </p>
 	</description>
-	<launchable type="desktop-id">dbt3.desktop</launchable>
+	<launchable type="desktop-id">org.osdl.dbt3.desktop</launchable>
 	<url type="homepage">https://github.com/osdldbt/dbt3</url>
 	<screenshots>
 		<screenshot type="default">
@@ -23,6 +23,6 @@
 		</screenshot>
 	</screenshots>
 	<provides>
-		<id>dbt3.desktop</id>
+		<id>org.osdl.dbt3.desktop</id>
 	</provides>
 </component>
