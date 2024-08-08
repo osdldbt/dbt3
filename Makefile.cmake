@@ -1,3 +1,5 @@
+# vim: set ft=make :
+
 .PHONY: appimage clean dbgen debug default package release
 
 default:
