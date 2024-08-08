@@ -173,6 +173,11 @@ add_custom_target(appimage
                `ldd ${PSQL} | grep libpq\\\\\\\\. | cut -d \" \" -f 3`
                `ldd ${PSQL} | grep libssl\\\\\\\\. | cut -d \" \" -f 3`
                ../AppDir/usr/lib/
-    COMMAND VERSION=${PROJECT_VERSION} ARCH=`uname -m` ${APPIMAGETOOL}
-            --no-appstream ../AppDir
+    COMMAND [ "x$ENV{DBMS}" = "x" ] &&
+            VERSION=${PROJECT_VERSION}
+            ARCH=`uname -m`
+            ${APPIMAGETOOL} --no-appstream ../AppDir ||
+            VERSION=${PROJECT_VERSION}-$ENV{DBMS}
+            ARCH=`uname -m`
+            ${APPIMAGETOOL} --no-appstream ../AppDir
 )

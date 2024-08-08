@@ -28,7 +28,7 @@ podman run \
 		--env DBGEN="${DBGEN}" \
 		-w /usr/local/src/dbt3 \
 		$CONTAINER_TAG \
-		make VERBOSE=1 -f Makefile.cmake ${TARGET}
+		make VERBOSE=1 DBMS="${DBMS}" -f Makefile.cmake "${TARGET}"
 
 # I wonder if there is a better way to make sure the artifacts are all owned by
 # the user running this.

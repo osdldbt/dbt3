@@ -2,22 +2,29 @@
 
 .PHONY: appimage clean dbgen debug default package release
 
+# Default database to build the appimage for, since dbgen can only be patched
+# for one DBMS as a time.
+DBMS = pgsql
+
 default:
 	@echo "targets: appimage (Linux only), clean, debug, package, release"
 
 appimage:
 	cmake -H. -Bbuilds/appimage -DCMAKE_INSTALL_PREFIX=/usr
 	cd builds/appimage && make install DESTDIR=../AppDir
-	@if [ ! "$(DBGEN)" = "" ]; then \
+	if [ "$(DBGEN)" = "" ]; then \
+		cd builds/appimage && make DBMS= appimage; \
+	else \
 		mkdir -p builds/AppDir/opt; \
 		unzip -d builds/AppDir/opt "$(DBGEN)"; \
 		mv builds/AppDir/opt/TPC-H* builds/AppDir/opt/dbgen; \
 		builds/AppDir/usr/bin/dbt3-build-dbgen --patch-dir=patches \
-				--query-dir=queries/pgsql pgsql builds/AppDir/opt/dbgen; \
+				--query-dir=queries/$(DBMS) $(DBMS) builds/AppDir/opt/dbgen; \
 		sed -i -e "s#/usr#././#g" builds/AppDir/opt/dbgen/dbgen/dbgen \
 				builds/AppDir/opt/dbgen/dbgen/qgen; \
+		export DBMS=$(DBMS); \
+		cd builds/appimage && make DBMS=$(DBMS) appimage; \
 	fi
-	cd builds/appimage && make appimage
 
 dbgen-pgsql:
 	cmake -H. -Bbuilds/appimage -DCMAKE_INSTALL_PREFIX=/usr
