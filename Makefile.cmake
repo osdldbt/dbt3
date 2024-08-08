@@ -8,6 +8,15 @@ default:
 appimage:
 	cmake -H. -Bbuilds/appimage -DCMAKE_INSTALL_PREFIX=/usr
 	cd builds/appimage && make install DESTDIR=../AppDir
+	@if [ ! "$(DBGEN)" = "" ]; then \
+		mkdir -p builds/AppDir/opt; \
+		unzip -d builds/AppDir/opt "$(DBGEN)"; \
+		mv builds/AppDir/opt/TPC-H* builds/AppDir/opt/dbgen; \
+		builds/AppDir/usr/bin/dbt3-build-dbgen --patch-dir=patches \
+				--query-dir=queries/pgsql pgsql builds/AppDir/opt/dbgen; \
+		sed -i -e "s#/usr#././#g" builds/AppDir/opt/dbgen/dbgen/dbgen \
+				builds/AppDir/opt/dbgen/dbgen/qgen; \
+	fi
 	cd builds/appimage && make appimage
 
 dbgen-pgsql:
