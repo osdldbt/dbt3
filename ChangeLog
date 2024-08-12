@@ -1,4 +1,4 @@
-vX.Y.Z (YYYY-MM-DD)
+v2.0.7 (2024-08-12)
 
 - Add power test geometric mean and throughput test arithmetic mean lines back
   on the query execution bar plot, lost when converted script to gnuplot
