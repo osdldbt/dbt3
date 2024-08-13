@@ -305,13 +305,13 @@ export DSS_CONFIG="${TPCHTOOLS}/dbgen"
 
 export DBGEN="${DSS_CONFIG}/dbgen"
 if [ ! -f "${DBGEN}" ]; then
-	>&2 echo "ERROR: ${DBGEN} does not exist, was the TPC-C Tools built with 'dbt3-build-dbgen ${TPCHTOOLS}'"
+	>&2 echo "ERROR: ${DBGEN} does not exist, was the TPC-H Tools built with 'dbt3-build-dbgen ${TPCHTOOLS}'"
 	exit 1
 fi
 
 export QGEN="${DSS_CONFIG}/qgen"
 if [ ! -f "${QGEN}" ]; then
-	>&2 echo "ERROR: ${QGEN} does not exist, was the TPC-C Tools built with 'dbt3-build-dbgen ${TPCHTOOLS}'"
+	>&2 echo "ERROR: ${QGEN} does not exist, was the TPC-H Tools built with 'dbt3-build-dbgen ${TPCHTOOLS}'"
 	exit 1
 fi
 
