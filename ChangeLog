@@ -1,4 +1,4 @@
-vX.Y.Z (YYYY-MM-DD)
+v2.0.8 (2024-08-14)
 
 - Fix Makefile.cmake for running build-dbgen correctly
 - AppImage: fix handling of default DSS_QUERY location
