@@ -91,7 +91,6 @@ fi
 
 export PATCHDIR="${APPDIR}/usr/share/dbt3/patches"
 export QUERYDIR="${APPDIR}/usr/share/dbt3/queries"
-export DSS_QUERY="${APPDIR}/opt/dbgen/dbgen/queries"
 
 if [ "$PGHOST" = "" ]; then
 	export PGHOST="/tmp,/var/run/postgresql"
