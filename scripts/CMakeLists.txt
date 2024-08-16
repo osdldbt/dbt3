@@ -17,6 +17,7 @@ foreach (FILE dbt3
               dbt3-power-test
               dbt3-report
               dbt3-run
+              dbt3-run-query
               dbt3-throughput-score
               dbt3-throughput-stream
               dbt3-throughput-stream-wrapper

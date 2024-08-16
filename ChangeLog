@@ -5,6 +5,7 @@ vX.Y.Z (YYYY-MM-DD)
 - run: now able to control existing chunking option in load test with
   --parallelism flag, otherwise continues to default to detected number of
   logical processors
+- Add run-query script to aid in testing and analyzing individual queries
 
 v2.0.8 (2024-08-14)
 

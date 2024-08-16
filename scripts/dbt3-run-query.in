@@ -1,0 +1,335 @@
+#!/bin/bash
+@SHELLOPTIONS@
+#
+# This file is released under the terms of the Artistic License.
+# Please see the file LICENSE, included in this package, for details.
+#
+# Copyright The DBT-3 Authors
+
+usage()
+{
+	cat << EOF
+$(basename "${0}") is the DBT-3 Individual Query Runner
+
+Usage:
+  $(basename "${0}") [OPTIONS] QUERY DBMS [DIRECTORY]
+
+Generate options:
+  --db-name       databse name, default ${DBNAME}
+  --dss=DIRECTORY
+                  DIRECTORY for temporary DSS files, default ${DSS_PATH}
+  --dss-query=DIRECTORY
+                  DIRECTORY to query templates, default is to use
+                  TPCHTOOLS/dbgen/queries/DBMS
+  -f SCALE_FACTOR, --scale-factor=SCALE_FACTOR
+                  database scale factor, default 1
+  --profile       collect software profile
+  --seed=SEED     seed to use, default random
+  --stats         enable system and database stats collection
+  --tpchtools=TPCHTOOLS
+  -V, --version   output version information, then exit
+  -?, --help      this help message
+
+QUERY is the query number to run.
+
+DBMS options are:
+  monetdb         MonetDB
+  mysql           MySQL
+  pgsql           PostgreSQL
+  pgxl            Postgres-XL
+  virtuoso        Virtuoso
+
+PostgreSQL specific options:
+  --explain       capture EXPLAIN ANALYZE output as part of the query results
+
+DIRECTORY is the path to save query results, if specified.  Required if
+collecting system, database statistics, or profiling data.
+
+@HOMEPAGE@
+EOF
+}
+
+stop_procs() {
+	if [ ! "${OUTDIR}" = "" ]; then
+		if command -v ts > /dev/null 2>&1; then
+			ts sysstat -o "${OUTDIR}/sysstat" -s &
+		fi
+		if command -v ts > /dev/null 2>&1; then
+			eval "ts ${DATABASE}-stat -o ${OUTDIR}/dbstat -s &"
+		fi
+	fi
+}
+trap 'stop_procs' INT TERM
+
+if [ ! "${APPDIR}" = "" ]; then
+	TPCHTOOLS="${APPDIR}/opt/dbgen"
+fi
+
+DBNAME="dbt3"
+EXPLAIN=0
+PROFILE=0
+QGENARGS=""
+STATS=0
+
+# Custom argument handling for hopefully most portability.
+while [ "${#}" -gt 0 ] ; do
+	case "${1}" in
+	(--db-name)
+		shift
+		DBNAME="${1}"
+		;;
+	(--db-name=?*)
+		DBNAME="${1#*--db-name=}"
+		;;
+	(--dss)
+		shift
+		DSS_PATH="${1}"
+		;;
+	(--dss=?*)
+		DSS_PATH="${1#*--dss=}"
+		;;
+	(--dss-query)
+		shift
+		DSS_QUERY="${1}"
+		;;
+	(--dss-query=?*)
+		DSS_QUERY="${1#*--dss-query=}"
+		;;
+	(--explain)
+		EXPLAIN=1
+		;;
+	(-f | --scale-factor)
+		shift
+		SCALE_FACTOR="${1}"
+		;;
+	(-f?*)
+		SCALE_FACTOR="${1#*-f}"
+		;;
+	(--profile)
+		PROFILE=1
+		;;
+	(--scale-factor=?*)
+		SCALE_FACTOR="${1#*--scale-factor=}"
+		;;
+	(--seed)
+		shift
+		SEED=$1
+		;;
+	(--seed=?*)
+		SEED="${1#*--seed=}"
+		;;
+	(--stats)
+		STATS=1
+		;;
+	(--tpchtools)
+		shift
+		TPCHTOOLS="${1}"
+		;;
+	(--tpchtools=?*)
+		TPCHTOOLS="${1#*--tpchtools=}"
+		;;
+	(-V | --version)
+		echo "$(basename "${0}") (Database Test 3) v@PROJECT_VERSION@"
+		;;
+	(-\? | --help)
+		usage
+		exit 0
+		;;
+	(--* | -*)
+		echo "$(basename "${0}"): invalid option -- '${1}'"
+		echo "try \"$(basename "${0}") --help\" for more information."
+		exit 1
+		;;
+	(*)
+		break
+		;;
+	esac
+	shift
+done
+
+if [ $# -eq 0 ]; then
+	printf "Specify which query to test, try \"%s --help\" " \
+			"$(basename "${0}")"
+	echo "for more information."
+	exit 1
+fi
+
+Q="${1}"
+shift
+
+if [ $# -eq 0 ]; then
+	printf "Specify which DBMS system to test, try \"%s --help\" " \
+			"$(basename "${0}")"
+	echo "for more information."
+	exit 1
+fi
+
+export DATABASE="${1}"
+shift
+
+if [ $# -eq 0 ]; then
+	if [ "${PROFILE}" -eq 1 ] || [ "${STATS}" -eq 1 ]; then
+		echo "Specify the location to save test results, where directory does "
+		printf "not exist yet, try \"%s --help\" " "$(basename "${0}")"
+		echo "for more information."
+		exit 1
+	fi
+	OUTDIR=""
+else
+	OUTDIR="${1}"
+	if [ -d "${OUTDIR}" ]; then
+		>&2 echo "Error: stopping to prevent overwriting existing directory"
+		exit 1
+	fi
+	mkdir -p "${OUTDIR}"
+fi
+
+# Set up environment for TPC-H Tools.
+
+export DSS_CONFIG="${TPCHTOOLS}/dbgen"
+
+export DBGEN="${DSS_CONFIG}/dbgen"
+if [ ! -f "${DBGEN}" ]; then
+	>&2 echo "ERROR: ${DBGEN} does not exist"
+	exit 1
+fi
+
+export QGEN="${DSS_CONFIG}/qgen"
+if [ ! -f "${QGEN}" ]; then
+	>&2 echo "ERROR: ${QGEN} does not exist"
+	exit 1
+fi
+
+if [ "${DSS_QUERY}" = "" ]; then
+	DSS_QUERY="${TPCHTOOLS}/dbgen/queries/${DATABASE}"
+fi
+if [ ! -d "${DSS_QUERY}" ]; then
+	>&2 echo "ERROR: DSS_QUERY path does not exist at ${DSS_QUERY}"
+	exit 1
+fi
+export DSS_QUERY
+
+# Set up arguments depending on DBMS.
+
+if [ "${DATABASE}" = "monetdb" ]; then
+	DBCMD="mclient -e -d ${DBNAME}"
+elif [ "${DATABASE}" = "pgsql" ] || [ "${DATABASE}" = "pgxl" ]; then
+	DBCMD="psql -v ON_ERROR_STOP=1 -X -e -d ${DBNAME}"
+	if [ "${EXPLAIN}" -eq 1 ]; then
+		QGENARGS="${QGENARGS} -i \"${DSS_QUERY}/explain-analyze.sql\""
+	fi
+	export PGDATABASE="${DBNAME}"
+elif [ "${DATABASE}" = "mysql" ]; then
+	DBCMD="mysql -u root -D ${DBNAME}"
+elif [ "${DATABASE}" = "virtuoso" ]; then
+	DBCMD="isql PROMPT=OFF ERRORS=STDOUT ECHO=ON VERBOSE=OFF"
+else
+	echo "Unsupported database system"
+	exit 1
+fi
+
+# The position of a query is defined in Appendix A.  qgen only lets you specify
+# query by position, not the actually query itself.  For the purposes of this
+# this script, always use set 0 and its defined order to select the actual
+# query we want.
+
+case "${Q}" in
+	1) N=17 ;;
+	2) N=2 ;;
+	3) N=11 ;;
+	4) N=14 ;;
+	5) N=20 ;;
+	6) N=5 ;;
+	7) N=21 ;;
+	8) N=8 ;;
+	9) N=3 ;;
+	10) N=18 ;;
+	11) N=15 ;;
+	12) N=22 ;;
+	13) N=10 ;;
+	14) N=1 ;;
+	15) N=16 ;;
+	16) N=13 ;;
+	17) N=6 ;;
+	18) N=7 ;;
+	19) N=19 ;;
+	20) N=4 ;;
+	21) N=9 ;;
+	22) N=12 ;;
+	*)
+		echo "invalid query number (${Q}), the range is 1 to 22"
+		exit 1
+		;;
+esac
+
+if [ ! "${SEED}" = "" ]; then
+	QGENARGS="${QGENARGS} -r ${SEED}"
+fi
+
+if [ ${STATS} -eq 1 ]; then
+	# Start collecting system statistics.
+	if ! command -v ts > /dev/null 2>&1; then
+		echo "WARNING: ts not found for system stats collection"
+	else
+		ts sysstat -o "${OUTDIR}/sysstat" &
+	fi
+
+	# Collect database statistics
+	if ! command -v ts > /dev/null 2>&1; then
+		echo "WARNING: ts not found for database stats collection"
+	else
+		eval "ts ${DATABASE}-stat -o ${OUTDIR}/dbstat &"
+	fi
+fi
+
+PROFILEDIR="${OUTDIR}/profile"
+if [ ${PROFILE} -eq 1 ]; then
+	ts profile -o "${PROFILEDIR}"
+fi
+
+S_TIME=$(date +%s.%N)
+OUTPUT="$(eval "${DBCMD}" <<- __EOF__ 2>&1
+	$(eval "${QGEN} -c -p 0 -s ${SCALE_FACTOR} -x ${QGENARGS} ${N}")
+__EOF__
+)"
+E_TIME=$(date +%s.%N)
+
+if [ ${PROFILE} -eq 1 ]; then
+	ts profile -o "${PROFILEDIR}" -s
+fi
+
+echo "${OUTPUT}"
+if [ ! "${OUTDIR}" = "" ]; then
+	echo "${OUTPUT}" > "${OUTDIR}/results.log"
+fi
+
+if [ ${STATS} -eq 1 ]; then
+	if command -v ts > /dev/null 2>&1; then
+		ts sysstat -o "${OUTDIR}/sysstat" -s &
+	fi
+	if command -v ts > /dev/null 2>&1; then
+		eval "ts ${DATABASE}-stat -o ${OUTDIR}/dbstat -s" &
+	fi
+	wait
+fi
+
+printf "\nQuery ${Q} executed in %0.3f second(s).\n" \
+		"$(bc <<< "${E_TIME} - ${S_TIME}")"
+
+if [ ${STATS} -eq 1 ]; then
+	echo
+	echo "Plotting system and database statistics..."
+	if command -v ts > /dev/null 2>&1; then
+		ts plot-sar -i "${OUTDIR}/sysstat/sar" &
+		ts "plot-${DATABASE}" -d "${DBNAME}" -i "${OUTDIR}/dbstat" &
+	fi
+fi
+
+if [ ${PROFILE} -eq 1 ]; then
+	echo
+	echo "Processing profile data..."
+	if command -v ts > /dev/null 2>&1; then
+		ts profile -o "${PROFILEDIR}" -p
+	fi
+fi
+wait

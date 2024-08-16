@@ -447,3 +447,68 @@ Results in the following query for PostgreSQL::
  	   and l_shipdate >= date '1993-01-01'
  	   and l_shipdate < cast(date '1993-01-01' + interval '1 month' as date);
     COMMIT;
+
+Testing Individual Queries
+==========================
+
+Running the individual parts of the benchmark, i.e. the Power Test of the
+Throughput Test, much less the entire benchmark, don't lend it itself to making
+it easy to evaluate individual query performance.  There may be times when the
+developer wants to focus on an individual query to evaluate the effects of a
+different index, or database system parameters.
+
+The *run-query* script is intended to allow a developer to generate and execute
+1 query at a time.
+
+A database needs to be created first, but only needs to be loaded once if
+testing individual queries.  This can be done with the run script using the
+`--load` flag.  A PostgreSQL example::
+
+    dbt3 run --load pgsql load-results
+
+Then any query can be tested.  For example running Query 4::
+
+    dbt3 run-query 4 pgsql
+
+Here is an example of the output query output, the results, and the execution
+time::
+
+    BEGIN;
+    BEGIN
+    select
+	    o_orderpriority,
+	    count(*) as order_count
+    from
+	    orders
+    where
+	    o_orderdate >= date '1995-12-01'
+	    and o_orderdate < cast(date '1995-12-01' + interval '3 month' as date)
+	    and exists (
+		    select
+			    *
+		    from
+			    lineitem
+		    where
+			    l_orderkey = o_orderkey
+			    and l_commitdate < l_receiptdate
+	    )
+    group by
+	    o_orderpriority
+    order by
+	    o_orderpriority;
+     o_orderpriority | order_count
+    -----------------+-------------
+     1-URGENT        |       10348
+     2-HIGH          |       10424
+     3-MEDIUM        |       10330
+     4-NOT SPECIFIED |       10490
+     5-LOW           |       10361
+    (5 rows)
+
+    COMMIT;
+    COMMIT
+
+    Query 4 executed in 0.175 second(s).
+
+Additional flags can be used to capture system statistics (`--stats`), software
+profiles (`--profile`), or explain plans (`--explain`).
