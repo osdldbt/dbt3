@@ -2,6 +2,9 @@ vX.Y.Z (YYYY-MM-DD)
 
 - Do not calculate composite score unless all tests are run since the score is
   based on the results of each test
+- run: now able to control existing chunking option in load test with
+  --parallelism flag, otherwise continues to default to detected number of
+  logical processors
 
 v2.0.8 (2024-08-14)
 

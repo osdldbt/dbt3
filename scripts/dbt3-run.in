@@ -35,6 +35,8 @@ Generate options:
   --power         run power test, default run load, power and throughput,
                   selecting individual tests disables the other tests unless
                   explicitly specified again
+  --parallelism   limit parallelism for load test, defaults to detected number
+                  of logical processors
   --privileged    run test as a privileged user
   --profile       enable software profiling (Linux only)
   -R              materialized view mode
@@ -74,6 +76,7 @@ DIRECTORY is the path to save test results.
 EOF
 }
 
+CHUNK_ARG=""
 DATABASE=""
 DBNAME="dbt3"
 DIRECT_LOAD_ARG="-d"
@@ -187,6 +190,13 @@ while [ "${#}" -gt 0 ] ; do
 		;;
 	(--no-refresh)
 		NO_REFRESH_FLAG="-z"
+		;;
+	(--parallelism)
+		shift
+		CHUNK_ARG="-C ${1}"
+		;;
+	(--parallelism=?*)
+		CHUNK_ARG="-C ${1#*--parallelism=}"
 		;;
 	(--power)
 		RUN_POWER_TEST=1
@@ -422,6 +432,7 @@ if [ ${RUN_LOAD_TEST} -eq 1 ]; then
 			$STATS_ARG \
 			$PROFILE_ARG \
 			${RELAX_ARG} \
+			${CHUNK_ARG} \
 			${TABLESPACES_FLAG} || exit 1
 else
 	#
