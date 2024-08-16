@@ -47,6 +47,7 @@ Generate options:
                   selecting individual tests disables the other tests unless
                   explicitly specified again
   --tpchtools=TPCHTOOLS
+  -V, --version   output version information, then exit
   -?, --help      this help message
 
 DBMS options are:
