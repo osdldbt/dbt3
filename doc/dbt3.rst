@@ -153,10 +153,11 @@ QGEN
 The `qgen` program can be manually run to inspect the SQL statement to that
 will be executed by the test.
 
-For example (see `qgen -h` for option descriptions) to see what the first
-query to be executed::
+For example (see `qgen -h` for option descriptions) to see what the first query
+to be executed, which is supposed to match the predefined order for set 0 (via
+`-p 0`) as shown in Appendix A of the benchmark specification::
 
-    qgen -c -r 0 -p 0 -s 1 5
+    qgen -c -r 0 -p 0 -s 1 1
 
 Results in the following query for PostgreSQL::
 
