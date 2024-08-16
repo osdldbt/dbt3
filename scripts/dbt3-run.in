@@ -396,6 +396,10 @@ if [ ${RUN_ALL_TESTS} -eq 1 ]; then
 	RUN_POWER_TEST=1
 	RUN_THROUGHPUT_TEST=1
 fi
+if [ "${RUN_LOAD_TEST}" -eq 1 ] && [ "${RUN_POWER_TEST}" -eq 1 ] && \
+		[ "${RUN_THROUGHPUT_TEST}" -eq 1 ]; then
+	RUN_ALL_TESTS=1
+fi
 
 if [ "x${COMMENT}" != "x" ]; then
 	echo ${COMMENT} > ${OUTPUT_DIR}/comment.txt
@@ -507,8 +511,10 @@ if [ $MPP -eq 1 ]; then
 	echo "hostnames: ${coordMasterServers[*]} ${datanodeMasterServers[*]}" >> $OUTPUT_DIR/config.txt
 fi
 
-echo "Getting query times... "
-dbt3-$TAG-get-query-time > $OUTPUT_DIR/q_time.csv || exit 1
+if [ "${RUN_POWER_TEST}" -eq 1 ] || [ "${RUN_THROUGHPUT_TEST}" -eq 1 ]; then
+	echo "Getting query times... "
+	dbt3-${TAG}-get-query-time > "${OUTPUT_DIR}/q_time.csv" || exit 1
+fi
 
 # Stop the database at the end of the test.
 if [ $PRIVILEGED -eq 1 ]; then
@@ -520,16 +526,22 @@ for HOSTNAME in ${datanodeMasterServers[*]}; do
 done
 wait
 
-# Calculate metrics.
-echo "Post processing query results... "
-echo ""
-
 SCOREFILE="${OUTPUT_DIR}/score.txt"
 QUERYFILE="${OUTPUT_DIR}/summary.rst"
 
-dbt3-post-process --query "${OUTPUT_DIR}" > "${QUERYFILE}"
-dbt3-post-process "${OUTPUT_DIR}" > "${SCOREFILE}"
-cat "${SCOREFILE}"
+# Only process queries if the power or throughput test is run.
+if [ "${RUN_POWER_TEST}" -eq 1 ] || [ "${RUN_THROUGHPUT_TEST}" -eq 1 ]; then
+	# Calculate metrics.
+	echo "Post processing query results... "
+	echo ""
+	dbt3-post-process --query "${OUTPUT_DIR}" > "${QUERYFILE}"
+fi
 
-echo ""
-echo "See query summary in: ${QUERYFILE}"
+# Only process everything if all the tests were run.
+if [ "${RUN_ALL_TESTS}" -eq 1 ]; then
+	dbt3-post-process "${OUTPUT_DIR}" > "${SCOREFILE}"
+	cat "${SCOREFILE}"
+
+	echo ""
+	echo "See query summary in: ${QUERYFILE}"
+fi
