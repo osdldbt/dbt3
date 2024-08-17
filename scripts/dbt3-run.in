@@ -420,6 +420,7 @@ fi
 if [ ${RUN_LOAD_TEST} -eq 1 ]; then
 	eval dbt3-load-test \
 			-a $DATABASE \
+			--db-name ${DBNAME} \
 			-o $OUTPUT_DIR/load \
 			${LOAD_PARAMETERS_ARG} \
 			-f $SCALE_FACTOR \

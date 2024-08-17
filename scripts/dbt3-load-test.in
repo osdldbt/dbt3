@@ -19,6 +19,7 @@ Usage:
 
 Options:
   -a DBMS        database management system to test
+  --db-name      databse name
   -c             resort tables after loading
   -C             number of chunks to load
   -d             direct data load
@@ -62,6 +63,7 @@ DIRECT_LOAD=0
 DIRECT_LOAD_ARG=""
 GENERATE=0
 MPP=0
+PARAMETERS_ARG=""
 PRIVILEGED=1
 PROFILE=0
 RESORT=0
@@ -85,6 +87,13 @@ while [ "${#}" -gt 0 ] ; do
 		shift
 		CHUNKS="${1}"
 		;;
+	(--db-name)
+		shift
+		PARAMETERS_ARG="${PARAMETERS_ARG} --db-name=${1}"
+		;;
+	(--db-name=?*)
+		PARAMETERS_ARG="${PARAMETERS_ARG} --db-name=${1#*--db-name=}"
+		;;
 	(-d)
 		DIRECT_LOAD=1
 		DIRECT_LOAD_ARG="-d"
@@ -104,7 +113,7 @@ while [ "${#}" -gt 0 ] ; do
 		;;
 	(-p)
 		shift
-		PARAMETERS_ARG="-p \"${1}\""
+		PARAMETERS_ARG="${PARAMETERS_ARG} -p \"${1}\""
 		;;
 	(--relax)
 		RELAX_ARG="--relax"
@@ -254,9 +263,10 @@ if [ $STATS -eq 1 ]; then
 	fi
 fi
 
-if [ $PRIVILEGED -eq 1 ]; then
-	eval dbt3-$DATABASE-create-db -o $OUTPUT_DIR $PARAMETERS_ARG
+if [ ${PRIVILEGED} -eq 1 ]; then
+	PARAMETERS_ARG="${PARAMETERS_ARG} --privileged"
 fi
+eval "dbt3-${DATABASE}-create-db -o ${OUTPUT_DIR} ${PARAMETERS_ARG}"
 
 dbt3-$DATABASE-drop-tables || exit 1
 dbt3-$DATABASE-create-tables $TABLESPACE_FLAG || exit 1
