@@ -8,6 +8,7 @@ vX.Y.Z (YYYY-MM-DD)
 - Add run-query script to aid in testing and analyzing individual queries
 - Update scripts to enable individual create-db scripts to decide whether a
   CREATE DATABASE command needs to be executed when running a test
+- AppImage: bump touchstone-tools version to v0.9.1
 
 v2.0.8 (2024-08-14)
 
