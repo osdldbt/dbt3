@@ -96,6 +96,8 @@ if [ "$PGHOST" = "" ]; then
 	export PGHOST="/tmp,/var/run/postgresql"
 fi
 
+export PERL5LIB="${APPDIR}/etc/perl"
+
 COMMAND="${APPDIR}/usr/bin/dbt3-${1}"
 
 if [ ! -f "$COMMAND" ]; then
