@@ -3,35 +3,17 @@ execute_process(
     OUTPUT_VARIABLE MANDATE
 )
 
-configure_file(
-    dbt3.1.rst.in
-    ${CMAKE_BINARY_DIR}/man/man1/dbt3.1.rst
-)
-configure_file(
-    dbt3-report.1.rst.in
-    ${CMAKE_BINARY_DIR}/man/man1/dbt3-report.1.rst
-)
-configure_file(
-    dbt3-run.1.rst.in
-    ${CMAKE_BINARY_DIR}/man/man1/dbt3-run.1.rst
-)
+set (MANPAGES "")
+foreach (FILE dbt3
+              dbt3-report
+              dbt3-run
+        )
+configure_file(${FILE}.1.rst.in ${CMAKE_BINARY_DIR}/man/man1/${FILE}.1.rst)
+    execute_process(
+            COMMAND rst2man ${CMAKE_BINARY_DIR}/man/man1/${FILE}.1.rst
+            OUTPUT_FILE ${CMAKE_BINARY_DIR}/man/man1/${FILE}.1
+    )
+    set (MANPAGES ${MANPAGES} ${CMAKE_BINARY_DIR}/man/man1/${FILE}.1)
+endforeach()
 
-execute_process(
-    COMMAND rst2man.py ${CMAKE_BINARY_DIR}/man/man1/dbt3.1.rst
-    OUTPUT_FILE ${CMAKE_BINARY_DIR}/man/man1/dbt3.1
-)
-execute_process(
-    COMMAND rst2man.py ${CMAKE_BINARY_DIR}/man/man1/dbt3-report.1.rst
-    OUTPUT_FILE ${CMAKE_BINARY_DIR}/man/man1/dbt3-report.1
-)
-execute_process(
-    COMMAND rst2man.py ${CMAKE_BINARY_DIR}/man/man1/dbt3-run.1.rst
-    OUTPUT_FILE ${CMAKE_BINARY_DIR}/man/man1/dbt3-run.1
-)
-
-install(
-    FILES ${CMAKE_BINARY_DIR}/man/man1/dbt3.1
-          ${CMAKE_BINARY_DIR}/man/man1/dbt3-report.1
-          ${CMAKE_BINARY_DIR}/man/man1/dbt3-run.1
-    DESTINATION "share/man/man1"
-)
+install(FILES ${MANPAGES} DESTINATION "share/man/man1")

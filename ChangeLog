@@ -1,3 +1,7 @@
+vX.Y.Z (YYYY-MM-DD)
+
+- Update man page make rules to match docutils v0.21.1 set since v2.0.7
+
 v2.0.9 (2024-08-20)
 
 - Do not calculate composite score unless all tests are run since the score is
