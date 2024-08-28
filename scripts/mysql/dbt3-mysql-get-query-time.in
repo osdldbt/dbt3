@@ -7,16 +7,51 @@
 #
 # Copyright The DBT-3 Authors
 
+MYSQL_ARGS=""
 SQL="SELECT task_name, s_time, e_time, (e_time-s_time) AS diff_time, unix_timestamp(e_time) - unix_timestamp(s_time) AS seconds FROM time_statistics"
-ARGS=
-OUTDIR=.
-while getopts "h" opt; do
-	case $opt in
-		h)
-			ARGS="-H"
-			SQL="SELECT task_name AS Task, s_time AS Start_Time, e_time AS End_Time, (e_time-s_time) AS Elapsed_Time FROM time_statistics;"
-			;;
+
+usage()
+{
+	cat << EOF
+$(basename "${0}") is the Database Test 3 (DBT-3) MySQL query time extractor
+
+Usage:
+  $(basename "${0}") [OPTION]
+
+Options:
+  -H             use alternate output format
+  -o DIRECTORY   path to store query data
+  -V, --version  output version information, then exit
+  -?, --help     show this help, then exit
+
+@HOMEPAGE@
+EOF
+}
+
+# Custom argument handling for hopefully most portability.
+while [ "${#}" -gt 0 ] ; do
+	case "${1}" in
+	(-h)
+		MYSQL_ARGS="-H"
+		SQL="SELECT task_name AS Task, s_time AS Start_Time, e_time AS End_Time, (e_time-s_time) AS Elapsed_Time FROM time_statistics;"
+		;;
+	(-V | --version)
+		echo "$(basename "${0}") (Database Test 3) v@PROJECT_VERSION@"
+		;;
+	(-\? | --help)
+		usage
+		exit 0
+		;;
+	(--* | -*)
+		echo "$(basename "${0}"): invalid option -- '${1}'"
+		echo "try \"$(basename "${0}") --help\" for more information."
+		exit 1
+		;;
+	(*)
+		break
+		;;
 	esac
+	shift
 done
 
 # Convert output to CSV format on the fly.
