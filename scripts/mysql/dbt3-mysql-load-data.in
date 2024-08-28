@@ -6,6 +6,83 @@
 #
 # Copyright The DBT-3 Authors
 
+usage()
+{
+	cat << EOF
+$(basename "${0}") is the Database Test 3 (DBT-3) MySQL data loader
+
+Usage:
+  $(basename "${0}") [OPTION]
+
+Options:
+  -C PARTITIONS  how many PARTITIONS to break data into
+  --db-name      databse name, default $DBNAME
+  -o DIRECTORY   DIRECTORY to save any output, default current directory
+  -V, --version  output version information, then exit
+  -?, --help     show this help, then exit
+
+@HOMEPAGE@
+EOF
+}
+
+DBNAME="dbt3"
+MYSQL_ARGS=""
+OUTPUT_DIR="."
+
+# Custom argument handling for hopefully most portability.
+while [ "${#}" -gt 0 ] ; do
+	case "${1}" in
+	(-C)
+		shift
+		CHUNKS="${1}"
+		;;
+	(--db-name)
+		shift
+		DBNAME="${1}"
+		;;
+	(--db-name=?*)
+		DBNAME="${1#*--db-name=}"
+		;;
+	(-d)
+		# Intentionally do nothing at this time.
+		;;
+	(-o)
+		shift
+		OUTPUT_DIR="${1}"
+		mkdir -p "${OUTPUT_DIR}"
+		;;
+	(-p)
+		shift
+		# Intentionally do nothing at this time.
+		;;
+	(--relax)
+		# Intentionally do nothing at this time.
+		;;
+	(-t)
+		# Intentionally do nothing at this time.
+		;;
+	(-U)
+		# Intentionally do nothing at this time.
+		;;
+	(-V | --version)
+		echo "$(basename "${0}") (Database Test 3) v@PROJECT_VERSION@"
+		;;
+	(-\? | --help)
+		usage
+		exit 0
+		;;
+	(--* | -*)
+		echo "$(basename "${0}"): invalid option -- '${1}'"
+		echo "try \"$(basename "${0}") --help\" for more information."
+		exit 1
+		;;
+	(*)
+		break
+		;;
+	esac
+	shift
+done
+
 MYSQL="mysql -u root -D $DBNAME -s"
 
 # Load tables
