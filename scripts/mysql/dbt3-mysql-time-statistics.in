@@ -10,21 +10,61 @@ cmd_clear=0
 cmd_start=0
 cmd_end=0
 
-while getopts "cel:n:s" opt; do
-	case $opt in
-	c)
+usage()
+{
+	cat << EOF
+$(basename "${0}") is the Database Test 3 (DBT-3) MySQL time recorder
+
+Usage:
+  $(basename "${0}") [OPTION]
+
+Options:
+  -c             clear
+  -e             set end time
+  --mysql-socket=FILE
+                 specify socket FILE
+  -n NAME        NAME of the time to modify
+  -s             set start time
+  -V, --version  output version information, then exit
+  -?, --help     show this help, then exit
+
+@HOMEPAGE@
+EOF
+}
+
+# Custom argument handling for hopefully most portability.
+while [ "${#}" -gt 0 ] ; do
+	case "${1}" in
+	(-c)
 		cmd_clear=1
 		;;
-	e)
+	(-e)
 		cmd_end=1
 		;;
-	n)
+	(-n)
+		shift
 		NAME=$OPTARG
 		;;
-	s)
+	(-s)
 		cmd_start=1
 		;;
+	(-V | --version)
+		echo "$(basename "${0}") (Database Test 3) v@PROJECT_VERSION@"
+		;;
+	(-\? | --help)
+		usage
+		exit 0
+		;;
+	(--* | -*)
+		echo "$(basename "${0}"): invalid option -- '${1}'"
+		echo "try \"$(basename "${0}") --help\" for more information."
+		exit 1
+		;;
+	(*)
+		break
+		;;
 	esac
+	shift
 done
 
 if [ -z ${DBNAME} ]; then
