@@ -6,10 +6,54 @@
 #
 # Copyright The DBT-3 Authors
 
-if [ $# -ne 1 ]; then
-        echo "Usage: `basename $0` <scale_factor>"
-        exit 1
-fi
+usage()
+{
+	cat << EOF
+$(basename "${0}") is the Database Test 3 (DBT-3) MySQL refresh stream 1 runner
+
+Usage:
+  $(basename "${0}") [OPTION]
+
+Options:
+  -f SCALE_FACTOR
+                 database SCALE_FACTOR
+  -V, --version  output version information, then exit
+  -?, --help     show this help, then exit
+
+@HOMEPAGE@
+EOF
+}
+
+MYSQL_ARGS=""
+
+# Custom argument handling for hopefully most portability.
+while [ "${#}" -gt 0 ] ; do
+	case "${1}" in
+	(-f)
+		shift
+		scale_factor="${1}"
+		;;
+	(-U)
+		# Intentionally do nothing at this time.
+		;;
+	(-V | --version)
+		echo "$(basename "${0}") (Database Test 3) v@PROJECT_VERSION@"
+		;;
+	(-\? | --help)
+		usage
+		exit 0
+		;;
+	(--* | -*)
+		echo "$(basename "${0}"): invalid option -- '${1}'"
+		echo "try \"$(basename "${0}") --help\" for more information."
+		exit 1
+		;;
+	(*)
+		break
+		;;
+	esac
+	shift
+done
 
 scale_factor=$1
 
