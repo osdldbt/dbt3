@@ -5,6 +5,7 @@ vX.Y.Z (YYYY-MM-DD)
   tests are run, not when only one of them is run
 - mysql: remove logic for self-setting the set number in refresh stream 2, this
   is currently handled in the throughput-stream script
+- mysql: update loading to handle chunking of data files
 
 v2.0.9 (2024-08-20)
 

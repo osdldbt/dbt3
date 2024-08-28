@@ -97,7 +97,21 @@ load_table() {
 	fi
 	# This disable/enable trick only works on MyISAM for the moment. 
 	$MYSQL -e "alter table $table disable keys;"
-	mysqlimport -u root --fields-terminated-by='|' $DBNAME $DSS_PATH/$file
+	if [ "${CHUNKS}" -eq 1 ] || [ "${table}" = "nation" ] || \
+			[ "${table}" = "region" ]; then
+		file=${table}.tbl
+		eval "mysqlimport -u root ${MYSQL_ARGS} \
+				--fields-terminated-by='|' ${DBNAME} ${DSS_PATH}/${file}"
+	else
+		i=1
+		while [ ${i} -le "${CHUNKS}" ]; do
+			file=${table}.tbl.${i}
+			eval "mysqlimport -u root ${MYSQL_ARGS} \
+					--fields-terminated-by='|' ${DBNAME} ${DSS_PATH}/${file}" &
+			i=$(( i + 1 ))
+		done
+		wait
+	fi
 	$MYSQL -e "alter table $table enable keys;"
 }
 
