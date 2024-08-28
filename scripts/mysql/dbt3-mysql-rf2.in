@@ -29,18 +29,6 @@ EOF
 
 MYSQL="mysql -u root -D $DBNAME -s -N"
 
-set_num=`$MYSQL << __EOF__
-BEGIN;
-UPDATE dataset
-SET count = count + 1
-WHERE id = 1;
-SELECT count
-FROM dataset
-WHERE id = 1;
-COMMIT;
-__EOF__
-`
-
 # Custom argument handling for hopefully most portability.
 while [ "${#}" -gt 0 ] ; do
 	case "${1}" in
