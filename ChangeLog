@@ -6,6 +6,8 @@ vX.Y.Z (YYYY-MM-DD)
 - mysql: remove logic for self-setting the set number in refresh stream 2, this
   is currently handled in the throughput-stream script
 - mysql: update loading to handle chunking of data files
+- mysql: change default behavior of scripts to work against an existing instance
+  without having operating system privileges to start and stop the database
 
 v2.0.9 (2024-08-20)
 

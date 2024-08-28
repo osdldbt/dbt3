@@ -14,11 +14,6 @@ if [ "$id" = "0" ]; then
 	exit 1
 fi
 
-if [ -z ${MYDATA} ]; then
-    echo "MYDATA not defined."
-    exit 1
-fi
-
 DBNAME="dbt3"
 OUTPUT_DIR="."
 PRIVILEGED=0
@@ -85,27 +80,34 @@ while [ "${#}" -gt 0 ] ; do
 	shift
 done
 
-dbt3-mysql-stop-db
+if [ ${PRIVILEGED} -eq 1 ]; then
+	if [ -z "${MYDATA}" ]; then
+		echo "MYDATA not defined."
+		exit 1
+	fi
 
-if [ -d $MYDATA -a -d $MYDATA/mysql -a -f $MYDATA/mysql/user.frm ]; then
-	echo "======================================="
-	echo "DATADIR directory $MYDATA already exists"
-	echo "Skipping mysql_install_db"
-	echo "======================================="
-
-	# Don't need to initdb, blindly try to drop the dbt3 database in case
-	# it exists.
-	dbt3-mysql-start-db -o $OUTPUT_DIR || exit 1
-	dbt3-mysql-drop-db
 	dbt3-mysql-stop-db
-else
-	# initialize database cluster
-	echo "initializing database ..."
-	BASEDIR=`which mysql_install_db`
-	mysql_install_db --basedir=`dirname $BASEDIR`/.. --datadir=${MYDATA}
-fi
 
-dbt3-mysql-start-db -o $OUTPUT_DIR || exit 1
+	if [ -d "${MYDATA}" -a -d "${MYDATA}/mysql" -a -f "${MYDATA}/mysql/user.frm" ]; then
+		echo "======================================="
+		echo "DATADIR directory ${MYDATA} already exists"
+		echo "Skipping mysql_install_db"
+		echo "======================================="
+
+		# Don't need to initdb, blindly try to drop the dbt3 database in case
+		# it exists.
+		dbt3-mysql-start-db -o ${OUTPUT_DIR} || exit 1
+		dbt3-mysql-drop-db
+		dbt3-mysql-stop-db
+	else
+		# initialize database cluster
+		echo "initializing database ..."
+		BASEDIR=`which mysql_install_db`
+		mysql_install_db --basedir=`dirname ${BASEDIR}`/.. --datadir=${MYDATA}
+	fi
+
+	dbt3-mysql-start-db -o ${OUTPUT_DIR} || exit 1
+fi
 
 echo "Creating database $DBNAME..."
 mysqladmin -u root create $DBNAME || exit 1
