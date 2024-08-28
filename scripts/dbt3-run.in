@@ -543,7 +543,7 @@ SCOREFILE="${OUTPUT_DIR}/score.txt"
 QUERYFILE="${OUTPUT_DIR}/summary.rst"
 
 # Only process queries if the power or throughput test is run.
-if [ "${RUN_POWER_TEST}" -eq 1 ] || [ "${RUN_THROUGHPUT_TEST}" -eq 1 ]; then
+if [ "${RUN_POWER_TEST}" -eq 1 ] && [ "${RUN_THROUGHPUT_TEST}" -eq 1 ]; then
 	# Calculate metrics.
 	echo "Post processing query results... "
 	echo ""

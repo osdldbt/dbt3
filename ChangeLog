@@ -1,6 +1,8 @@
 vX.Y.Z (YYYY-MM-DD)
 
 - Update man page make rules to match docutils v0.21.1 set since v2.0.7
+- Fix run script logic to calculate metrics only when both power and throughput
+  tests are run, not when only one of them is run
 
 v2.0.9 (2024-08-20)
 
