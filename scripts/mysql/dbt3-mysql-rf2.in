@@ -6,6 +6,27 @@
 #
 # Copyright The DBT-3 Authors
 
+usage()
+{
+	cat << EOF
+$(basename "${0}") is the Database Test 3 (DBT-3) MySQL refresh stream 2 runner
+
+Usage:
+  $(basename "${0}") [OPTION]
+
+Options:
+  -e             use EXPLAIN ANALYZE
+  -f SCALE_FACTOR
+                 database SCALE_FACTOR
+  -s NUMBER      data set NUMBER
+  -U             run test as an unprivileged user
+  -V, --version  output version information, then exit
+  -?, --help     show this help, then exit
+
+@HOMEPAGE@
+EOF
+}
+
 MYSQL="mysql -u root -D $DBNAME -s -N"
 
 set_num=`$MYSQL << __EOF__
@@ -19,6 +40,35 @@ WHERE id = 1;
 COMMIT;
 __EOF__
 `
+
+# Custom argument handling for hopefully most portability.
+while [ "${#}" -gt 0 ] ; do
+	case "${1}" in
+	(-s)
+		shift
+		set_num="${1}"
+		;;
+	(-U)
+		# Intentionally do nothing at this time.
+		;;
+	(-V | --version)
+		echo "$(basename "${0}") (Database Test 3) v@PROJECT_VERSION@"
+		;;
+	(-\? | --help)
+		usage
+		exit 0
+		;;
+	(--* | -*)
+		echo "$(basename "${0}"): invalid option -- '${1}'"
+		echo "try \"$(basename "${0}") --help\" for more information."
+		exit 1
+		;;
+	(*)
+		break
+		;;
+	esac
+	shift
+done
 
 echo "`date`: Stream ${set_num} : Starting Refresh Stream 2..."
 s_time=`date +%s`
