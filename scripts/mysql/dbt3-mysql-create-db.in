@@ -15,6 +15,7 @@ if [ "$id" = "0" ]; then
 fi
 
 DBNAME="dbt3"
+MYSQL_ARGS=""
 OUTPUT_DIR="."
 PRIVILEGED=0
 
@@ -48,6 +49,13 @@ while [ "${#}" -gt 0 ] ; do
 		;;
 	(--db-name=?*)
 		DBNAME="${1#*--db-name=}"
+		;;
+	(--mysql-socket)
+		shift
+		MYSQL_ARGS="${MYSQL_ARGS} --socket=${1}"
+		;;
+	(--mysql-socket=?*)
+		MYSQL_ARGS="${MYSQL_ARGS} --socket=${1#*--mysql-socket=}"
 		;;
 	(-o)
 		shift
@@ -110,4 +118,5 @@ if [ ${PRIVILEGED} -eq 1 ]; then
 fi
 
 echo "Creating database $DBNAME..."
-mysqladmin -u root create $DBNAME || exit 1
+eval "mysql -u root ${MYSQL_ARGS} \
+		-e \"CREATE DATABASE IF NOT EXISTS ${DBNAME};\""

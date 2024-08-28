@@ -20,6 +20,13 @@ EOF
 # Custom argument handling for hopefully most portability.
 while [ "${#}" -gt 0 ] ; do
 	case "${1}" in
+	(--mysql-socket)
+		shift
+		MYSQL_ARGS="${MYSQL_ARGS} --socket=${1}"
+		;;
+	(--mysql-socket=?*)
+		MYSQL_ARGS="${MYSQL_ARGS} --socket=${1#*--mysql-socket=}"
+		;;
 	(-V | --version)
 		echo "$(basename "${0}") (Database Test 3) v@PROJECT_VERSION@"
 		;;
@@ -39,5 +46,6 @@ while [ "${#}" -gt 0 ] ; do
 	shift
 done
 
-mysql -u root -s -e "show global variables like 'version'" | \
+eval "mysql -u root -s ${MYSQL_ARGS} \
+		-e \"show global variables like 'version'\"" | \
 		awk '{print "MySQL " $2}' || exit 1

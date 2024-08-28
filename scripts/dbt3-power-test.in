@@ -6,9 +6,11 @@
 #
 # Copyright The DBT-3 Authors
 
+DBMS_ARGS=""
 EXTRA_ARGS=
 NO_REFRESH=0
 MPP=0
+MYSQL_ARGS=""
 PRIVILEGED=1
 PROFILE=0
 STATS=0
@@ -47,6 +49,10 @@ DBMS options are:
   pgxl       Postgres-XL
   virtuoso   Virtuoso
 
+MySQL specific options:
+  --mysql-socket=FILE
+                  specify socket FILE
+
 PostgreSQL specific options:
   -e              EXPLAIN ANALYZE
   -p             database parameters for the power test
@@ -83,6 +89,15 @@ while [ "${#}" -gt 0 ] ; do
 	(-f)
 		shift
 		SCALE_FACTOR="${1}"
+		;;
+	(--mysql-socket)
+		shift
+		MYSQL_ARGS="${MYSQL_ARGS} --socket=${1}"
+		DBMS_ARGS="${DBMS_ARGS} --mysql-socket=${1}"
+		;;
+	(--mysql-socket=?*)
+		MYSQL_ARGS="${MYSQL_ARGS} --socket=${1#*--mysql-socket=}"
+		DBMS_ARGS="${DBMS_ARGS} --mysql-socket=${1#*--mysql-socket=}"
 		;;
 	(-o)
 		shift
@@ -146,7 +161,7 @@ if [ $DATABASE = "monetdb" ]; then
 elif [ $DATABASE = "pgsql" ] || [ $DATABASE = "pgxl" ]; then
 	DBCMD="psql -v ON_ERROR_STOP=1 -X -e"
 elif [ $DATABASE = "mysql" ]; then
-	DBCMD="mysql -u root -D $DBNAME"
+	DBCMD="mysql -u root -D ${DBNAME} ${MYSQL_ARGS}"
 elif [ $DATABASE = "virtuoso" ]; then
 	DBCMD="isql PROMPT=OFF ERRORS=STDOUT ECHO=ON VERBOSE=OFF"
 else
@@ -198,7 +213,7 @@ while [ $i -le 22 ]; do
 		Q=$(eval "\"${QGEN}\" -a -r ${SEED} -p 0 -s ${SCALE_FACTOR} -x ${i} \
 				| tail -n +2 | sed -e \"s/'/''/g\"")
 	fi
-	$DBCMD << __EOF__ > $PLANDIR/$N.txt
+	eval "${DBCMD}" << __EOF__ > "${PLANDIR}/${N}.txt"
 $ESTART
 $Q
 $EEND
@@ -228,16 +243,16 @@ if [ $STATS -eq 1 ]; then
 fi
 
 s_time_power=`date +%s`
-dbt3-$TAG-time-statistics -s -n PERF.POWER || exit 1
+eval "dbt3-${TAG}-time-statistics -s -n PERF.POWER ${DBMS_ARGS}" || exit 1
 
 # Refresh Stream 1
 TASK="PERF.POWER.RF1"
-dbt3-$TAG-time-statistics -s -n $TASK || exit 1
+eval "dbt3-${TAG}-time-statistics -s -n ${TASK} ${DBMS_ARGS}" || exit 1
 if [ $NO_REFRESH -eq 0 ]; then
 	echo "`date`: Power Test : Starting Refresh Stream 1"
 	s_time=`date +%s`
-	eval "dbt3-${TAG}-rf1" "$UNPRIVILEGED_ARG" "$EXTRA_ARGS" \
-			-f "$SCALE_FACTOR" > "${RESULTSDIR}/rf1.txt" 2>&1
+	eval "dbt3-${TAG}-rf1 ${UNPRIVILEGED_ARG} ${EXTRA_ARGS} ${DBMS_ARGS} \
+			-f ${SCALE_FACTOR} > ${RESULTSDIR}/rf1.txt 2>&1"
 	DATASET=$?
 	if [ $DATASET -lt 1 ]; then
 		exit 1
@@ -246,7 +261,7 @@ if [ $NO_REFRESH -eq 0 ]; then
 	echo "`date`: Power Test : Refresh Stream 1 completed."
 	diff_time=$(( $e_time - $s_time ))
 fi
-dbt3-$TAG-time-statistics -e -n $TASK || exit 1
+eval "dbt3-${TAG}-time-statistics -e -n ${TASK} ${DBMS_ARGS}" || exit 1
 
 # Execute the queries.
 i=1
@@ -266,38 +281,38 @@ __EOF__
 			fi
 	fi
 	TASK="PERF.POWER.Q${N}"
-	dbt3-$TAG-time-statistics -s -n $TASK || exit 1
+	eval "dbt3-${TAG}-time-statistics -s -n ${TASK} ${DBMS_ARGS}" || exit 1
 	if [ $MPP -eq 0 ]; then
 		eval $PERFCOMMAND $DBCMD << __EOF__ \
 				>> $RESULTSDIR/$N.txt 2>&1
 ${Q}
 __EOF__
 	else
-		$DBCMD << __EOF__ > $RESULTSDIR/$N.txt 2>&1
+		eval "${DBCMD}" << __EOF__ > "${RESULTSDIR}/${N}.txt" 2>&1
 ${Q}
 __EOF__
 	fi
 
-	dbt3-$TAG-time-statistics -e -n $TASK || exit 1
+	eval "dbt3-${TAG}-time-statistics -e -n ${TASK} ${DBMS_ARGS}" || exit 1
 
 	i=$(( ${i} + 1 ))
 done
 
 TASK="PERF.POWER.RF2"
-dbt3-$TAG-time-statistics -s -n $TASK || exit 1
+eval "dbt3-${TAG}-time-statistics -s -n ${TASK} ${DBMS_ARGS}" || exit 1
 if [ $NO_REFRESH -eq 0 ]; then
 	# Refresh Stream 2
 	echo "`date`: Power Test : Starting Refresh Stream 2"
 	s_time=`date +%s`
-	eval "dbt3-${TAG}-rf2" "$UNPRIVILEGED_ARG" "$EXTRA_ARGS" -s "$DATASET" > \
-			"${RESULTSDIR}/rf2.txt" 2>&1 || exit 1
+	eval "dbt3-${TAG}-rf2 ${UNPRIVILEGED_ARG} $EXTRA_ARGS -s ${DATASET} \
+			${DBMS_ARGS} > ${RESULTSDIR}/rf2.txt 2>&1" || exit 1
 	e_time=`date +%s`
 	echo "`date`: Power Test : Refresh Stream 2 completed."
 	diff_time=$(( $e_time - $s_time ))
 fi
-dbt3-$TAG-time-statistics -e -n $TASK || exit 1
+eval "dbt3-${TAG}-time-statistics -e -n ${TASK} ${DBMS_ARGS}" || exit 1
 
-dbt3-$TAG-time-statistics -e -n PERF.POWER || exit 1
+eval "dbt3-${TAG}-time-statistics -e -n PERF.POWER ${DBMS_ARGS}" || exit 1
 e_time_power=`date +%s`
 echo "`date`: Power Test completed."
 diff_time=$(( $e_time_power - $s_time_power ))

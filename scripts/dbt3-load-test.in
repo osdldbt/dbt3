@@ -42,6 +42,10 @@ DBMS options are:
   pgxl       Postgres-XL
   virtuoso   Virtuoso
 
+MySQL specific options:
+  --mysql-socket=FILE
+                 specify socket FILE
+
 PostgreSQL specific options:
   -p             database parameters for the load test
 
@@ -59,6 +63,7 @@ stop_procs() {
 }
 trap 'stop_procs' INT TERM
 
+DBMS_ARGS=""
 DIRECT_LOAD=0
 DIRECT_LOAD_ARG=""
 GENERATE=0
@@ -105,6 +110,13 @@ while [ "${#}" -gt 0 ] ; do
 	(-g)
 		shift
 		GENERATE="${1}"
+		;;
+	(--mysql-socket)
+		shift
+		DBMS_ARGS="${DBMS_ARGS} --mysql-socket=${1}"
+		;;
+	(--mysql-socket=?*)
+		DBMS_ARGS="${DBMS_ARGS} --mysql-socket=${1#*--mysql-socket=}"
 		;;
 	(-o)
 		shift
@@ -266,10 +278,11 @@ fi
 if [ ${PRIVILEGED} -eq 1 ]; then
 	PARAMETERS_ARG="${PARAMETERS_ARG} --privileged"
 fi
-eval "dbt3-${DATABASE}-create-db -o ${OUTPUT_DIR} ${PARAMETERS_ARG}"
+eval "dbt3-${DATABASE}-create-db -o ${OUTPUT_DIR} ${DBMS_ARGS} \
+		${PARAMETERS_ARG}"
 
-dbt3-$DATABASE-drop-tables || exit 1
-dbt3-$DATABASE-create-tables $TABLESPACE_FLAG || exit 1
+eval "dbt3-${DATABASE}-drop-tables ${DBMS_ARGS}" || exit 1
+eval "dbt3-${DATABASE}-create-tables ${TABLESPACE_FLAG} ${DBMS_ARGS}" || exit 1
 
 if [ $STATS -eq 1 ]; then
 	# Collect database statistics
@@ -284,7 +297,7 @@ fi
 
 echo "Load Test starting at `date`"
 s_time=`date +%s`
-dbt3-$DATABASE-time-statistics -s -n LOAD || exit 1
+eval "dbt3-${DATABASE}-time-statistics -s -n LOAD ${DBMS_ARGS}" || exit 1
 
 if [ $PROFILE -eq 1 ]; then
 	ts profile -o "${OUTPUT_DIR}/profile" sleep 1 &
@@ -292,9 +305,9 @@ fi
 
 eval "dbt3-${DATABASE}-load-data -C ${CHUNKS} -o ${OUTPUT_DIR} \
 		${DIRECT_LOAD_ARG} ${UNPRIVILEGED_ARG} ${TABLESPACE_FLAG} \
-		${RELAX_ARG}" || exit 1
+		${RELAX_ARG} ${DBMS_ARGS}" || exit 1
 
-dbt3-$DATABASE-time-statistics -e -n LOAD || exit 1
+eval "dbt3-${DATABASE}-time-statistics -e -n LOAD ${DBMS_ARGS}" || exit 1
 e_time=`date +%s`
 diff_time=`expr $e_time - $s_time`
 echo "Elapsed time for Load Test : $diff_time seconds"

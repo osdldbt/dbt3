@@ -12,20 +12,32 @@ usage()
 $(basename "${0}") is the Database Test 3 (DBT-3) system cofiguration collector
 
 Usage:
-  $(basename "${0}") [OPTION]
-  $(basename "${0}") SCALE_FACTOR STREAMS LOAD_PARMETERS POWER_PARAMETERS THROUGHPUT_PARAMETERS DIRECTORY
+  $(basename "${0}") [OPTION] SCALE_FACTOR STREAMS LOAD_PARMETERS POWER_PARAMETERS THROUGHPUT_PARAMETERS DIRECTORY
 
 Options:
   -V, --version  output version information, then exit
   -?, --help     show this help, then exit
 
+MySQL specific options:
+  --mysql-socket=FILE
+                  specify socket FILE
+
 @HOMEPAGE@
 EOF
 }
 
+DBMS_ARGS=""
+
 # Custom argument handling for hopefully most portability.
 while [ "${#}" -gt 0 ] ; do
 	case "${1}" in
+	(--mysql-socket)
+		shift
+		DBMS_ARGS="${DBMS_ARGS} --mysql-socket=${1}"
+		;;
+	(--mysql-socket=?*)
+		DBMS_ARGS="${DBMS_ARGS} --mysql-socket=${1#*--mysql-socket=}"
+		;;
 	(-V | --version)
 		echo "$(basename "${0}") (Database Test 3) v@PROJECT_VERSION@"
 		;;
@@ -58,7 +70,7 @@ else
 	TAG=$DATABASE
 fi
 kernel=`uname -s -r`
-dbver=`dbt3-$TAG-get-version`
+dbver=$(eval "dbt3-${TAG}-get-version ${DBMS_ARGS}")
 sysstat=`sar -V 2>&1 | head -n 1 | awk '{print $3}'`
 
 NODE=`hostname`

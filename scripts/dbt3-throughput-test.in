@@ -6,6 +6,7 @@
 #
 # Copyright The DBT-3 Authors
 
+DBMS_ARGS=""
 MPP=0
 NO_REFRESH_FLAG=
 PRIVILEGED=1
@@ -43,6 +44,10 @@ DBMS options are:
   pgxl       Postgres-XL
   virtuoso   Virtuoso
 
+MySQL specific options:
+  --mysql-socket=FILE
+                  specify socket FILE
+
 PostgreSQL specific options:
   -e             EXPLAIN ANALYZE
   -p             database parameters for the throughput test"
@@ -77,6 +82,13 @@ while [ "${#}" -gt 0 ]; do
 	(-f)
 		shift
 		scale_factor="${1}"
+		;;
+	(--mysql-socket)
+		shift
+		DBMS_ARGS="${DBMS_ARGS} --mysql-socket=${1}"
+		;;
+	(--mysql-socket=?*)
+		DBMS_ARGS="${DBMS_ARGS} --mysql-socket=${1#*--mysql-socket=}"
 		;;
 	(-n)
 		shift
@@ -160,7 +172,7 @@ if [ $PRIVILEGED -eq 1 ]; then
 	eval dbt3-$DATABASE-start-db -o $OUTPUT_DIR $PARAMETERS_ARG || exit 1
 fi
 
-dbt3-$TAG-time-statistics -s -n PERF.THRUPUT || exit 1
+eval "dbt3-${TAG}-time-statistics -s -n PERF.THRUPUT ${DBMS_ARGS}" || exit 1
 
 # Start collecting system statistics. 
 if [ $STATS -eq 1 ]; then
@@ -186,9 +198,9 @@ fi
 # Start the streams.
 eval "dbt3-throughput-stream-wrapper -f $scale_factor \
 		-n $num_stream $EXTRA_ARGS -o $OUTPUT_DIR -s $SEED_FILE \
-		$NO_REFRESH_FLAG $UNPRIVILEGED_ARG" || exit 1
+		${NO_REFRESH_FLAG} ${UNPRIVILEGED_ARG} ${DBMS_ARGS}" || exit 1
 
-dbt3-$TAG-time-statistics -e -n PERF.THRUPUT || exit 1
+eval "dbt3-${TAG}-time-statistics -e -n PERF.THRUPUT ${DBMS_ARGS}" || exit 1
 
 if [ $STATS -eq 1 ]; then
 	stop_procs

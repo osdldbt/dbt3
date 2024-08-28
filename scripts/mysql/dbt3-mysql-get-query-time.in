@@ -20,6 +20,8 @@ Usage:
 
 Options:
   -H             use alternate output format
+  --mysql-socket=FILE
+                 specify socket FILE
   -o DIRECTORY   path to store query data
   -V, --version  output version information, then exit
   -?, --help     show this help, then exit
@@ -34,6 +36,13 @@ while [ "${#}" -gt 0 ] ; do
 	(-h)
 		MYSQL_ARGS="-H"
 		SQL="SELECT task_name AS Task, s_time AS Start_Time, e_time AS End_Time, (e_time-s_time) AS Elapsed_Time FROM time_statistics;"
+		;;
+	(--mysql-socket)
+		shift
+		MYSQL_ARGS="${MYSQL_ARGS} --socket=${1}"
+		;;
+	(--mysql-socket=?*)
+		MYSQL_ARGS="${MYSQL_ARGS} --socket=${1#*--mysql-socket=}"
 		;;
 	(-V | --version)
 		echo "$(basename "${0}") (Database Test 3) v@PROJECT_VERSION@"
@@ -55,5 +64,6 @@ while [ "${#}" -gt 0 ] ; do
 done
 
 # Convert output to CSV format on the fly.
-mysql -u root -D $DBNAME -e "$SQL" $ARGS | sed -e 's/\t/,/g;'
+eval "mysql -u root -D ${DBNAME} -e \"${SQL}\" ${MYSQL_ARGS}" \
+		| sed -e 's/\t/,/g;'
 sleep 2

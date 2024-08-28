@@ -41,6 +41,13 @@ while [ "${#}" -gt 0 ] ; do
 	(-e)
 		cmd_end=1
 		;;
+	(--mysql-socket)
+		shift
+		MYSQL_ARGS="${MYSQL_ARGS} --socket=${1}"
+		;;
+	(--mysql-socket=?*)
+		MYSQL_ARGS="${MYSQL_ARGS} --socket=${1#*--mysql-socket=}"
+		;;
 	(-n)
 		shift
 		NAME=$OPTARG
@@ -87,4 +94,4 @@ if [ $cmd_end == 1 ]; then
     SQL="UPDATE time_statistics SET e_time = now() WHERE task_name = '$NAME'"
 fi;
 
-mysql -u root -D $DBNAME -e "$SQL"
+eval "mysql -u root -D ${DBNAME} ${MYSQL_ARGS} -e \"${SQL}\""

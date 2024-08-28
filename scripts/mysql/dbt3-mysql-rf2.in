@@ -18,6 +18,8 @@ Options:
   -e             use EXPLAIN ANALYZE
   -f SCALE_FACTOR
                  database SCALE_FACTOR
+  --mysql-socket=FILE
+                 specify socket FILE
   -s NUMBER      data set NUMBER
   -U             run test as an unprivileged user
   -V, --version  output version information, then exit
@@ -27,11 +29,18 @@ Options:
 EOF
 }
 
-MYSQL="mysql -u root -D $DBNAME -s -N"
+MYSQL_ARGS=""
 
 # Custom argument handling for hopefully most portability.
 while [ "${#}" -gt 0 ] ; do
 	case "${1}" in
+	(--mysql-socket)
+		shift
+		MYSQL_ARGS="${MYSQL_ARGS} --socket=${1}"
+		;;
+	(--mysql-socket=?*)
+		MYSQL_ARGS="${MYSQL_ARGS} --socket=${1#*--mysql-socket=}"
+		;;
 	(-s)
 		shift
 		set_num="${1}"
@@ -57,6 +66,8 @@ while [ "${#}" -gt 0 ] ; do
 	esac
 	shift
 done
+
+MYSQL="mysql -u root -D ${DBNAME} -s ${MYSQL_ARGS} -N"
 
 echo "`date`: Stream ${set_num} : Starting Refresh Stream 2..."
 s_time=`date +%s`

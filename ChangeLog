@@ -8,6 +8,7 @@ vX.Y.Z (YYYY-MM-DD)
 - mysql: update loading to handle chunking of data files
 - mysql: change default behavior of scripts to work against an existing instance
   without having operating system privileges to start and stop the database
+- mysql: update scripts to handle --socket flag
 
 v2.0.9 (2024-08-20)
 

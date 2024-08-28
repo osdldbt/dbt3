@@ -17,6 +17,8 @@ Usage:
 Options:
   -f SCALE_FACTOR
                  database SCALE_FACTOR
+  --mysql-socket=FILE
+                 specify socket FILE
   -V, --version  output version information, then exit
   -?, --help     show this help, then exit
 
@@ -32,6 +34,13 @@ while [ "${#}" -gt 0 ] ; do
 	(-f)
 		shift
 		scale_factor="${1}"
+		;;
+	(--mysql-socket)
+		shift
+		MYSQL_ARGS="${MYSQL_ARGS} --socket=${1}"
+		;;
+	(--mysql-socket=?*)
+		MYSQL_ARGS="${MYSQL_ARGS} --socket=${1#*--mysql-socket=}"
 		;;
 	(-U)
 		# Intentionally do nothing at this time.
@@ -55,9 +64,7 @@ while [ "${#}" -gt 0 ] ; do
 	shift
 done
 
-scale_factor=$1
-
-MYSQL="mysql -u root -D $DBNAME -s -N"
+MYSQL="mysql -u root -D ${DBNAME} -s ${MYSQL_ARGS} -N"
 
 set_num=`$MYSQL << __EOF__
 BEGIN;
@@ -70,12 +77,12 @@ WHERE id = 1;
 COMMIT;
 __EOF__
 `
-eval "\"${DBGEN}\" -s ${scale_factor} -U ${set_num} -S ${set_num}" || exit 1
+eval "${DBGEN} -s ${scale_factor} -U ${set_num} -S ${set_num}" || exit 1
 
 echo "`date`: Stream ${set_num} : Starting Refresh Stream 1..."
 s_time=`date +%s`
 
-$MYSQL << __EOF__
+eval "${MYSQL}" << __EOF__
 BEGIN;
 load data infile '$DSS_PATH/lineitem.tbl.u$set_num'
 into table lineitem fields terminated by  '|';

@@ -59,6 +59,10 @@ DBMS options are:
   pgxl            Postgres-XL
   virtuoso        Virtuoso
 
+MySQL specific options:
+  --mysql-socket=FILE
+                  specify socket FILE
+
 PostgreSQL specific options:
   --explain       capture EXPLAIN ANALYZE output as part of the query results
   --load-params=OPTIONS
@@ -78,6 +82,7 @@ EOF
 
 CHUNK_ARG=""
 DATABASE=""
+DBMS_ARGS=""
 DBNAME="dbt3"
 DIRECT_LOAD_ARG="-d"
 DSS_PATH="/tmp/dss"
@@ -177,6 +182,13 @@ while [ "${#}" -gt 0 ] ; do
 		;;
 	(--load-params=?*)
 		LOAD_PARAMETERS="$LOAD_PARAMETERS ${1#*--load-params=}"
+		;;
+	(--mysql-socket)
+		shift
+		DBMS_ARGS="${DBMS_ARGS} --mysql-socket=${1}"
+		;;
+	(--mysql-socket=?*)
+		DBMS_ARGS="${DBMS_ARGS} --mysql-socket=${1#*--mysql-socket=}"
 		;;
 	(-n | --streams)
 		shift
@@ -349,7 +361,9 @@ fi
 
 mkdir -p "${OUTPUT_DIR}"
 
-if [ "${DATABASE}" = "pgsql" ]; then
+if [ "${DATABASE}" = "mysql" ]; then
+	export DBNAME="${DBNAME}"
+elif [ "${DATABASE}" = "pgsql" ]; then
 	export PGDATABASE="${DBNAME}"
 fi
 
@@ -434,6 +448,7 @@ if [ ${RUN_LOAD_TEST} -eq 1 ]; then
 			$PROFILE_ARG \
 			${RELAX_ARG} \
 			${CHUNK_ARG} \
+			${DBMS_ARGS} \
 			${TABLESPACES_FLAG} || exit 1
 else
 	#
@@ -444,7 +459,7 @@ else
 	if [ $PRIVILEGED -eq 1 ]; then
 		dbt3-${DATABASE}-start-db -o $OUTPUT_DIR
 	fi
-	dbt3-$TAG-time-statistics -c
+	eval "dbt3-${TAG}-time-statistics -c ${DBMS_ARGS}"
 fi
 
 # Set the seed file.
@@ -475,6 +490,7 @@ if [ ${RUN_POWER_TEST} -eq 1 ]; then
 			$UNPRIVILEGED_ARG \
 			$STATS_ARG \
 			$PROFILE_ARG \
+			${DBMS_ARGS}
 			${NO_REFRESH_FLAG}
 	if [ $? -eq 1 ] ; then
 		echo "power test problem!"
@@ -493,6 +509,7 @@ if [ ${RUN_THROUGHPUT_TEST} -eq 1 ]; then
 			$UNPRIVILEGED_ARG \
 			$STATS_ARG \
 			$PROFILE_ARG \
+			${DBMS_ARGS}
 			${NO_REFRESH_FLAG}
 	if [ $? -eq 1 ] ; then
 		echo "throughput test problem!"
@@ -515,8 +532,9 @@ fi
 
 # Get system details.
 echo "Getting system configuration... "
-dbt3-get-config $SCALE_FACTOR $STREAMS "$LOAD_PARAMETERS" "$POWER_PARAMETERS" \
-"$THROUGHPUT_PARAMETERS" $OUTPUT_DIR || exit 1
+eval "dbt3-get-config ${DBMS_ARGS} ${SCALE_FACTOR} ${STREAMS} \
+		\"${LOAD_PARAMETERS}\" \"${POWER_PARAMETERS}\" \
+		\"${THROUGHPUT_PARAMETERS}\" ${OUTPUT_DIR}" || exit 1
 echo "dbms: $DATABASE" >> $OUTPUT_DIR/config.txt
 if [ $MPP -eq 1 ]; then
 	echo "mpp: yes" >> $OUTPUT_DIR/config.txt
@@ -526,7 +544,8 @@ fi
 
 if [ "${RUN_POWER_TEST}" -eq 1 ] || [ "${RUN_THROUGHPUT_TEST}" -eq 1 ]; then
 	echo "Getting query times... "
-	dbt3-${TAG}-get-query-time > "${OUTPUT_DIR}/q_time.csv" || exit 1
+	eval "dbt3-${TAG}-get-query-time ${DBMS_ARGS} > ${OUTPUT_DIR}/q_time.csv" \
+			|| exit 1
 fi
 
 # Stop the database at the end of the test.

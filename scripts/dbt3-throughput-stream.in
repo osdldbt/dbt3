@@ -31,12 +31,19 @@ DBMS options are:
   pgxl       Postgres-XL
   virtuoso   Virtuoso
 
+MySQL specific options:
+  --mysql-socket=FILE
+                  specify socket FILE
+
 PostgreSQL specific options:
   -e             EXPLAIN ANALYZE
 
 @HOMEPAGE@
 EOF
 }
+
+DBMS_ARGS=""
+MYSQL_ARGS=""
 
 # Custom argument handling for hopefully most portability.
 while [ "${#}" -gt 0 ]; do
@@ -51,6 +58,15 @@ while [ "${#}" -gt 0 ]; do
 	(-f)
 		shift
 		SCALE_FACTOR="${1}"
+		;;
+	(--mysql-socket)
+		shift
+		DBMS_ARGS="${DBMS_ARGS} --mysql-socket=${1}"
+		MYSQL_ARGS="${MYSQL_ARGS} --socket=${1}"
+		;;
+	(--mysql-socket=?*)
+		DBMS_ARGS="${DBMS_ARGS} --mysql-socket=${1#*--mysql-socket=}"
+		MYSQL_ARGS="${MYSQL_ARGS} --socket=${1#*--mysql-socket=}"
 		;;
 	(-n)
 		shift
@@ -105,7 +121,7 @@ if [ $DATABASE = "monetdb" ]; then
 elif [ $DATABASE = "pgsql" ] || [ $DATABASE = "pgxl" ]; then
 	DBCMD="psql -v ON_ERROR_STOP=1 -X -e"
 elif [ $DATABASE = "mysql" ]; then
-	DBCMD="mysql -u root -D $DBNAME"
+	DBCMD="mysql -u root -D ${DBNAME} ${MYSQL_ARGS}"
 elif [ $DATABASE = "virtuoso" ]; then
 	DBCMD="isql PROMPT=OFF ERRORS=STDOUT ECHO=ON VERBOSE=OFF"
 else
@@ -149,7 +165,7 @@ do
 		Q=$(eval "\"$QGEN\" -a -r ${SEED} -p ${num_stream} -s ${SCALE_FACTOR} \
 				-x ${i} | tail -n +2 | sed -e \"s/'/''/g\"")
 	fi
-	$DBCMD<< __EOF__ > ${PLANDIR}/${N}.txt 2>&1
+	eval "${DBCMD}" << __EOF__ > "${PLANDIR}/${N}.txt" 2>&1
 $ESTART
 ${Q}
 $EEND
@@ -161,18 +177,18 @@ done
 echo "`date`: start throughput queriy stream $stream_num "
 s_time=`date +%s`
 STREAMTASK="PERF.THRUPUT.QS${stream_num}.ALL"
-dbt3-$TAG-time-statistics -s -n $STREAMTASK || exit 1
+eval "dbt3-${TAG}-time-statistics -s -n ${STREAMTASK} ${DBMS_ARGS}" || exit 1
 i=1
 while [ ${i} -le 22 ]; do
 	Q=$(eval "\"${QGEN}\" -c -r ${SEED} -p ${stream_num} -s ${SCALE_FACTOR} \
 			${EXTRA_ARGS} ${i}")
 	N=`echo ${Q} | sed -n -r 's/.*\(#\)([[:digit:]]+)\..*/\1/p'`
 	TASK="PERF.THRUPUT.QS${stream_num}.Q${N}"
-	dbt3-$TAG-time-statistics -s -n $TASK || exit 1
-	eval $PERFCOMMAND $DBCMD << __EOF__ > $RESULTSDIR/$N.txt 2>&1
+	eval "dbt3-${TAG}-time-statistics -s -n ${TASK} ${DBMS_ARGS}" || exit 1
+	eval "${PERFCOMMAND} ${DBCMD}" << __EOF__ > "${RESULTSDIR}/${N}.txt" 2>&1
 $Q
 __EOF__
-	dbt3-$TAG-time-statistics -e -n $TASK || exit 1
+	eval "dbt3-${TAG}-time-statistics -e -n ${TASK} ${DBMS_ARGS}" || exit 1
 	i=$(( ${i} + 1 ))
 done
-dbt3-$TAG-time-statistics -e -n $STREAMTASK || exit 1
+eval "dbt3-${TAG}-time-statistics -e -n ${STREAMTASK} ${DBMS_ARGS}" || exit 1

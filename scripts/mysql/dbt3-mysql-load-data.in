@@ -17,6 +17,8 @@ Usage:
 Options:
   -C PARTITIONS  how many PARTITIONS to break data into
   --db-name      databse name, default $DBNAME
+  --mysql-socket=FILE
+                  specify socket FILE
   -o DIRECTORY   DIRECTORY to save any output, default current directory
   -V, --version  output version information, then exit
   -?, --help     show this help, then exit
@@ -45,6 +47,13 @@ while [ "${#}" -gt 0 ] ; do
 		;;
 	(-d)
 		# Intentionally do nothing at this time.
+		;;
+	(--mysql-socket)
+		shift
+		MYSQL_ARGS="${MYSQL_ARGS} --socket=${1}"
+		;;
+	(--mysql-socket=?*)
+		MYSQL_ARGS="${MYSQL_ARGS} --socket=${1#*--mysql-socket=}"
 		;;
 	(-o)
 		shift
@@ -83,7 +92,7 @@ while [ "${#}" -gt 0 ] ; do
 	shift
 done
 
-MYSQL="mysql -u root -D $DBNAME -s"
+MYSQL="mysql -u root -D ${DBNAME} -s ${MYSQL_ARGS}"
 
 # Load tables
 # This background stuff is honestly kinda ugly. IMO the right way to do this is
@@ -95,6 +104,7 @@ load_table() {
 	else
 		file=$2.tbl
 	fi
+
 	# This disable/enable trick only works on MyISAM for the moment. 
 	$MYSQL -e "alter table $table disable keys;"
 	if [ "${CHUNKS}" -eq 1 ] || [ "${table}" = "nation" ] || \

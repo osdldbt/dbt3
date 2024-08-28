@@ -54,15 +54,15 @@ while [ "${#}" -gt 0 ] ; do
 	shift
 done
 
-MYSQL="mysql -u root -D $DBNAME"
+MYSQL="mysql -u root -D ${DBNAME} ${MYSQL_ARGS}"
 
-$MYSQL -e "DROP TABLE IF EXISTS supplier;"
-$MYSQL -e "DROP TABLE IF EXISTS part;"
-$MYSQL -e "DROP TABLE IF EXISTS partsupp;"
-$MYSQL -e "DROP TABLE IF EXISTS customer;"
-$MYSQL -e "DROP TABLE IF EXISTS orders;"
-$MYSQL -e "DROP TABLE IF EXISTS lineitem;"
-$MYSQL -e "DROP TABLE IF EXISTS nation;"
-$MYSQL -e "DROP TABLE IF EXISTS region;"
-$MYSQL -e "DROP TABLE IF EXISTS time_statistics;"
-$MYSQL -e "DROP TABLE IF EXISTS dataset;"
+eval "${MYSQL} -e \"DROP TABLE IF EXISTS supplier;\""
+eval "${MYSQL} -e \"DROP TABLE IF EXISTS part;\""
+eval "${MYSQL} -e \"DROP TABLE IF EXISTS partsupp;\""
+eval "${MYSQL} -e \"DROP TABLE IF EXISTS customer;\""
+eval "${MYSQL} -e \"DROP TABLE IF EXISTS orders;\""
+eval "${MYSQL} -e \"DROP TABLE IF EXISTS lineitem;\""
+eval "${MYSQL} -e \"DROP TABLE IF EXISTS nation;\""
+eval "${MYSQL} -e \"DROP TABLE IF EXISTS region;\""
+eval "${MYSQL} -e \"DROP TABLE IF EXISTS time_statistics;\""
+eval "${MYSQL} -e \"DROP TABLE IF EXISTS dataset;\""

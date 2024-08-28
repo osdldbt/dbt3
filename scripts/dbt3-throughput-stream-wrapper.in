@@ -33,6 +33,10 @@ DBMS options are:
   pgxl       Postgres-XL
   virtuoso   Virtuoso
 
+MySQL specific options:
+  --mysql-socket=FILE
+                  specify socket FILE
+
 PostgreSQL specific options:
   -e             EXPLAIN ANALYZE
 
@@ -40,6 +44,7 @@ PostgreSQL specific options:
 EOF
 }
 
+DBMS_ARGS=""
 NO_REFRESH=0
 
 # Custom argument handling for hopefully most portability.
@@ -55,6 +60,13 @@ while [ "${#}" -gt 0 ]; do
 	(-f)
 		shift
 		scale_factor="${1}"
+		;;
+	(--mysql-socket)
+		shift
+		DBMS_ARGS="${DBMS_ARGS} --mysql-socket=${1}"
+		;;
+	(--mysql-socket=?*)
+		DBMS_ARGS="${DBMS_ARGS} --mysql-socket=${1#*--mysql-socket=}"
 		;;
 	(-n)
 		shift
@@ -110,12 +122,13 @@ RUNDIR=$OUTPUT_DIR/run
 i=1
 while [ $i -le $num_stream ] 
 do
-	dbt3-throughput-stream \
+	eval "dbt3-throughput-stream \
 			-f ${scale_factor} \
 			-t ${i} \
 			$EXTRA_ARGS \
 			-o ${OUTPUT_DIR} \
-			-s ${SEED_FILE} > ${RUNDIR}/thruput_qs${i} 2>&1 &
+			-s ${SEED_FILE} \
+			${DBMS_ARGS} > ${RUNDIR}/thruput_qs${i} 2>&1 &"
 	
 	i=$(( $i + 1 ))
 done
@@ -131,14 +144,14 @@ while [ $stream_num -le $num_stream ]; do
 	# Directories may not be created before the query is executed.
 	mkdir -p $OUTPUT_DIR/results/$stream_num
 
-	dbt3-$TAG-time-statistics -s -n $STREAM || exit 1
+	eval "dbt3-${TAG}-time-statistics -s -n ${STREAM} ${DBMS_ARGS}" || exit 1
 
-	dbt3-$TAG-time-statistics -s -n $RF1TASK || exit 1
+	eval "dbt3-${TAG}-time-statistics -s -n ${RF1TASK} ${DBMS_ARGS}" || exit 1
 	if [ $NO_REFRESH -eq 0 ]; then
 		echo "`date`: Throughput Stream $stream_num: Starting RF 1..."
 		s_time_rf1=`date +%s`
-		eval "dbt3-${TAG}-rf1" "$UNPRIVILEGED_ARG" "$EXTRA_ARGS" \
-				-f "$scale_factor" > "$RF1OUT" 2>&1
+		eval "dbt3-${TAG}-rf1 ${UNPRIVILEGED_ARG} ${EXTRA_ARGS} ${DBMS_ARGS} \
+				-f ${scale_factor} > ${RF1OUT} 2>&1"
 		DATASET=$?
 		if [ $DATASET -lt 1 ]; then
 			exit 1
@@ -147,21 +160,21 @@ while [ $stream_num -le $num_stream ]; do
 		diff_time_rf1=$(( $e_time_rf1 - $s_time_rf1 ))
 		echo "Throughput Stream $stream_num: Elapsed time for Refresh Stream 1: $diff_time_rf1 seconds"
 	fi
-	dbt3-$TAG-time-statistics -e -n $RF1TASK || exit 1
+	eval "dbt3-${TAG}-time-statistics -e -n ${RF1TASK} ${DBMS_ARGS}" || exit 1
 
 	echo "`date`: Throughput Stream $stream_num: Starting RF 2..."
 	s_time_rf2=`date +%s`
-	dbt3-$TAG-time-statistics -s -n $RF2TASK || exit 1
+	eval "dbt3-${TAG}-time-statistics -s -n ${RF2TASK} ${DBMS_ARGS}" || exit 1
 	if [ $NO_REFRESH -eq 0 ]; then
-		eval "dbt3-${TAG}-rf2" "$UNPRIVILEGED_ARG" "$EXTRA_ARGS" \
-				-s "$DATASET" > "$RF2OUT" 2>&1 || exit 1
+		eval "dbt3-${TAG}-rf2 ${UNPRIVILEGED_ARG} ${EXTRA_ARGS} ${DBMS_ARGS} \
+				-s ${DATASET} > ${RF2OUT} 2>&1" || exit 1
 		e_time_rf2=`date +%s`
 		diff_time_rf2=$(( $e_time_rf2 - $s_time_rf2 ))
 		echo "Throughput Steam $stream_num: Elapsed time for RF 2: $diff_time_rf2 seconds"
 	fi
-	dbt3-$TAG-time-statistics -e -n $RF2TASK || exit 1
+	eval "dbt3-${TAG}-time-statistics -e -n ${RF2TASK} ${DBMS_ARGS}" || exit 1
 
-	dbt3-$TAG-time-statistics -e -n $STREAM || exit 1
+	eval "dbt3-${TAG}-time-statistics -e -n ${STREAM} ${DBMS_ARGS}" || exit 1
 
 	stream_num=$(( $stream_num + 1 ))
 done
