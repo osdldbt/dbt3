@@ -92,4 +92,4 @@ echo "Stream ${set_num} : Elapsed time for Refresh Stream 1 : $diff_time seconds
 if [ $set_num -gt 0 ]; then
 	exit $set_num
 fi
-exit -1
+exit 1
