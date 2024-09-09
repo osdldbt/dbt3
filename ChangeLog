@@ -1,4 +1,4 @@
-vX.Y.Z (YYYY-MM-DD)
+v2.0.10 (2024-09-09)
 
 - Update man page make rules to match docutils v0.21.1 set since v2.0.7
 - Fix run script logic to calculate metrics only when both power and throughput
